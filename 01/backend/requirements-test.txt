@@ -1,5 +1,0 @@
--r requirements-core.txt
-bandit==1.9.4
-mongomock-motor==0.0.36
-pytest==9.1.1
-pytest-xdist==3.8.0
