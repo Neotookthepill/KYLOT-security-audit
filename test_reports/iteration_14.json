@@ -1,0 +1,99 @@
+{
+  "summary": "Revue pré-commercialisation KEYLOT. Backend: nouvelle suite pytest /app/backend/tests/test_prelaunch_iter14.py (27 tests, scénario complet 1 admin + 2 commerciaux + 3 techniciens + 1 responsable dans 'TEST_Alpha SARL' + entreprise 'TEST_Beta SAS' pour l'isolation) => 20 passed / 7 failed. Frontend: 5 sessions Playwright (admin, commercial, technicien, responsable, super-admin) sur desktop 1920 et mobile 390x844: menus par rôle, routes protégées, planning, kanban, heures sup, dialog permissions, erreurs utilisateur (double-clic, champs vides, montant négatif, token invalide). ISOLATION MULTI-ENTREPRISES: aucune fuite de données constatée (lecture ET écriture) — les 11 tentatives cross-company d'un admin Beta n'ont modifié/lu aucune donnée Alpha; settings isolés. En revanche 2 fuites INTRA-entreprise confirmées sur /api/dashboard/executive (scope 'own' ignoré + rôle responsable autorisé) et 1 sur PUT /api/projects (technicien peut modifier un chantier non assigné). Données de test supprimées en fin de run (cascade delete des 2 entreprises).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/dashboard/executive", "issue": "Le scope 'own' n'est jamais appliqué: un commercial (sales.view='own') reçoit le CA de TOUTE l'entreprise, le classement de tous les commerciaux, les commissions globales, clients_count global et recent_sales des autres commerciaux. Vérifié: Théo (13000€ propres) voit ca.total=33000€ et ranking=['Léa','Théo'].", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/dashboard/executive", "issue": "Protégé par require_sales_access (rôle) au lieu de check_perm: le rôle 'responsable' (sales.view='none', commissions.view='none', financial.view=false) obtient 200 avec CA + commissions + objectif. Fuite financière par rôle.", "priority": "CRITICAL"},
+      {"endpoint": "PUT /api/projects/{pid}", "issue": "Aucun filtre assigned_to: un technicien peut modifier (statut, date, assignation, photos) N'IMPORTE QUEL chantier de son entreprise, y compris ceux qu'il ne voit pas dans GET /api/projects (testé: 200 sur le chantier de Lucas).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/sales", "issue": "Aucune validation métier: amount négatif (-5000) accepté, amount=1e15 accepté (fausse tout le dashboard), service vide accepté, sale_date '31/02/2026' accepté (aucun contrôle de format ISO)."},
+      {"endpoint": "DELETE /api/sales|/api/projects|/api/clients|/api/users/{id}", "issue": "Réponse 200 {\"ok\":true} même quand l'id n'existe pas ou appartient à une autre entreprise (delete_one scoping OK, aucune fuite, mais l'API confirme une suppression qui n'a pas eu lieu). Retourner 404 si matched_count==0."},
+      {"endpoint": "GET /api/dashboard/executive", "issue": "recent_sales ne contient pas client_name -> le widget 'Ventes récentes' affiche '—' à la place du client."},
+      {"endpoint": "GET /api/dashboard/stats", "issue": "Pour un commercial, les compteurs chantiers (to_schedule/in_progress/completed) utilisent cq(user) sans scope 'own' => compteurs de toute l'entreprise alors que le CA est scopé."},
+      {"endpoint": "GET/PUT /api/settings, POST /api/sales (super_admin)", "issue": "company_id_of(super_admin) retombe sur 'default': un super-admin qui navigue dans les pages normales lit/écrit les données de l'entreprise 'default' (ex: PUT /api/settings modifie les settings de KEYLOT). De plus GET /api/sales|clients|users renvoie l'agrégat de TOUTES les entreprises (9 ventes, 17 users) — à confirmer comme intentionnel ou à bloquer."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Layout.jsx (sidebar)", "issue": "Aucune adaptation mobile: <aside class='w-64 shrink-0'> reste affichée en 390px (256px sur 390) => document.scrollWidth 518-745px vs innerWidth 390, titres tronqués ('Chanti...', 'Utilisa...'), bouton '+ Nouvelle vente' hors écran (x=558), calendrier /planning illisible (dates superposées). Pas de menu hamburger / drawer.", "selector": "aside", "priority": "CRITICAL"},
+      {"component": "Sales.jsx", "issue": "Le bouton '+ Nouvelle vente' (et Exporter CSV) reste affiché après retrait de la permission sales.create (vérifié après re-login: bouton présent, l'API répond 403). Les pages n'utilisent pas can() pour masquer les actions (Sales.jsx/Clients.jsx/Kanban.jsx importent seulement user).", "selector": "[data-testid=\"new-sale-btn\"]", "priority": "HIGH"},
+      {"component": "Clients.jsx", "issue": "Bouton supprimer client affiché pour tous (commercial et responsable ont clients.delete=false -> 403 au clic).", "selector": "[data-testid^=\"client-delete-\"]", "priority": "MEDIUM"},
+      {"component": "Layout.jsx (super_admin)", "issue": "Le super-admin voit TOUT le menu (Ventes, Commissions, Utilisateurs, Paramètres...) car can() renvoie true; combiné au bug company_id 'default' côté API, il peut modifier par erreur les données de l'entreprise par défaut. Le menu devrait se limiter à Entreprises.", "selector": "[data-testid=\"nav-companies\"]", "priority": "MEDIUM"},
+      {"component": "CalendarPage.jsx", "issue": "La pastille d'intervention n'affiche que 'Client — Prestation'; le technicien affecté n'est pas visible dans la vue calendrier (demandé dans le scénario).", "selector": "[data-testid^=\"calendar-\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Dashboard commercial", "issue": "La page /dashboard d'un commercial affiche des chiffres d'entreprise (fuite backend executive) — le commercial voit le CA et le classement de ses collègues.", "affected_selectors": ["[data-testid=\"nav-dashboard\"]"]},
+      {"flow": "Ventes récentes (dashboard)", "issue": "Chaque ligne affiche '—' au lieu du nom du client (client_name absent de recent_sales).", "affected_selectors": [".recent-sales"]},
+      {"flow": "Création de vente (montant)", "issue": "Un montant -500€ est accepté par l'UI et le backend: toast 'Vente créée · chantier ajouté au planning', vente et chantier créés avec montant négatif.", "affected_selectors": ["[data-testid=\"sale-amount\"]", "[data-testid=\"sale-submit-btn\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Toutes les pages en 390x844", "issues": ["sidebar fixe 256px non repliable", "scroll horizontal global (jusqu'à 745px)", "titres h1 text-4xl tronqués", "boutons d'action principaux hors viewport", "tableaux non encapsulés dans un conteneur overflow-x dédié (c'est la page entière qui scrolle)"]},
+      {"screen": "Formulaires (NewSaleSheet, HeuresSup)", "issues": ["input type='date' natif du navigateur au lieu du composant Calendar shadcn (rendu mm/dd/yyyy en anglais sur certains environnements)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_prelaunch_iter14.py",
+    "/app/backend/tests/_seed_prelaunch.py",
+    "/app/test_reports/pytest/pytest_iter14.xml"
+  ],
+  "action_items": [
+    "CRITIQUE: appliquer le scope de permission dans /api/dashboard/executive (filtre commercial=user.name quand perm_scope(sales,view)=='own'; ranking/commissions/recent_sales/clients_count) et remplacer require_sales_access par check_perm('sales','view') pour interdire l'accès au rôle responsable.",
+    "HIGH: restreindre PUT /api/projects/{pid} pour un technicien aux chantiers dont assigned_to contient son nom (même filtre que GET /api/projects).",
+    "HIGH: masquer côté frontend les actions non autorisées via can() (new-sale-btn, client-delete, export CSV, boutons move du Kanban) — aujourd'hui seuls le menu et les routes sont filtrés.",
+    "CRITIQUE UX: rendre la sidebar responsive (drawer + bouton hamburger < md) — l'app est inutilisable sur mobile alors que les techniciens sont la cible mobile.",
+    "MINOR: valider POST/PUT /api/sales (amount >= 0 et plafond raisonnable, service non vide, sale_date au format YYYY-MM-DD) avec messages en français.",
+    "MINOR: renvoyer 404 sur les DELETE quand deleted_count==0 (sales/projects/clients/users).",
+    "MINOR: ajouter client_name dans recent_sales (/api/dashboard/executive) et scoper les compteurs chantiers de /api/dashboard/stats.",
+    "MINOR: décider du comportement super_admin dans les endpoints métier (bloquer avec 403 ou exiger un company_id explicite) — actuellement il écrit dans l'entreprise 'default'."
+  ],
+  "critical_code_review_comments": [
+    "server.py: /api/dashboard/executive est le seul endpoint 'métier' qui n'appelle ni check_perm ni perm_scope — d'où les 2 fuites. Uniformiser: tout endpoint doit passer par check_perm + perm_scope, jamais par require_role.",
+    "server.py: update_project/delete_project ne rejouent pas le filtre de visibilité (assigned_to) utilisé dans list_projects — le scope de lecture et le scope d'écriture divergent.",
+    "server.py (2721 lignes): fichier trop volumineux, à découper en routers (auth, sales, projects, overtime, dashboard, superadmin, payments) pour limiter les régressions.",
+    "server.py: company_id_of() retourne 'default' pour un super_admin (company_id=None); tout écrit par le super-admin est silencieusement attribué à l'entreprise 'default'.",
+    "frontend: les pages n'utilisent que `user` (Sales/Kanban/CalendarPage/HeuresSup) alors que AuthContext expose can()/scope() — le RBAC granulaire n'est appliqué qu'au menu et aux routes.",
+    "Pydantic: SaleIn.amount est un float non contraint (pas de ge=0) alors que OvertimeIn.hours utilise correctement Field(ge=0, le=24)."
+  ],
+  "bugs_critical": [
+    {"titre": "Fuite intra-entreprise sur le dashboard dirigeant (scope 'own' ignoré)", "description": "Un commercial voit le CA global, le classement de tous les commerciaux, les commissions globales et les ventes récentes des autres. Testé: Théo (13 000€) voit 33 000€ et le classement complet.", "fichiers": ["/app/backend/server.py (dashboard_executive)"]},
+    {"titre": "Le rôle 'responsable' accède aux données financières", "description": "GET /api/dashboard/executive renvoie 200 (CA, commissions, objectif) alors que ses permissions par défaut sont sales.view='none' et commissions.view='none'. Protection par rôle (require_sales_access) au lieu de permission.", "fichiers": ["/app/backend/server.py (require_sales_access, dashboard_executive)"]},
+    {"titre": "Un technicien peut modifier les chantiers des autres techniciens", "description": "PUT /api/projects/{pid} renvoie 200 pour un chantier non assigné (statut/date/assignation modifiables), alors que GET /api/projects le masque.", "fichiers": ["/app/backend/server.py (update_project)"]},
+    {"titre": "Application inutilisable sur mobile", "description": "Sidebar 256px non repliable en 390px de large: scroll horizontal global, titres tronqués, boutons d'action hors écran, calendrier illisible. Bloquant pour les techniciens terrain.", "fichiers": ["/app/frontend/src/components/Layout.jsx"]}
+  ],
+  "bugs_minor": [
+    {"titre": "Actions non autorisées visibles dans l'UI", "description": "'+ Nouvelle vente' reste affiché après retrait de sales.create (403 au clic); idem suppression client pour commercial/responsable.", "fichiers": ["/app/frontend/src/pages/Sales.jsx", "/app/frontend/src/pages/Clients.jsx", "/app/frontend/src/pages/Kanban.jsx"]},
+    {"titre": "Aucune validation des montants et dates de vente", "description": "amount=-5000 et amount=1e15 acceptés (dashboard faussé), service vide accepté, sale_date '31/02/2026' accepté.", "fichiers": ["/app/backend/server.py (SaleIn, create_sale, update_sale)"]},
+    {"titre": "DELETE idempotent renvoyant 200 sur ressource inexistante/étrangère", "description": "Aucune fuite de données mais l'API confirme une suppression fantôme (sales, projects, clients, users).", "fichiers": ["/app/backend/server.py"]},
+    {"titre": "'Ventes récentes' affiche '—' au lieu du client", "description": "recent_sales de /api/dashboard/executive n'est pas enrichi avec client_name.", "fichiers": ["/app/backend/server.py (dashboard_executive)", "/app/frontend/src/pages/Dashboard.jsx"]},
+    {"titre": "Compteurs chantiers non scopés pour un commercial", "description": "/api/dashboard/stats renvoie to_schedule/in_progress/completed de toute l'entreprise même quand le CA est scopé 'own'.", "fichiers": ["/app/backend/server.py (dashboard_stats)"]},
+    {"titre": "Super-admin rattaché implicitement à l'entreprise 'default'", "description": "Menu complet + écritures (PUT /api/settings) appliquées à l'entreprise 'default'; lectures agrégées multi-entreprises via les endpoints métier.", "fichiers": ["/app/backend/server.py (company_id_of)", "/app/frontend/src/components/Layout.jsx"]},
+    {"titre": "Technicien affecté non affiché dans le calendrier", "description": "La pastille du planning n'affiche que 'Client — Prestation'.", "fichiers": ["/app/frontend/src/pages/CalendarPage.jsx"]}
+  ],
+  "improvements": [
+    {"titre": "Uniformiser le RBAC côté API", "description": "Créer un décorateur/dépendance unique (resource, action, min_scope) et l'appliquer à tous les endpoints, y compris dashboards, exports et rapports, pour éviter les divergences lecture/écriture.", "fichiers": ["/app/backend/server.py"]},
+    {"titre": "Composant <Guard perm=[...]> côté frontend", "description": "Wrapper réutilisable pour masquer/désactiver les boutons selon can(), afin de ne plus dupliquer la logique dans chaque page.", "fichiers": ["/app/frontend/src/lib/permissions.js", "/app/frontend/src/components"]},
+    {"titre": "Découper server.py (2721 lignes) en routers", "description": "auth / sales / clients / projects / overtime / dashboard / superadmin / payments + module de permissions.", "fichiers": ["/app/backend/server.py"]},
+    {"titre": "Remplacer les input type='date' par le Calendar shadcn", "description": "Cohérence visuelle et format FR (jj/mm/aaaa) au lieu du picker natif en anglais.", "fichiers": ["/app/frontend/src/components/NewSaleSheet.jsx", "/app/frontend/src/components/EditSaleSheet.jsx"]},
+    {"titre": "Index Mongo sur company_id", "description": "Ajouter des index composés (company_id + date/commercial/assigned_to) sur sales/projects/overtime avant la mise en production multi-tenant.", "fichiers": ["/app/backend/server.py (startup)"]},
+    {"titre": "Journal d'audit", "description": "Tracer les actions sensibles (changement de permissions, suppression de vente/utilisateur, validation d'heures) avec auteur + horodatage.", "fichiers": ["/app/backend/server.py"]}
+  ],
+  "new_features": [
+    {"titre": "Notifications in-app (cloche)", "description": "Non implémenté (confirmé): aucun composant de notification. Utile pour 'heures sup à valider', 'chantier à planifier', 'commission à payer'.", "fichiers": ["/app/frontend/src/components/Layout.jsx"]},
+    {"titre": "Filtres période sur la page Ventes", "description": "Non implémenté: pas de sélecteur mois/année sur /ventes (seul le dashboard a Ce mois/Mois préc./Année).", "fichiers": ["/app/frontend/src/pages/Sales.jsx"]},
+    {"titre": "Widget prévisionnel de CA", "description": "Non implémenté (hors périmètre de ce test).", "fichiers": ["/app/frontend/src/pages/Dashboard.jsx"]},
+    {"titre": "Vue planning semaine + drag&drop d'affectation", "description": "Le planning est mensuel uniquement; une vue semaine par technicien faciliterait l'affectation.", "fichiers": ["/app/frontend/src/pages/CalendarPage.jsx"]},
+    {"titre": "Export/récap heures sup par technicien (PDF/CSV) pour la paie", "description": "Actuellement seul l'affichage mensuel existe.", "fichiers": ["/app/frontend/src/pages/HeuresSup.jsx", "/app/backend/server.py"]}
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_prelaunch_iter14.py (créé)",
+    "/app/backend/tests/_seed_prelaunch.py (créé)"
+  ],
+  "success_rate": {"backend": "74% (20/27 tests)", "frontend": "80% (menus/rôles/routes/erreurs OK; mobile et gating des boutons KO)"},
+  "seed_data_creation": "Entreprises 'TEST_Alpha SARL' + 'TEST_Beta SAS' avec admins, 2 commerciaux (Théo/Léa), 3 techniciens (Sébastien/Lucas/Marc), 1 responsable, 2 clients (Dupont/Martin), 2 ventes (5000/8000€), 2 chantiers auto-créés + planifiés, heures sup. TOUT a été supprimé en fin de run (cascade delete super-admin). Rejouer `python /app/backend/tests/_seed_prelaunch.py seed` pour retester l'UI, `clean` pour nettoyer.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "super@keylot.app / CHANGE_ME_TEST_PASSWORD (super-admin) et admin@example.invalid / CHANGE_ME_TEST_PASSWORD (admin 'default') — /app/memory/test_credentials.md valide. Comptes Alpha/Beta recréables via le seed (CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD, CHANGE_ME_TEST_PASSWORD).",
+  "context_for_next_testing_agent": "Suite complète: /app/backend/tests/test_prelaunch_iter14.py (auto-bootstrap: crée les 2 entreprises et les supprime en teardown, donc rejouable). Les 7 échecs actuels sont des bugs réels documentés (executive scope commercial, executive/responsable, PUT project technicien, validation montant/date/service, DELETE 200 fantôme, recent_sales sans client_name). L'ISOLATION MULTI-ENTREPRISES est OK (aucune donnée Alpha lue ou modifiée depuis Beta, settings isolés, super-admin endpoints protégés 403). Pour l'UI: lancer `python /app/backend/tests/_seed_prelaunch.py seed`, tester puis `clean`. Non testé/non implémenté: notifications cloche, filtres mois sur /ventes, widget prévisionnel, Stripe checkout réel, envoi d'emails cron.",
+  "rca_of_the_issue": "dashboard_executive() n'utilise que cq(user) (filtre entreprise) et require_sales_access (filtre rôle): il n'appelle jamais perm_scope('sales','view') comme le font list_sales/list_commissions, d'où le CA et le classement globaux pour un commercial 'own', et l'accès autorisé au rôle 'responsable' dont les permissions sales/commissions sont 'none'. Même cause racine pour update_project: seul check_perm(projects,'edit') est évalué, sans rejouer le filtre assigned_to appliqué en lecture pour les techniciens. Reproduction: cf. tests 23-25 du fichier iter14."
+}

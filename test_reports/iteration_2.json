@@ -1,0 +1,58 @@
+{
+  "summary": "Verified the P0 Commissions 404 fix end-to-end plus regressions on every page and endpoint added since iteration_1 (monthly PDF, AI actions, Stripe, crons, photos GPS). Backend: 44 pytest tests, 41 passed (93%). GET /api/commissions now returns 200 with a JSON list; the Commissions page renders with real KPIs (3 368 € / 2 868 € / 500 €), commissions-search visible, 3 rows, month tabs, search filter and 'Payé' toggle all working, NO 'Uncaught runtime errors' overlay and ZERO failed /api calls. Clients, Utilisateurs, Ventes, Chantiers, Planning, Rapport mensuel, Abonnement, Paramètres and Dashboard all load clean (no overlay, no pageerror, no 4xx/5xx). Two real defects found: (1) PUT /api/projects rejects the rich GPS photo objects that ProjectDialog actually sends -> 422, so the new photo+GPS feature cannot save; (2) AI 'update_sale_status' fails intermittently with missing=['sale_not_found'] and a DISABLED 'Confirmer' button because the bdc/client_name lookup uses if/elif. Also: the AI assistant floating button is rendered on the /login page for unauthenticated users and returns 'Erreur : Non authentifié'.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/projects/{pid}", "issue": "ProjectUpdate.photos is Optional[List[str]] but ProjectDialog.jsx (line 103) posts rich objects {src, taken_at, lat, lng, accuracy}. Server answers 422 'Input should be a valid string' -> saving a chantier photo with GPS is IMPOSSIBLE from the UI. Change to Optional[List[Union[str, dict]]] (or a PhotoIn model) and keep back-compat with plain base64 strings.", "priority": "CRITICAL"},
+      {"endpoint": "POST /api/ai/action + /api/ai/action/execute", "issue": "Sale lookup uses `if data.get('bdc'): ... elif data.get('client_name'):`. The LLM frequently returns the client name inside `bdc` (e.g. bdc='LEPESQUEUX'), the bdc lookup misses and the client_name branch is never tried -> preview returns missing=['sale_not_found'] and execute returns 404 'Vente introuvable', although the sale exists. Reproduced in UI: 'La vente LEPESQUEUX chantier fini' shows 'Champs manquants : sale_not_found' with Confirmer DISABLED (intermittent, ~50% of runs). Fix: chain the fallbacks (bdc exact -> bdc treated as client name -> client_name regex) instead of if/elif.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/ai/action", "issue": "The enrichment key `_sale_id` starts with '_sa', which FastAPI's jsonable_encoder(sqlalchemy_safe=True) strips, so it never reaches the frontend and the sale must be re-resolved at execute time. Rename to 'sale_id' / 'resolved_sale_id'."},
+      {"endpoint": "DELETE /api/clients/{cid}", "issue": "No cascade and no 404: deleting a client leaves its sales/projects orphaned. Reproduced: an orphan sale rendered with an EMPTY 'CLIENT' cell in Ventes and Commissions (client_name resolved to ''). Either block the delete, cascade, or keep a client_name snapshot on the sale."},
+      {"endpoint": "POST /api/payments/portal", "issue": "Body field is `return_url` (required). Sending {origin_url} -> 422. Frontend sends return_url so the app is fine, but the contract differs from /payments/checkout which uses origin_url — inconsistent API."},
+      {"endpoint": "POST /api/auth/login", "issue": "Playbook deviations unchanged since iteration_1: set_auth_cookies() is defined (line 78) but never called (no httpOnly cookie), CORS is allow_origins=['*'] with allow_credentials=False, and there is no brute-force lockout after 5 failed logins."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AIHelper", "issue": "Rendered in App.js line 82 outside the authenticated routes, so the floating assistant button is visible on /login; sending a message returns 401 and prints the raw 'Erreur : Non authentifié' bubble to anonymous visitors. Render it inside Layout or gate it on `user`.", "selector": "[data-testid='ai-helper-btn']", "priority": "MEDIUM"},
+      {"component": "AIHelper action preview", "issue": "Raw technical token shown to French users: 'Champs manquants : sale_not_found — précise dans un message.' Should be a human sentence e.g. « Vente introuvable — précise le n° de BDC ou le nom du client ».", "selector": "[data-testid='ai-action-preview']", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "AI action -> update statut de vente", "issue": "Preview returns sale_not_found so [data-testid='ai-action-confirm'] stays disabled and the user cannot apply the status change (backend bdc/client_name if/elif bug).", "affected_selectors": ["[data-testid='ai-action-confirm']"]},
+      {"flow": "Chantier photos + GPS", "issue": "UI sends rich photo objects; PUT /api/projects answers 422 so no photo can be saved (hint text is correct, upload path is broken).", "affected_selectors": ["[data-testid='project-dialog']"]}
+    ],
+    "design_issues": [
+      {"screen": "Commissions / Ventes", "issues": ["Rows coming from deleted clients render an empty CLIENT cell (no '—' placeholder)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_commissions_regression.py",
+    "/app/backend/tests/test_endpoints_reachability.py",
+    "/app/backend/tests/test_photos_gps.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Accept rich photo objects in ProjectUpdate.photos (Union[str, dict]) — currently 422 blocks the whole GPS photo feature.",
+    "Fix the AI sale lookup fallback chain in /api/ai/action and /api/ai/action/execute (bdc -> bdc-as-client-name -> client_name) and rename `_sale_id` to a non '_sa' prefixed key.",
+    "Move <AIHelper /> inside the authenticated Layout so it is not shown on the login page.",
+    "Humanise the 'sale_not_found' message in the AI preview (French wording).",
+    "Handle client deletion (cascade / block / snapshot client_name) so Ventes & Commissions never show a blank client, and return 404 when the client does not exist."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 2017 lines mixing auth, sales, projects, AI, Stripe, PDF and crons — split into routers (guideline >700 lines).",
+    "ProjectUpdate.photos type does not match the frontend payload; the contract should be validated by a shared Pydantic model with lat/lng/accuracy/taken_at.",
+    "The bdc/client_name resolution logic is duplicated verbatim in /ai/action and /ai/action/execute — extract one `resolve_sale(data)` helper so both stay consistent.",
+    "delete_client() silently returns {'ok': True} even for unknown ids and leaves orphan sales/projects."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_endpoints_reachability.py"
+  ],
+  "success_rate": {"backend": "93% (41/44 pytest)", "frontend": "95% (all pages load clean; AI status action + photo save broken)"},
+  "seed_data_creation": "AI test created 1 client + 1 sale (TEST_QA_Client, 5000€) — both deleted; one leftover orphan sale (id 6450584f) was found and deleted, DB back to 7 sales / 9 clients. Commission paid/rate/month toggles were reverted to their original values.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (from /app/memory/test_credentials.md) — works, bcrypt $2b$",
+  "context_for_next_testing_agent": "Suite: /app/backend/tests/{conftest.py, backend_test.py, test_commissions_regression.py, test_endpoints_reachability.py, test_photos_gps.py}. Run: cd /app/backend && python -m pytest tests/ -p no:randomly. The 3 known failures are the photos-GPS 422 and the 2 AI update_sale_status ones (the AI one is intermittent — the LLM sometimes fills client_name instead of bdc, in which case it passes). Frontend testids: nav-{dashboard,sales,report,kanban,calendar,commissions,clients,users,settings,subscription}, commissions-search, commission-row-<sale_id>, commission-paid-<sale_id>, month-tab-<key>, ai-helper-btn/ai-mode-action/ai-input/ai-send-btn/ai-action-preview/ai-action-confirm, project-dialog. IMPORTANT: wait ~2s after login before firing AI requests, the assistant is mounted globally and 401s if clicked before the token is stored. Iteration_1 orphan-technicien UI bug is FIXED (ProjectDialog now shows an 'Anciens techniciens : Yann ×' removable chip).",
+  "rca_of_the_issue": "Commissions 404: the '@api_router.get(\"/commissions\")' decorator had been deleted so list_commissions was an unrouted plain function; FastAPI returned 404 for GET /api/commissions and Commissions.jsx let the axios error bubble up into the CRA runtime-error overlay (two 404s = the page's two calls). The decorator is restored at server.py:1096 and both backend (200 + list shape + rate/month/paid persistence) and UI (KPIs, table, filters, toggle, no overlay) are verified working. Secondary note: the page also has no try/catch-driven error state — any future API failure will again surface as a runtime overlay instead of an inline error message."
+}

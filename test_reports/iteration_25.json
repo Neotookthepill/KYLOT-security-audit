@@ -1,0 +1,42 @@
+{
+  "summary": "iter138 backend-only testing of the new clients file import (CSV/XLSX). Created /app/backend/tests/test_iter138_clients_import.py — 19/19 pytest PASS. Covered: CSV `;` and `,` parsing (headers, row_count, preview<=20, rows_full, auto_mapping Nom→name / Téléphone→phone / Email→email / Adresse→address / Code postal→postal_code / Ville→city / Notes→notes, unknown column left unmapped, fields catalogue with name.required=true), XLSX parsing via openpyxl (identical shape), empty file → 400 'Fichier vide', blank-lines-only → 400, unauthenticated parse → 403, execute happy path with field-level persistence check via GET /api/clients, unmapped columns ignored (stored as ''), mapping without 'name' → 400 « La colonne « Nom / Prénom » doit être mappée », empty mapping → 400, invalid duplicate_strategy → 422, row with empty name → skipped 'nom manquant', duplicate by phone strategy=ignore (skipped_count=1, no new doc), strategy=update (updated_count=1, non-empty fields updated, empty field does NOT overwrite, no duplicate doc), strategy=create (2nd doc created), duplicate detected by email alone, 300-row bulk (created_count=300, error_count=0), technicien (no clients.create) → 403 on both endpoints, multi-tenant isolation (Acme cannot see default's imported client and the same phone in Acme is NOT flagged duplicate → dedup is company-scoped). CRITICAL STRICTNESS CHECK PASSED at raw-DB level: snapshotted document counts of every collection before/after an import — only `clients` changed (22→27), zero new collections, no sales/projects/invoices/interventions/planning/notifications/audit docs written. Also verified via API that GET /api/sales and GET /api/projects counts are unchanged before/after both the 3-row and 300-row imports. Volume probe: 2000-row CSV parse = 0.52s / 147 KB response, execute 2000 rows = 3.0s, created_count=2000, no errors. All test data (TEST_IMP_*, TEST_VOL_*, TEST_DBSTRICT_*, stray 'Prenom' client) deleted; db.clients back to its original 22 docs, sales=11 projects=11 unchanged.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/clients/import/execute", "issue": "Mapping two columns onto the same field silently keeps only the LAST column (field_to_col dict overwrite). E.g. mapping col0='Nom' and col1='Prenom' both to `name` stores only 'Prenom'. With a 'Nom;Prenom' file the user cannot concatenate first+last name; auto-mapping also drops the Prenom column entirely. Consider supporting multi-column concatenation for `name` (or at least warn in the UI)."},
+      {"endpoint": "POST /api/clients/import/execute", "issue": "No cap on `rows` length and one find_one + one insert per row (2000 rows = 3s, sequential). For 'plusieurs milliers' this stays OK but there is no batching/bulk_write and no request-size guard, so a 100k-row payload could block the event loop / exceed body limits. Also no index on clients.phone / clients.email, so dedup lookups are collection scans."},
+      {"endpoint": "POST /api/clients/import/parse", "issue": "`rows_full` returns the entire file to the browser (147 KB for 2000 rows) and the client posts it all back on execute — duplicate transfer of the whole dataset. A server-side staged upload (or execute-by-file) would scale better."},
+      {"endpoint": "POST /api/clients/import/execute", "issue": "No audit_logs entry is written for an import (audit_logs count unchanged), while other write paths in the app do log. Bulk client creation/update is worth auditing."},
+      {"endpoint": "POST /api/clients/import/execute", "issue": "Email is lowercased for dedup but phone is compared raw — '06 00 11 22 33' vs '0600112233' will not match as duplicate. Consider normalizing phone (strip spaces/dots/+33) before the $or lookup."},
+      {"endpoint": "POST /api/clients/import/parse", "issue": "Unknown extensions fall back to CSV parsing; an .xls (old binary) or .pdf upload returns 200 with garbage headers instead of a clear 400 unsupported-format error."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter138_clients_import.py",
+    "/app/backend/tests/_iter138_db_strict_check.py",
+    "/app/test_reports/pytest/iter138.xml"
+  ],
+  "action_items": [
+    "Optional: support mapping several columns to `name` (concatenation) — today 'Nom' + 'Prenom' loses the first name.",
+    "Optional hardening: cap rows per execute call (e.g. 5000) and/or use bulk_write; add MongoDB indexes on clients.(company_id, phone) and (company_id, email) for dedup performance.",
+    "Optional: return 400 for clearly unsupported file types instead of silently CSV-parsing them; normalize phone before duplicate lookup; add an audit_logs entry for imports."
+  ],
+  "critical_code_review_comments": [
+    "Strictness requirement is correctly implemented: execute_import_file only touches db.clients (verified by full-DB count diff) — no sale/project/invoice side-effects.",
+    "Dedup query uses {'company_id': company_id, '$or': [...]} instead of the shared cq(user) helper; result is correct for admins but bypasses any future scope logic in cq() (e.g. commercial 'own' scope), so a commercial could update/see-as-duplicate another commercial's client. Consider routing through cq(user).",
+    "Broad `except Exception` per row swallows real DB errors into `errors[]` and still returns 200 — acceptable for imports but the message is raw str(e) (potential internal detail leak in the response).",
+    "server.py is 8241 lines — should be split into routers/modules."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter138_clients_import.py",
+    "/app/backend/tests/_iter138_db_strict_check.py"
+  ],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "not tested (backend-only request)"},
+  "seed_data_creation": "Temporary clients TEST_IMP_*, TEST_VOL_* (2000), TEST_DBSTRICT_* in company `default` plus one in Acme — ALL deleted. db.clients=22, sales=11, projects=11 (unchanged from pre-test state).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (OK); technicien test-tech@keylot.app / CHANGE_ME_TEST_PASSWORD (403 as expected); boss@acme.example.com / Acme@2026 (OK, used for multi-tenant test)",
+  "context_for_next_testing_agent": "Import regression suite: `cd /app/backend && python -m pytest tests/test_iter138_clients_import.py -v` (19 tests, self-cleaning module fixture). The DB-level strictness script is /app/backend/tests/_iter138_db_strict_check.py (snapshots every collection count around an import; run it directly with python, it cleans after itself). Frontend wizard (/app/frontend/src/components/ImportClientsFileDialog.jsx, button data-testid='file-import-btn' on /clients) was NOT UI-tested — that remains open. Beware: deleting thousands of test clients one-by-one via DELETE /api/clients/{id} is slow; use motor directly.",
+  "rca_of_the_issue": "No defect found on the tested feature. The user's key constraint (import must create client records only) holds: a full before/after document-count diff over every MongoDB collection shows only `clients` mutated."
+}

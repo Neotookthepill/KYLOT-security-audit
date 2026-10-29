@@ -1,0 +1,111 @@
+{
+  "summary": "Itération 16 — non-régression + validation des 3 nouvelles features (filtres période /ventes, notifications in-app optionnelles, journal d'audit). Backend: nouvelle suite /app/backend/tests/test_notif_audit_iter16.py (23 tests, 23/23 PASSED en série `-n 0`) couvrant login admin, /auth/me, /settings (5 catégories notif exposées + defaults bool), /notifications (items/unread/read/read-all/delete/404/only_unread/isolation par user), émission new_sales par un commercial (message + link_url + exclusion de l'auteur), non-émission quand la catégorie est OFF, émission overtime par un technicien, /audit (filtres resource/action/user_id/from_date/to_date, champs user_name/user_role/at, audit du delete, 403 commercial, 401 sans token), isolation super_admin (403 sur /api/sales, /api/settings, /api/notifications, /api/audit ; 200 sur /api/superadmin/companies), dashboard/executive recent_sales.client_name. Suite globale: 169 passed / 7 failed (les 7 = 3 x HTTP 500 réels + 4 régressions de validation détaillées ci-dessous). 19 échecs supplémentaires étaient dus au parsing de /app/memory/test_credentials.md qui prenait le compte super_admin (désormais 403 sur les endpoints tenant) — corrigé dans conftest.py + 5 anciens fichiers de tests. Frontend: 5 sessions Playwright (desktop admin, desktop commercial, mobile 390px admin, /parametres, /journal). Les 3 features fonctionnent; 1 bug UI confirmé (Réinitialiser du journal = closure obsolète). Le débordement horizontal mobile signalé en iter15 est corrigé (scrollWidth=390 sur /ventes et /journal).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/cron/bilan-mensuel*/test (et le cron mensuel automatique) — server.py:2195",
+        "issue": "HTTP 500: `_compute_monthly_report() missing 1 required positional argument: 'user'`. La signature est devenue `_compute_monthly_report(prefix, user)` (multi-tenant) mais `_run_monthly_digest_email()` l'appelle encore avec un seul argument. Conséquence: le bilan mensuel automatique (1er du mois 9h) plante à chaque exécution, silencieusement en prod.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/ai/actions/execute (create_sale) — server.py:1266",
+        "issue": "HTTP 500: `pydantic ValidationError for SaleIn / service: String should have at least 1 character`. Le payload issu du LLM est passé à SaleIn() sans try/except -> 500 au lieu d'un 400 explicite. Reproduit par test_commissions_regression.py::TestAIActions::test_ai_action_create_sale_flow et test_ai_status_iter3.py::TestAiCreateSale.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "PUT /api/settings",
+        "issue": "RÉGRESSION de validation (iter9): `overtime_alert_threshold` n'a plus de bornes — -5 et 100000 sont acceptés (200). Ajouter Field(ge=0, le=500) dans SettingsIn."
+      },
+      {
+        "endpoint": "POST /api/overtime/validate-tech",
+        "issue": "RÉGRESSION de validation (iter9): le body est un `dict` brut (pas de modèle Pydantic) et le mois n'est plus validé — {\"month\": \"9999-99\"} renvoie 200 au lieu de 400 'Mois invalide'; body vide renvoie 400 au lieu de 422."
+      },
+      {
+        "endpoint": "DELETE /api/clients/{id}",
+        "issue": "Aucune cascade ni garde-fou: la suppression d'un client laisse ses ventes/chantiers orphelins. Effet visible: /api/dashboard/executive renvoyait recent_sales.client_name = '' (vente orpheline 'TEST Thomas sale' laissée par l'iter15, nettoyée pendant cette session). Recommandation: 409 si des ventes existent, ou cascade explicite."
+      },
+      {
+        "endpoint": "POST /api/overtime (update path)",
+        "issue": "La modification d'une déclaration existante ne passe pas par log_audit (seule la création est auditée) et ne notifie pas — incohérence de traçabilité pour un journal d'audit 'actions sensibles'."
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "Non corrigé (iter15): `set_auth_cookies()` reste du code mort — aucun cookie httpOnly n'est posé, aucun refresh token émis (auth Bearer + localStorage uniquement). CORS: allow_credentials=False avec CORS_ORIGINS='*' → incompatible avec un passage aux cookies. NB: le lockout anti-brute-force est désormais implémenté (429 après 5 échecs, 15 min) et vérifié."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Journal.jsx — bouton Réinitialiser",
+        "issue": "BUG confirmé: `onClick={() => { setFilters(vide); setTimeout(load, 0); }}` — `load` capture les `filters` du render courant (closure obsolète), donc la requête /audit repart avec les ANCIENS filtres. Reproduit: 36 lignes → filtre user=TEST_Com1 → 11 lignes → clic 'Réinitialiser' → les selects affichent 'Tous/Toutes' mais la table reste à 11 lignes (état UI et données désynchronisés). Correctif: passer les filtres en paramètre (`const load = async (f = filters) => ...` puis `load({})`) ou déclencher via useEffect sur `filters`.",
+        "selector": "[data-testid='journal-clear-filters']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "NotificationBell (2 instances: sidebar desktop + top bar mobile)",
+        "issue": "Le composant est monté 2 fois avec des états locaux indépendants: 'Tout marquer lu' sur l'instance visible laisse l'autre instance avec son ancien compteur jusqu'au refresh (polling 60 s). Non bloquant au desktop/mobile (l'autre instance est masquée) mais l'état devrait être partagé (context/SWR). Les tests doivent filtrer sur l'instance visible.",
+        "selector": "[data-testid='notif-bell-btn']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/journal (filtres Du/Au) et /ventes (période Personnalisé)",
+        "issues": [
+          "Champs `<Input type=\"date\">` = date picker natif du navigateur affiché au format mm/dd/yyyy alors que toute l'app est en fr-FR — utiliser le composant Calendar/Popover shadcn pour la cohérence (déjà utilisé ailleurs)."
+        ]
+      },
+      {
+        "screen": "/parametres",
+        "issues": [
+          "Les 5 toggles Notifications sont dans un <label> qui englobe un Switch Radix (bouton, non 'labelable'): le clic sur le texte fonctionne bien en pratique (vérifié), mais l'association reste implicite — préférer aria-labelledby/htmlFor+id pour l'accessibilité."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_notif_audit_iter16.py",
+    "/app/backend/tests/_seed_iter16_ui.py",
+    "/app/backend/tests/_cleanup_iter16.py",
+    "/app/test_reports/pytest/iter16_notif_audit.xml",
+    "/app/test_reports/pytest/iter16_regression.xml"
+  ],
+  "action_items": [
+    "CRITIQUE: corriger server.py:2195 `_compute_monthly_report(prev_month)` → passer un contexte utilisateur/company (cron bilan mensuel actuellement 500).",
+    "HIGH: encadrer la construction de SaleIn dans /api/ai/actions/execute (try/except ValidationError → HTTP 400 avec message clair).",
+    "Rétablir la validation `overtime_alert_threshold` (bornes) dans SettingsIn et un modèle Pydantic + validation du mois pour POST /api/overtime/validate-tech.",
+    "Corriger la closure obsolète du bouton 'Réinitialiser' de /journal (journal-clear-filters).",
+    "Décider du sort de DELETE /api/clients (cascade ou 409) pour éviter les ventes orphelines (client_name vide sur le dashboard).",
+    "Optionnel: partager l'état des notifications entre les 2 instances de NotificationBell; auditer aussi les updates d'heures sup."
+  ],
+  "critical_code_review_comments": [
+    "server.py fait 3040 lignes — le bloc Notifications & Audit (~150 lignes) et les crons/emails HTML devraient être extraits en modules (routers/notifications.py, routers/audit.py, services/emails.py).",
+    "emit_notification() lit les settings à chaque appel (1 requête Mongo par vente/heure sup) et insère 1 document par admin: acceptable à cette échelle, mais prévoir un index {company_id, user_id, is_read} sur `notifications` et {company_id, at} sur `audit_log` avant la mise en prod (les listes sont triées/filtrées sur ces champs, limit 200/2000).",
+    "log_audit stocke le document complet dans `after` (y compris les champs futurs sensibles); prévoir une liste blanche de champs et une politique de rétention/TTL sur audit_log.",
+    "Le filtre de dates de /api/audit compare des chaînes ISO (`at` stocké en texte) — fonctionne car format normalisé, mais fragile: préférer un vrai datetime ou documenter l'invariant.",
+    "Journal.jsx: `load()` est recréé à chaque render et référencé dans un setTimeout → source du bug Réinitialiser; utiliser useCallback avec dépendances explicites ou un paramètre."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Sales.jsx (ajout data-testid='sales-period-count' sur le compteur de ventes)",
+    "/app/backend/tests/conftest.py (parsing des credentials scopé à la section admin entreprise)",
+    "/app/backend/tests/test_dashboard_executive_iter11.py",
+    "/app/backend/tests/test_dashboard_delta_iter12.py",
+    "/app/backend/tests/test_dashboard_delta_iter13.py",
+    "/app/backend/tests/test_delta_threshold_edge_iter13.py",
+    "/app/backend/tests/test_hardening_iter9.py",
+    "/app/backend/tests/test_notif_audit_iter16.py (nouveau)",
+    "/app/backend/tests/_seed_iter16_ui.py (nouveau)",
+    "/app/backend/tests/_cleanup_iter16.py (nouveau)"
+  ],
+  "success_rate": {"backend": "97% (23/23 sur la suite iter16; 169/176 sur l'ensemble, 7 échecs = 3 x 500 réels + 4 régressions de validation)", "frontend": "90% (filtres période, notifications, journal, settings OK; 1 bug Réinitialiser du journal)"},
+  "seed_data_creation": "Comptes créés: com1@keylot.example.com / Com@2026 (commercial, name TEST_Com1) et tech16@keylot.example.com / CHANGE_ME_TEST_PASSWORD (technicien, name TEST_Tech16) — conservés pour les prochaines itérations. Toutes les ventes TEST_ créées ont été supprimées, les notifications purgées, les préférences de notifications remises à OFF, overtime_alert_threshold restauré à 30 et app_name restauré à 'KEYLOT' (résidu 'KYLOT' d'une session précédente). Reste 2 déclarations d'heures sup TEST_Tech16 (2026-07-06/07) et objectif_ca=150000 (résidu antérieur).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@example.invalid/CHANGE_ME_TEST_PASSWORD (admin), super@keylot.app/CHANGE_ME_TEST_PASSWORD, com1@keylot.example.com/Com@2026 (commercial), tech16@keylot.example.com/CHANGE_ME_TEST_PASSWORD (technicien)",
+  "context_for_next_testing_agent": "1) Lancer tests/test_notif_audit_iter16.py EN SÉRIE (`pytest tests/test_notif_audit_iter16.py -n 0`): les tests modifient les préférences de notifications globales de l'entreprise, xdist provoque des interférences. 2) tests/test_prelaunch_iter14.py et iter15.py + test_multitenant_rbac_iter14.py échouent au setup: les entreprises/comptes TEST_ seedés (alpha/beta/acme) ont été supprimés en fin d'iter15 → les logins échouent et déclenchent le lockout 429 (15 min). Les re-seeder (_seed_prelaunch.py) avant de les rejouer, ou les ignorer. 3) Le super_admin est désormais 403 sur TOUS les endpoints tenant: tout parsing de test_credentials.md doit être scopé à la section '## Default company admin' (fait dans conftest + 5 fichiers). 4) Les 3 features nouvelles sont validées côté API et UI; il reste à revérifier le bouton 'Réinitialiser' de /journal et les 2 x 500 (cron bilan mensuel, ai/actions/execute) après correctifs.",
+  "rca_of_the_issue": "Bug journal 'Réinitialiser': stale closure — setFilters() est asynchrone et `setTimeout(load, 0)` réutilise la fonction `load` du render courant qui lit les anciens `filters`; la requête part donc avec les filtres précédents alors que les Selects affichent déjà les valeurs vides. Bug cron bilan mensuel: refactor multi-tenant de _compute_monthly_report(prefix, user) sans mise à jour de l'appelant _run_monthly_digest_email() (server.py:2195) → TypeError → 500. Bug AI create_sale: ValidationError Pydantic non interceptée dans ai_action_execute (server.py:1266) quand le LLM renvoie service='' → 500 au lieu de 400."
+}

@@ -1,0 +1,49 @@
+{
+  "summary": "Frontend-only mobile audit (390x844) + desktop Stock check, logged in as admin. Fixes verified: (1) /stock mobile card list (stock-mobile-list, stock-card-*) renders with name, Stock physique, Besoin chantiers, À commander, Alerte si ≤; desktop table hidden on mobile. At 1920 desktop the table has 7 headers ['', Produit, Stock physique, Besoin chantiers, À commander, Alerte ≤, ''] and the row cells map 1:1 (badge | name | stock-dispo | stock-besoin | stock-reste | stock-threshold | stock-delete). Duplicate Alerte under Besoin is gone. (2) ProjectDialog opened from /chantiers: Date de début (y=270) and Durée (y=342) stacked, 340px wide, no overlap; extra date input (314px) and Ajouter (314px, h40) full width; title left-aligned, not overlapped by the status badge/close X. Audit of 16 routes + NewSaleSheet, EditSaleSheet and client fiche found several mobile issues, listed below by priority.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "EditSaleSheet footer", "issue": "HIGH: on 390px the footer row 'Supprimer / Annuler / Enregistrer' spills off to the right. The edit-sale-save-btn sits at x=357-462 (viewport is 390), so the Save button is mostly cut off. Footer must wrap or stack (flex-col-reverse gap-2 / w-full buttons on mobile).", "selector": "[data-testid=edit-sale-save-btn] (EditSaleSheet.jsx SheetFooter ~line 400)", "priority": "HIGH"},
+      {"component": "Sheet (NewSaleSheet + EditSaleSheet)", "issue": "HIGH: on phone the sheet is only 293px wide (ui/sheet.jsx side=right uses 'w-3/4 sm:max-w-sm') and leaves 98px of dimmed backdrop. Inside it, 2-column grids get squeezed: the Date input shows '10/15/2026' clipped, the BDC placeholder is cut, the 'Date d'intervention souhaitée' label wraps onto 3 lines and its date input overflows ('mm/dd/yyy'), 'Type de commission' wraps, and in EditSale the 3-column commission row (Seuil CA '30(0)', Taux en dessous, Taux au-dessus) is clipped. Fix: SheetContent className 'w-full sm:max-w-xl' on mobile, or grid-cols-1 below sm.", "selector": "[data-testid=new-sale-sheet], [data-testid=edit-sale-sheet]", "priority": "HIGH"},
+      {"component": "Settings header", "issue": "Horizontal overflow, page scrollWidth is 494. The 'Réinitialiser / Enregistrer' button group sits beside the title in a non-wrapping 'mb-6 flex items-center justify-between', so settings-save-btn lands at x=357-494, off-screen. Add flex-wrap / flex-col on mobile.", "selector": "[data-testid=settings-save-btn] (Settings.jsx line ~161-170)", "priority": "HIGH"},
+      {"component": "MonthlyReport header", "issue": "Horizontal overflow, page scrollWidth is 426. The 'Export PDF + prev + month label (w-40) + next' row doesn't wrap, so report-next lands at x=390-426, off-screen. Page also uses 'p-8' with no mobile padding override.", "selector": "[data-testid=report-next] (MonthlyReport.jsx line 63, ~78-90)", "priority": "MEDIUM"},
+      {"component": "Commissions header actions", "issue": "Horizontal overflow, page scrollWidth is 451. 'Récap PDF / Modifier les taux / Gérer les statuts' sit in a non-wrapping 'flex items-center gap-2'; commissions-manage-statuses-btn is at x=302-451 and cut off.", "selector": "[data-testid=commissions-manage-statuses-btn] (Commissions.jsx ~line 290-300)", "priority": "MEDIUM"},
+      {"component": "Planning month navigation", "issue": "The toolbar wraps badly. cal-prev ends up at (274,238) on the Jours OFF/Absences row, while the 'Octobre 2026' label and cal-next (216,282) wrap onto the next line, so the < and > buttons are split across two rows. Event chips in the 46px day cells show only 'T…' (unreadable); consider a dot + count or a list/agenda view on mobile. The page uses 'p-8' (CalendarPage.jsx line 227) with no mobile override, and the tech filter is truncated ('Tous les techniciens & sou').", "selector": "[data-testid=cal-prev], [data-testid=cal-next]", "priority": "MEDIUM"},
+      {"component": "Prospecteur page", "issue": "Root container is 'space-y-6' with no padding (Prospecteur.jsx line 289). On mobile, cards and filter pills touch the screen edges (L=0, R=390). Add 'p-4 md:p-8'.", "selector": "[data-testid=prospecteur-page]", "priority": "MEDIUM"},
+      {"component": "Ventes list on mobile", "issue": "The sales table is 1935px wide inside a 356px horizontal-scroll container, with no mobile card list (unlike Stock). Tapping a cell tends to scroll the table instead of opening EditSale. A card list like Stock would help a lot. Same pattern, with very tall rows, on /utilisateurs and /clients (address column cut).", "selector": "[data-testid^=sale-row-] (Sales.jsx ~line 814)", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Global / floating AI bubble", "issues": ["AIHelper bubble (fixed bottom-5 right-5 z-40, AIHelper.jsx:639) covers the bottom-right of the last content on every page (e.g. Stock 'Stock par technicien' footer text, Heures sup history card). Add bottom padding (pb-24) to <main> on mobile, or shrink/move the bubble."]},
+      {"screen": "Inconsistent page padding", "issues": ["MonthlyReport and CalendarPage use p-8 and Dashboard uses p-6 on mobile, while other pages use p-4, so the content width jumps between pages. Standardize on 'p-4 md:p-8'."]},
+      {"screen": "iOS date input fix", "issues": ["The review request says index.css contains an iOS date input fix, but /app/frontend/src/index.css (112 lines) has no input[type=date] / -webkit-appearance / ::-webkit-date-and-time-value rule at all. The fix is missing or wasn't saved."]},
+      {"screen": "Native date inputs", "issues": ["Journal (Du/Au), ProjectDialog extra date, NewSale 'Date d'intervention' use the native date input, which renders 'mm/dd/yyyy' (English format) in Chromium. Consider the shadcn Calendar/Popover for a French format and a consistent look."]},
+      {"screen": "Heures sup grid", "issues": ["The sticky 'TOTAL' column header shows faded text from the scrolling day columns through it (overlap). The sticky cell needs an opaque bg and z-index."]},
+      {"screen": "Stock mobile", "issues": ["The 3 stat cards stack full width (~90px each, ~300px total). Could be a compact 3-column row. The 'Nouveau produit' input + Ajouter don't span full width."]},
+      {"screen": "Mobile sidebar", "issues": ["The logo block takes ~200px, so Clients/Carte/Utilisateurs/Journal need an inner scroll on 844px height. Use a smaller logo on mobile."]},
+      {"screen": "ProjectDialog", "issues": ["The first focusable 'Confirmer' badge-button gets an auto-focus ring on open (cosmetic)."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HIGH: EditSaleSheet footer: make buttons wrap/stack on mobile so edit-sale-save-btn is fully visible",
+    "HIGH: ui/sheet.jsx right sheet: full width on mobile (w-full sm:max-w-xl) + grid-cols-1 below sm in NewSaleSheet/EditSaleSheet grids",
+    "HIGH: Settings.jsx header: flex-wrap so settings-save-btn isn't off-screen",
+    "MEDIUM: MonthlyReport + Commissions headers: flex-wrap the action rows (report-next, commissions-manage-statuses-btn off-screen)",
+    "MEDIUM: CalendarPage toolbar: keep prev/label/next together in one nowrap group; mobile padding p-4; better event display in small cells",
+    "MEDIUM: Prospecteur.jsx root: add p-4 md:p-8 padding",
+    "MEDIUM: Add bottom padding on mobile main so the AI bubble doesn't cover the last content",
+    "LOW: Add the missing iOS date input CSS to index.css; Heures sup sticky Total bg; consider mobile card lists for Ventes/Utilisateurs/Clients"
+  ],
+  "critical_code_review_comments": [
+    "index.css has no date-input fix although the request claims one",
+    "sheet.jsx default 'w-3/4' on mobile is the root cause of most squeezed fields in the sale sheets",
+    "Page header rows across pages use 'flex items-center justify-between' without flex-wrap: recurring cause of horizontal overflow (Settings, MonthlyReport, Commissions)"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "Requested fixes (Stock mobile/desktop, ProjectDialog dates) 100% verified; mobile audit: 13 of 16 routes without horizontal overflow; 3 overflow + 1 off-screen Save button in EditSaleSheet"},
+  "seed_data_creation": "None created",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Mobile audit at 390x844 with admin admin@example.invalid/CHANGE_ME_TEST_PASSWORD. Routes: /rapport (not /rapport-mensuel), /chantiers = kanban. The overflow detector (element right > innerWidth, not inside an overflow container) flagged only /rapport, /commissions, /parametres and the edit-sale-sheet footer. Open EditSale via JS click on [data-testid^=sale-row-] after selecting the 'Année' period (current month has 0 sales). Client fiche = [data-testid=client-detail-dialog]."
+}

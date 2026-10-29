@@ -1,0 +1,96 @@
+{
+  "summary": "Itération 15 — re-validation ciblée des 3 bugs CRITIQUES + 7 mineurs de l'itération 14. Backend: nouvelle suite /app/backend/tests/test_prelaunch_iter15.py (25 tests) => 25/25 PASSED (executive scopé 'own' pour commercial, 403 pour responsable/technicien, PUT /projects 404 pour technicien non assigné + impossibilité de se réassigner, validations Pydantic amount/service/date/commission_rate, DELETE 404 sur sales/projects/clients/users, recent_sales.client_name, isolation Alpha/Beta en lecture ET écriture, smoke test parcours complet vente 5000€ -> chantier auto -> planification -> heures sup validées -> dashboard 22000€/2200€ commissions). Nouvelle suite auth /app/backend/tests/test_auth_hardening_iter15.py (8 tests) => 6 passed, 1 xfail (pas de cookie httpOnly au login), 1 skipped (pas de lockout brute-force). Frontend: 4 sessions Playwright (mobile 375x812 admin, desktop commercial Théo, technicien Sébastien, responsable, super-admin). Le drawer mobile fonctionne (sidebar cachée, hamburger, backdrop) MAIS un débordement horizontal subsiste sur 6 pages à cause des barres d'action d'en-tête non wrappées. Gating UI 100% conforme. Données de test supprimées (cascade delete des 2 entreprises TEST_).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/sales | /api/clients | /api/users | /api/settings | /api/dashboard/executive (super_admin)",
+        "issue": "NON CORRIGÉ (déjà signalé iter14): un token super_admin appelant les endpoints tenant reçoit l'agrégat de TOUTES les entreprises (11 ventes, 16 clients, 17 users) et lit/écrit les settings de l'entreprise 'default'. Le menu UI est bien restreint à 'Entreprises', mais l'API reste accessible. Recommandation: renvoyer 403 sur les endpoints tenant si role==super_admin."
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "set_auth_cookies() n'est jamais appelé (code mort) — aucun cookie httpOnly access_token/refresh_token n'est posé, et aucun refresh token n'est émis alors que create_refresh_token existe. L'auth repose uniquement sur le Bearer stocké en localStorage. À clarifier: soit brancher les cookies + /auth/refresh, soit supprimer le code mort."
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "Aucun verrouillage anti-brute-force: 6 échecs consécutifs renvoient tous 401, pas de 429/423 ni de délai. Durcissement recommandé avant commercialisation."
+      },
+      {
+        "endpoint": "CORS (server.py:2812)",
+        "issue": "allow_origins=['*'] avec allow_credentials=False. Acceptable avec Bearer, mais incompatible avec toute évolution cookie; à passer en liste d'origines explicites si les cookies httpOnly sont activés."
+      },
+      {
+        "endpoint": "Page /ventes — tableau 'CA par commercial'",
+        "issue": "Un commercial (scope 'own') voit les LIGNES des autres commerciaux (nom + objectif 20000€) avec CA à 0€ (Léa visible chez Théo). Les montants sont bien scopés, mais les noms/objectifs des collègues fuient. De plus l'objectif affiché est celui de l'entreprise (100 000€) alors que /dashboard/executive utilise bien l'objectif personnel -> incohérence."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "En-têtes de page (Sales/Clients/Kanban/Users/MonthlyReport/Settings)",
+        "issue": "MOBILE 375px — bug #4 PARTIELLEMENT corrigé. Drawer OK, mais débordement horizontal du document persiste: /ventes sw=448, /clients sw=489, /chantiers sw=425, /utilisateurs sw=383, /rapport sw=474, /parametres sw=510 (iw=375). Cause: la barre d'actions <div className='flex gap-2'> (Exporter CSV + '+ Nouvelle vente', Import copier-coller + '+ Nouveau client', filtre + Exporter, Réinitialiser + Enregistrer) est dans un 'flex items-center justify-between' sans flex-wrap: le bouton '+ Nouvelle vente' démarre à x=303 et finit à 448 -> inaccessible sans scroll horizontal. Correctif: 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' + 'flex-wrap' sur la barre de boutons, et p-4 md:p-8 sur le conteneur racine. NB: les <table> sont correctement dans overflow-x-auto (aucun débordement doc sur /heures-sup et /commissions).",
+        "selector": "[data-testid='new-sale-btn'], [data-testid='new-client-btn'], [data-testid='export-projects-btn']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "MonthlyReport (sélecteur de mois)",
+        "issue": "Mobile: le libellé de mois a une largeur fixe w-52 (208px) qui, ajouté aux flèches, dépasse (right=430 > 375).",
+        "selector": ".font-display.text-lg.w-52",
+        "priority": "LOW"
+      },
+      {
+        "component": "Commissions (onglets de mois)",
+        "issue": "Mobile: les onglets 'Mois prochain — Septembre' / '+2 mois — Octobre 2026' débordent de leur conteneur (right=481/691) — scroll horizontal interne présent, mais aucun indicateur visuel.",
+        "selector": "button.whitespace-nowrap.border-b-2",
+        "priority": "LOW"
+      },
+      {
+        "component": "Layout.jsx (drawer mobile)",
+        "issue": "Le Sidebar est rendu 2 fois dans le DOM (desktop 'hidden md:flex' + drawer), donc chaque data-testid de navigation existe en double -> strict mode violation Playwright. Non bloquant fonctionnellement, mais les tests doivent scoper via [data-testid='mobile-drawer'].",
+        "selector": "[data-testid='nav-sales']",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Mobile 375px — toutes les pages listes",
+        "issues": [
+          "Padding p-8 conservé en mobile (32px de chaque côté) alors que l'espace utile est de 311px",
+          "Overline 'Ventes à domicile' / 'Personnalisation' se coupe sur 2-3 lignes au-dessus du H1"
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_prelaunch_iter15.py",
+    "/app/backend/tests/test_auth_hardening_iter15.py",
+    "/app/test_reports/pytest/iter15.xml"
+  ],
+  "action_items": [
+    "MOBILE (seul reliquat du bug critique #4): rendre les barres d'actions d'en-tête wrappables (flex-col sm:flex-row + flex-wrap) et passer p-8 -> p-4 md:p-8 sur Sales.jsx, Clients.jsx, Kanban.jsx, Users.jsx, MonthlyReport.jsx, Settings.jsx. Vérifier ensuite document.scrollWidth == 375 sur chaque page.",
+    "Bloquer (403) les endpoints tenant (/api/sales, /api/clients, /api/users, /api/settings, /api/dashboard/*) pour le rôle super_admin — le fallback company_id='default' persiste.",
+    "Décider du modèle auth: brancher set_auth_cookies + endpoint /auth/refresh, ou supprimer le code mort (set_auth_cookies / create_refresh_token) et documenter le Bearer-only.",
+    "Ajouter un anti-brute-force sur /api/auth/login (compteur d'échecs + 429/423).",
+    "Sur /ventes, masquer les lignes des autres commerciaux dans 'CA par commercial' quand sales.view=='own' et utiliser l'objectif personnel (cohérence avec /dashboard/executive)."
+  ],
+  "critical_code_review_comments": [
+    "server.py = 2816 lignes: à découper (auth, sales, projects, dashboard, overtime, payments) avant la mise en production, sinon la maintenance et les revues deviennent risquées.",
+    "set_auth_cookies() et create_refresh_token() sont du code mort dans le chemin de login — risque de fausse confiance sur la sécurité (le rapport auth doit indiquer 'Bearer localStorage only').",
+    "dashboard_executive() fait ~150 lignes avec 8 requêtes séquentielles; extraire les agrégations scopées dans des helpers réutilisés par dashboard_stats (duplication de la logique de scope 'own' entre les deux endpoints).",
+    "La suite pytest doit être lancée avec -n 0: xdist (LoadScope) exécute les classes en parallèle et les assertions de CA cumulé (17000/22000€) deviennent instables car deux workers créent des ventes dans la même entreprise."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_prelaunch_iter15.py",
+    "/app/backend/tests/test_auth_hardening_iter15.py"
+  ],
+  "success_rate": {"backend": "100% (25/25 fonctionnels; 6/8 durcissement auth, 1 xfail + 1 skip documentés)", "frontend": "88% (7/8 vérifications: gating, super-admin, drawer mobile OK; débordement horizontal mobile KO)"},
+  "seed_data_creation": "TEST_Alpha SARL + TEST_Beta SAS via /app/backend/tests/_seed_prelaunch.py seed (admins alpha-admin@/beta-admin@keylot.example.com, commerciaux Théo/Léa, techniciens Sébastien/Lucas/Marc, responsable). SUPPRIMÉES en fin de run via `_seed_prelaunch.py clean` (cascade delete des 2 entreprises).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "super@keylot.app/CHANGE_ME_TEST_PASSWORD ; admin@example.invalid/CHANGE_ME_TEST_PASSWORD ; comptes TEST_ recréables via `python /app/backend/tests/_seed_prelaunch.py seed`",
+  "context_for_next_testing_agent": "Les 3 bugs CRITIQUES d'iter14 sont CORRIGÉS et re-validés côté backend (25/25). Le bug critique #4 (mobile) est corrigé à 80%: drawer/hamburger/backdrop/H1 OK, il ne reste que le débordement horizontal des barres d'actions d'en-tête (6 pages). Reproduire: `python /app/backend/tests/_seed_prelaunch.py seed` puis `cd /app/backend && pytest tests/test_prelaunch_iter15.py -n 0 -p no:randomly` puis `_seed_prelaunch.py clean`. Toujours utiliser -n 0. Non implémentés (P1 backlog, non testés): notifications, filtres période sur Ventes, widget prévisionnel. Restent ouverts: super_admin voit l'agrégat cross-company via les endpoints tenant, pas de cookies httpOnly, pas d'anti-brute-force, fuite des noms des autres commerciaux dans 'CA par commercial' sur /ventes.",
+  "rca_of_the_issue": "Bug #1: check_perm('sales','view','own') + filtre q['commercial']=user.name et ranking filtré -> scope 'own' respecté (Théo 13000€, ranking=1). Bug #2: le passage de require_sales_access à check_perm renvoie bien 403 pour responsable (sales.view='none') et technicien. Bug #3: update_project construit q avec assigned_to=user.name pour le rôle technicien puis 404 si non trouvé + pop('assigned_to') empêchant la réassignation. Reliquat mobile: le débordement ne vient PAS des tableaux (correctement en overflow-x-auto) mais des lignes d'en-tête 'flex items-center justify-between' sans flex-wrap: la pile de boutons (145-348px) additionnée au H1 dépasse les 311px utiles -> document.scrollWidth 383-510px.",
+  "beta_readiness": "PAS ENCORE 'PRÊT POUR BÊTA' à 100%: le périmètre fonctionnel et la sécurité multi-entreprises/RBAC sont validés (aucun bug critique restant), mais 1 défaut UX mobile (scroll horizontal / boutons hors écran sur 6 pages) et 4 points de durcissement (super_admin cross-company, cookies httpOnly, anti-brute-force, fuite des noms de commerciaux) doivent être traités. Après correction du wrap mobile, le produit peut passer en bêta."
+}

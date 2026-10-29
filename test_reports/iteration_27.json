@@ -1,0 +1,49 @@
+{
+  "summary": "iter180 retest of iter179 fixes. Backend: 25/25 pytest passed (new /app/backend/tests/test_iter180.py + updated test_iter179.py). GET /api/clients restored (200, RBAC own scope verified with commercial account, no _id leak). /api/commissions/history now returns 422 for months=0/-3/37/999/abc and 200 for 1/12/36. Frontend (public URL, admin admin@example.invalid): /clients page loads with 2x HTTP 200 on /api/clients (no 405); Commissions commercial dropdown filter works accent/substring-insensitively both ways ('Kilian' -> 'Kilian Blanc' 1 row, 'Theo' -> 'Théo Fresh' 1 row in Oct 2026 tab); Historique toggle renders the commercial x month matrix with per-row/per-column totals and 3 synthesis cards (3 791 € total / 500 € payé / 3 291 € reste); OnboardingDialog no longer blocks background clicks (auto-closes on CTA navigation, sidebar nav works, no DialogTitle a11y warning); full E2E réintervention from global planning (client picker populated with 24 options, 2 photos attached, created row visible in Historique with 2 clickable thumbnails opening the lightbox, status toggle + delete OK, zero failing API calls). All 6 requested items PASS.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "N/A (stale tests)", "issue": "3 pre-existing failures in tests/test_iter138_clients_import.py (column-mapping now returns 'last_name' instead of 'name'). Product behaviour looks intentional (evolved after iter138) — the test expectations are stale, not touched to avoid masking; confirm and let a future agent update them."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Clients.jsx / InlineCell.jsx", "issue": "React console error on /clients: 'In HTML, <span> cannot be a child of <option>. This will cause a hydration error.' Likely InlineCell.jsx:73 rendering element labels inside a native <option>. Cosmetic/console only, page renders fine.", "selector": "[data-testid^='client-assign-']", "priority": "LOW"},
+      {"component": "OnboardingDialog.jsx", "issue": "Clicking a step CTA navigates and closes the dialog but never persists kylot:onboarding_done — the onboarding therefore reappears on the next page load until the user clicks 'Passer et fermer'.", "selector": "[data-testid='onboarding-dialog']", "priority": "LOW"},
+      {"component": "Dialogs (global)", "issue": "Radix warning repeated 4x: 'Missing Description or aria-describedby={undefined} for DialogContent' — DialogTitle sr-only was added but no DialogDescription.", "selector": "[role='dialog']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Commissions — Primes en cours", "issues": ["Every commercial card shows an identical '100 €' amount with 'Palier Or' and a 0 € / 30 000 € progress bar; the headline value contradicts the 0 € progress and looks like a placeholder/computation bug — worth a functional check."]},
+      {"screen": "Réintervention dialog / Clients", "issues": ["Native browser date/time pickers (input type=date / time) instead of shadcn Calendar component", "Clients category picker uses a native <select> instead of the shadcn Select used elsewhere — visual inconsistency"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter180.py",
+    "/app/backend/tests/test_iter179.py",
+    "/app/test_reports/pytest/iter180_results.xml"
+  ],
+  "action_items": [
+    "Optional LOW: persist the onboarding flag (or keep the dialog closed) when a step CTA navigates, so it does not reopen on every reload",
+    "Optional LOW: fix <span> inside <option> in InlineCell.jsx:73 (hydration console error on /clients)",
+    "Optional LOW: add DialogDescription (or aria-describedby) to DialogContent to clear the Radix a11y warning",
+    "Verify 'Primes en cours' cards: identical 100 € for all commercials while progress shows 0 € / 30 000 €",
+    "Refresh stale expectations in tests/test_iter138_clients_import.py (name -> last_name mapping)"
+  ],
+  "critical_code_review_comments": [
+    "GET /clients (server.py L1017) uses to_list(20000) with no pagination — fine for now but will get heavy; consider limit/offset params.",
+    "Commissions.jsx filter uses bidirectional substring matching (rc.includes(cf) || cf.includes(rc)); works for 'Theo'/'Théo Fresh' but a very short/generic team name would over-match multiple commercials. Prefer matching on commercial_user_id when available.",
+    "server.py is 9438 lines — well above the 700-line guideline; split into routers per domain."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter180.py (new)",
+    "/app/backend/tests/test_iter179.py (bounds test updated: 422 instead of clamping)"
+  ],
+  "success_rate": {"backend": "100% (25/25 on iter179+iter180 suites; 38/41 incl. legacy suites with 3 stale iter138 tests)", "frontend": "100% of requested flows passed"},
+  "seed_data_creation": "Created and deleted TEST_iter180 Client via API; created and deleted a TEST_iter180 UI photos réintervention (with 2 photos) on client TEST_QA_Client14 through the UI. No residual data.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD ; Commercial test-comm@keylot.app / CHANGE_ME_TEST_PASSWORD",
+  "context_for_next_testing_agent": "App clock is Sept 2026: Commissions month tabs are 2026-09 (Ce mois), 2026-10, 2026-11 — commission rows exist in 2026-09 (Kilian Blanc, Thomas) and 2026-10 (Théo Fresh); older 2026-08 rows are only reachable via the Historique view. Commissions dropdown options are TEAM names ('Theo', 'Kilian') while rows carry full user names ('Théo Fresh', 'Kilian Blanc'). Réintervention client picker's first option is '—' (empty) — pick index 1+ or you get the 'Client requis' toast. Always close onboarding via [data-testid=onboarding-skip] after login.",
+  "rca_of_the_issue": "No new defect found. Both iter179 root causes are confirmed fixed: (1) the accidentally removed GET /api/clients route is back with RBAC scope, so /clients and the global Réintervention client picker are populated again; (2) the Commissions dropdown mismatch (team first name vs full user name) is resolved by the bidirectional accent-insensitive substring match."
+}

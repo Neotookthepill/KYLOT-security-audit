@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 4 targeted verification of the 'inline editable objectif in CA par commercial' fix on /ventes. Backend is fully green (55/55 pytest incl. new /app/backend/tests/test_team_objectif_iter4.py: GET /api/team?type=commercial shape+no _id, PUT /api/team/{id} {objectif} 200 + persisted via GET + restored, 401 without token, 404 unknown id, GET /api/settings.objectif_ca, GET /api/sales). FRONTEND FIX IS NON-FUNCTIONAL: on /ventes all 8 objectif cells (objectif-cell-<name>) render as DISABLED buttons with NO pencil icon even when logged in as admin; Playwright normal click times out ('locator resolved to <button disabled ...>'), so the inline number input / Check / Cancel never appear and the admin cannot set an objectif from the Ventes table. Root cause found in code (see rca). Everything else passes: gauge (28%->31%) still reads GET /api/settings.objectif_ca; the table lists ALL 8 commerciaux; the new useTeam listeners pattern DOES work (editing Guillaume's objectif to 20000 from the Utilisateurs TeamSection then SPA-navigating to Ventes showed 20 000 € + 0% in the row without a reload); the '+ Nouvelle vente' flow works and CA/count/gauge update instantly (Guillaume 0 € -> 5 000 €, gauge 28% -> 31%). No pageerror, no failed /api call.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Sales.jsx CommercialRow (CA par commercial)", "issue": "P0 - Inline objectif edit never activates: <CommercialRow key={c.name} c={c} /> at Sales.jsx:340 does not pass isAdmin or onObjectifSaved, AND stats.byCommercial objects (Sales.jsx:182) omit the member id. startEdit() returns early on !isAdmin || !c.id and the button is rendered disabled with no Pencil, for all 8 commerciaux, as admin. Verified by Playwright: every objectif-cell-* is disabled=True, pencil_svgs=0, click times out, objectif-input-* count = 0.", "selector": "[data-testid^='objectif-cell-']", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Ventes / CA par commercial", "issues": ["The read-only fallback 'définir' label is shown to every user even when the cell is not editable — for non-admin it reads as an actionable link but is a disabled button; prefer '—' when not editable."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_team_objectif_iter4.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_ai_status_iter3.py",
+    "/app/backend/tests/test_commissions_regression.py"
+  ],
+  "action_items": [
+    "Sales.jsx:182 — include the member id in the stats.byCommercial mapping: return { id: c.id, name: c.name, ... }.",
+    "Sales.jsx:133 — destructure reload from useTeam: const { commerciaux, reload: reloadTeam } = useTeam();",
+    "Sales.jsx:340 — pass the props: <CommercialRow key={c.name} c={c} isAdmin={canEditObjectif} onObjectifSaved={reloadTeam} />.",
+    "Re-test the inline edit (pencil visible for admin, input + Check + Enter -> toast 'Objectif de <name> mis à jour' -> progression recomputes) after wiring."
+  ],
+  "critical_code_review_comments": [
+    "The new CommercialRow editor code is dead until isAdmin/onObjectifSaved/c.id are wired — this is a plain prop-plumbing miss, not a backend issue; the backend PUT /api/team/{id} already works (validated).",
+    "useTeam listeners pattern is correct and verified cross-page; keep it.",
+    "Sales.jsx is now 351 lines with 3 inline sub-components; consider extracting CommercialRow/ObjectifGauge into components/ before it grows past 700."
+  ],
+  "updated_files": ["/app/backend/tests/test_team_objectif_iter4.py"],
+  "success_rate": {"backend": "100% (55/55 pytest)", "frontend": "80% — 1 CRITICAL: inline objectif edit unreachable; all regressions pass"},
+  "seed_data_creation": "Guillaume objectif set to 20000 then reset to 0 (original). One sale + client 'TEST_QA_ITER4' (5000 EUR, Guillaume) created through the UI then deleted via API (both DELETE 200). DB back to original state.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD — works. NOTE localStorage token key is 'pylot_token' (api.js:22), not 'chantierpro_token' as documented in /app/memory/test_credentials.md.",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/ -q -p no:randomly (55 green). test_team_objectif_iter4.py covers PUT /api/team objectif persistence and restores the original value. For the UI: login, click sidebar 'Ventes', scroll to [data-testid='commercials-summary']; assert objectif-cell-<name> is NOT disabled and contains an svg (pencil) for admin, click it, fill objectif-input-<name>, press Enter, expect toast and the % in commercial-row-<name>. Direct POST /api/sales requires a nested {client:{name,...}} or client_id ('Client requis' otherwise) — use the UI NewSaleSheet (client-mode-new, new-client-name, sale-service, sale-amount, sale-commercial, sale-submit-btn) as done here. /app/memory/test_credentials.md token-key note above.",
+  "rca_of_the_issue": "PUT /api/team/{id} with {objectif:N} works and persists (backend verified). The frontend fix is incomplete: Sales.jsx renders <CommercialRow c={c} /> without isAdmin/onObjectifSaved and the aggregated stats.byCommercial object built at Sales.jsx:175-183 drops c.id. Since CommercialRow gates on `disabled={!isAdmin || !c.id}` and `if (!isAdmin || !c.id) return;`, the cell is permanently disabled for everyone, so the user's reported problem (objectif '—' for Kilian/Nolan) is still not fixable from the Ventes page. Workaround today: edit the objectif on Utilisateurs > Commerciaux (team-obj-edit-<id>), which correctly propagates to Ventes via the new useTeam listener."
+}

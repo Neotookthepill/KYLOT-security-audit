@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="44" time="10.879" timestamp="2026-08-27T15:29:41.050869+00:00" hostname="agent-env-def06599-29e9-4d54-83fe-cbc91aedb055"><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_no_auth_401" time="0.181" /><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_wrong_bearer_401" time="0.261" /><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_valid_secret_and_idempotency" time="0.327" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_list_projects_no_nested_assigned_to" time="0.623" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_specific_legacy_project_is_flat" time="0.086" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_put_multiple_technicians" time="0.546" /><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_manual_test_endpoint" time="0.823" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_put_dedup_and_single_then_multi" time="0.447" /><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_manual_test_endpoint_requires_admin" time="0.192" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_put_nested_payload_defensive_flatten" time="0.168" /><testcase classname="tests.backend_test.TestCronRappelJ1" name="test_manual_with_explicit_target_date" time="0.301" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_put_unknown_project_404" time="0.097" /><testcase classname="tests.backend_test.TestProjectsAssignedTo" name="test_projects_requires_auth" time="0.169" /><testcase classname="tests.test_commissions_regression.TestCommissions" name="test_get_commissions_200_list" time="0.117" /><testcase classname="tests.backend_test.TestAuth" name="test_login_success" time="0.378" /><testcase classname="tests.test_commissions_regression.TestCommissions" name="test_commissions_requires_auth" time="0.315" /><testcase classname="tests.backend_test.TestAuth" name="test_login_invalid" time="0.419" /><testcase classname="tests.test_commissions_regression.TestCommissions" name="test_toggle_commission_paid_persists" time="0.616" /><testcase classname="tests.backend_test.TestAuth" name="test_me" time="0.064" /><testcase classname="tests.backend_test.TestAuth" name="test_me_unauthenticated" time="0.168" /><testcase classname="tests.test_commissions_regression.TestCommissions" name="test_update_commission_rate_recomputes_amount" time="0.391" /><testcase classname="tests.backend_test.TestRegression" name="test_clients_bulk_import" time="0.228" /><testcase classname="tests.backend_test.TestRegression" name="test_monthly_report" time="0.110" /><testcase classname="tests.backend_test.TestRegression" name="test_monthly_report_bad_month" time="0.072" /><testcase classname="tests.test_commissions_regression.TestCommissions" name="test_update_commission_month_persists" time="0.475" /><testcase classname="tests.backend_test.TestRegression" name="test_zz_cleanup_test_clients" time="0.298" /><testcase classname="tests.test_endpoints_reachability.TestCronWebhooks" name="test_rappel_no_auth_401" time="0.198" /><testcase classname="tests.test_endpoints_reachability.TestPageEndpoints" name="test_list_endpoints_200" time="2.474" /><testcase classname="tests.test_endpoints_reachability.TestCronWebhooks" name="test_bilan_no_auth_401" time="0.203" /><testcase classname="tests.test_endpoints_reachability.TestCronWebhooks" name="test_bilan_with_secret" time="0.205" /><testcase classname="tests.test_endpoints_reachability.TestCronWebhooks" name="test_rappel_with_secret" time="0.174" /><testcase classname="tests.test_commissions_regression.TestAIActions" name="test_ai_action_create_sale_flow" time="3.759" /><testcase classname="tests.test_endpoints_reachability.TestPageEndpoints" name="test_team_filtered_by_type" time="0.187" /><testcase classname="tests.test_endpoints_reachability.TestPageEndpoints" name="test_monthly_report_and_pdf" time="0.297" /><testcase classname="tests.test_endpoints_reachability.TestPageEndpoints" name="test_payments_portal_no_subscription_400" time="0.105" /><testcase classname="tests.test_commissions_regression.TestStripe" name="test_subscription_me" time="0.098" /><testcase classname="tests.test_commissions_regression.TestStripe" name="test_checkout_creates_session_and_transaction" time="1.300" /><testcase classname="tests.test_commissions_regression.TestAIActions" name="test_ai_action_update_status" time="1.434"><failure message="AssertionError: {'intent': 'update_sale_status', 'confidence': 'high', 'summary': 'Changer le statut de la vente LEPESQUEUX à chantier...'client_name': 'LEPESQUEUX Martine', 'status': 'chantier_fini', '_current_status': 'en_cours', '_amount': 7470.0}, ...}&#10;assert None&#10; +  where None = &lt;built-in method get of dict object at 0xfe5823c29700&gt;('_sale_id')&#10; +    where &lt;built-in method get of dict object at 0xfe5823c29700&gt; = {'client_name': 'LEPESQUEUX Martine', 'status': 'chantier_fini', '_current_status': 'en_cours', '_amount': 7470.0}.get">self = &lt;test_commissions_regression.TestAIActions object at 0xfe5823dbc850&gt;
+admin_client = &lt;requests.sessions.Session object at 0xfe5823efc250&gt;
+
+    def test_ai_action_update_status(self, admin_client):
+        r = admin_client.post(f"{BASE_URL}/api/ai/action",
+                              json={"message": "La vente LEPESQUEUX chantier fini"}, timeout=120)
+        assert r.status_code == 200, f"{r.status_code}: {r.text[:400]}"
+        p = r.json()
+        assert p["intent"] == "update_sale_status", p
+        assert p["data"].get("status") == "chantier_fini", p
+        # If the sale exists in DB it must be resolved (no sale_not_found)
+        clients = admin_client.get(f"{BASE_URL}/api/clients", timeout=30).json()
+        has_lepesqueux = any("lepesqueux" in (c.get("name") or "").lower() for c in clients)
+        if has_lepesqueux:
+            # BUG (~20% of runs): LLM returns bdc="LEPESQUEUX"; backend only looks up by bdc
+            # (elif) so the sale is never found -&gt; missing=["sale_not_found"].
+            assert "sale_not_found" not in p["missing"], p
+            # BUG (deterministic): FastAPI jsonable_encoder drops dict keys starting with "_sa"
+            # (sqlalchemy_safe) -&gt; "_sale_id" never reaches the client.
+&gt;           assert p["data"].get("_sale_id"), p
+E           AssertionError: {'intent': 'update_sale_status', 'confidence': 'high', 'summary': 'Changer le statut de la vente LEPESQUEUX à chantier...'client_name': 'LEPESQUEUX Martine', 'status': 'chantier_fini', '_current_status': 'en_cours', '_amount': 7470.0}, ...}
+E           assert None
+E            +  where None = &lt;built-in method get of dict object at 0xfe5823c29700&gt;('_sale_id')
+E            +    where &lt;built-in method get of dict object at 0xfe5823c29700&gt; = {'client_name': 'LEPESQUEUX Martine', 'status': 'chantier_fini', '_current_status': 'en_cours', '_amount': 7470.0}.get
+
+tests/test_commissions_regression.py:140: AssertionError</failure></testcase><testcase classname="tests.test_commissions_regression.TestBilanMensuel" name="test_bilan_test_endpoint" time="0.169" /><testcase classname="tests.test_commissions_regression.TestBilanMensuel" name="test_bilan_requires_admin" time="0.237" /><testcase classname="tests.test_commissions_regression" name="test_zz_cleanup_ai_test_data" time="0.600" /><testcase classname="tests.test_photos_gps.TestProjectPhotosGps" name="test_put_rich_photo_object_accepted" time="0.308"><failure message="AssertionError: rich photo object rejected: 422 {&quot;detail&quot;:[{&quot;type&quot;:&quot;string_type&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;photos&quot;,1],&quot;msg&quot;:&quot;Input should be a valid string&quot;,&quot;input&quot;:{&quot;src&quot;:&quot;data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==&quot;,&quot;lat&quot;:50.72,&quot;lng&quot;:3.16,&quot;taken_at&quot;:&quot;2026-08-27T10:00:00Z&quot;},&quot;url&quot;:&quot;h&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422]&gt;.status_code">self = &lt;test_photos_gps.TestProjectPhotosGps object at 0xfba8cb0ff050&gt;
+admin_client = &lt;requests.sessions.Session object at 0xfba8cb0b6c50&gt;
+
+    def test_put_rich_photo_object_accepted(self, admin_client):
+        projects = admin_client.get(f"{BASE_URL}/api/projects", timeout=30).json()
+        assert projects, "no projects to test"
+        p = projects[0]
+        original = p.get("photos") or []
+        payload = {"photos": [TINY_PNG, {"src": TINY_PNG, "lat": 50.72, "lng": 3.16, "taken_at": "2026-08-27T10:00:00Z"}]}
+        try:
+            r = admin_client.put(f"{BASE_URL}/api/projects/{p['id']}", json=payload, timeout=30)
+&gt;           assert r.status_code == 200, f"rich photo object rejected: {r.status_code} {r.text[:300]}"
+E           AssertionError: rich photo object rejected: 422 {"detail":[{"type":"string_type","loc":["body","photos",1],"msg":"Input should be a valid string","input":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==","lat":50.72,"lng":3.16,"taken_at":"2026-08-27T10:00:00Z"},"url":"h
+E           assert 422 == 200
+E            +  where 422 = &lt;Response [422]&gt;.status_code
+
+tests/test_photos_gps.py:21: AssertionError</failure></testcase><testcase classname="tests.test_commissions_regression.TestAIActions" name="test_ai_execute_update_status_bdc_only_fallback" time="0.291"><failure message="AssertionError: no client_name fallback when bdc lookup fails: 404 {&quot;detail&quot;:&quot;Vente introuvable&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">self = &lt;test_commissions_regression.TestAIActions object at 0xfe5823dbce50&gt;
+admin_client = &lt;requests.sessions.Session object at 0xfe5823efc250&gt;
+
+    def test_ai_execute_update_status_bdc_only_fallback(self, admin_client):
+        """LLM sometimes puts the client name into bdc; execute must still resolve the sale."""
+        sales = admin_client.get(f"{BASE_URL}/api/sales", timeout=30).json()
+        target = next((s for s in sales if "lepesqueux" in (s.get("client_name") or "").lower()), None)
+        if not target:
+            pytest.skip("no LEPESQUEUX sale in DB")
+        original_status = target.get("status")
+        try:
+            r = admin_client.post(f"{BASE_URL}/api/ai/action/execute",
+                                  json={"intent": "update_sale_status",
+                                        "data": {"bdc": "LEPESQUEUX", "status": "chantier_fini"}}, timeout=60)
+&gt;           assert r.status_code == 200, (
+                f"no client_name fallback when bdc lookup fails: {r.status_code} {r.text[:200]}")
+E               AssertionError: no client_name fallback when bdc lookup fails: 404 {"detail":"Vente introuvable"}
+E               assert 404 == 200
+E                +  where 404 = &lt;Response [404]&gt;.status_code
+
+tests/test_commissions_regression.py:153: AssertionError</failure></testcase><testcase classname="tests.test_commissions_regression.TestMonthlyReportPdf" name="test_pdf_valid" time="0.101" /></testsuite></testsuites>

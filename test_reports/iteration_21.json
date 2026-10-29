@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only regression test of iter90 null-safety fix on /utilisateurs. Verified with 4 accounts (admin, commercial, technicien, sous-traitant). No 'Oups' crash on /utilisateurs: 15 user rows render, Équipe section shows 3 columns (Commerciaux 10 / Techniciens 6 / Sous-traitants 1). Permissions dialog (Shield), password dialog, role change + revert, objectif edit (54 321 € saved then reverted to 0), Eye/EyeOff ranking toggle, Building2 company-flag panel + see_company_ca toggle, and 'Récap visibilités' panel all worked with zero console/page errors. New user creation via '+ Nouvel utilisateur' worked and was cleaned up. Stress test: injected malformed /api/users payload (rows without id, null name/email/role, null entry) -> page still rendered (18 rows, '(sans nom)' fallback shown, invalid rows skipped) = fix effective. Commercial: / and /ventes OK; Technicien: /stock OK (Mon stock + 'Ajouter un produit' + stock société); Sous-traitant: /chantiers and /planning OK.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "TeamSection.jsx (CommercialList / TechnicienList / SousTraitantList)", "issue": "The claimed Array.isArray guards are incomplete: `safeMembers` is computed (l.92) but only used for recapStats. Rendering still uses raw `members` (members.length l.106/117/164/320/380/383 and members.map l.135/165/325/387). Reproduced: mocking GET /api/team?type=commercial to return a non-array 200 body makes /utilisateurs crash with 'Oups, l'application a rencontré un problème'. Also useTeam.js stores c.data/t.data in cache without validating it is an array.", "selector": "[data-testid=\"team-recap-toggle\"] / team-commercial-*", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "TeamSection.jsx: actually use safeMembers (or Array.isArray guards) in members.length / members.map for CommercialList, TechnicienList and SousTraitantList; and in useTeam.js coerce c.data/t.data/users.data with Array.isArray(x) ? x : [].",
+    "Spec mismatch to confirm: the review asked to test a can_view_others_ranking toggle (UserCheck/UserX) in TeamSection — no such control exists in the code; only hidden_from_ranking (Eye/EyeOff) is implemented. Clarify or implement."
+  ],
+  "critical_code_review_comments": [
+    "Users.jsx `load()` has no try/catch and no loading/error state: if GET /users throws, setUsers is never called and the error propagates to the error boundary (same 'Oups' class of bug the fix targeted). Wrap in try/catch + toast and default to [].",
+    "TeamSection.jsx is 410 lines with 3 components in one file and duplicated add/remove/edit logic — consider splitting.",
+    "useTeam.js swallows all errors silently (empty catch), so a failing /team or /users call gives no user feedback."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested", "frontend": "95%"},
+  "seed_data_creation": "Temporarily created user qa-iter90@keylot.app (deleted at end of test). Commercial 'Anaïs' objectif was set to 54321 then reverted to 0; see_company_ca and hidden_from_ranking toggled off/on back to original values. Role of test-auto@keylot.app changed to Comptable then reverted to Commercial.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin admin@example.invalid/CHANGE_ME_TEST_PASSWORD, test-comm@keylot.app/CHANGE_ME_TEST_PASSWORD, test-tech@keylot.app/CHANGE_ME_TEST_PASSWORD, test-sub@keylot.app/CHANGE_ME_TEST_PASSWORD — all valid",
+  "context_for_next_testing_agent": "iter90 fix on /utilisateurs is confirmed working for all tested roles, including with malformed /api/users data injected via Playwright route mocking. Only remaining gap: TeamSection renders raw `members` instead of the computed `safeMembers`, so a non-array /api/team 200 response still crashes the page. Playwright route interception (page.route on **/api/users and **/api/team?type=commercial) is an effective way to stress null-safety here. Note: after logging in as one role, clear localStorage ('pylot_token') before logging in as another, otherwise the login form detaches mid-fill.",
+  "rca_of_the_issue": "Original crash came from users/team rows with undefined fields being dereferenced during render. Users.jsx now returns null for entries without id and falls back for name/email/role — verified effective. The TeamSection part of the fix was only half-applied (safeMembers unused in JSX), leaving a residual non-array crash path."
+}

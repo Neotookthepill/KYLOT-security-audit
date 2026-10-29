@@ -1,0 +1,90 @@
+{
+  "theme": {
+    "mode": "light",
+    "archetype": "Archetype 4: Swiss & High-Contrast mixed with Archetype 1 (Organic & Earthy)",
+    "description": "A highly productive, 'Linear-esque' SaaS dashboard optimized for door-to-door sales (vente à domicile) and field-service planning (chantiers). It prioritizes clarity, minimal friction, and high data density to eliminate double-entry. Crisp borders, subtle shadows, and distinct semantic colors."
+  },
+  "typography": {
+    "heading_font": "Outfit",
+    "body_font": "Inter",
+    "rules": [
+      "Use 'Outfit' for all headings. Never use 'Inter' for headings.",
+      "Use 'Inter' for body text, form inputs, and data tables.",
+      "Apply tight letter spacing (tracking-tight) for large headings (text-3xl and up).",
+      "Use capitalized, widely spaced (tracking-[0.1em] to tracking-[0.2em]) tiny text (text-xs) for table headers, labels, and overlines.",
+      "Ensure strong font-weight contrast (e.g., font-semibold for entity names, font-normal for secondary data)."
+    ]
+  },
+  "colors": {
+    "background": "#F9FAFB",
+    "surface": "#FFFFFF",
+    "border": "#E2E8F0",
+    "primary": "#0F172A",
+    "primary_foreground": "#FFFFFF",
+    "secondary": "#F1F5F9",
+    "secondary_foreground": "#475569",
+    "accent_blue": "#2563EB",
+    "success": "#10B981",
+    "warning": "#F59E0B",
+    "muted": "#64748B",
+    "text_main": "#0F172A",
+    "text_muted": "#64748B"
+  },
+  "visual_enhancers": {
+    "shadows": "Minimalist approach. Use very subtle ambient shadows for cards (shadow-sm) and more pronounced shadows (shadow-xl) for floating elements like Modals, Popovers, and Dropdowns. Focus primarily on 1px borders for structure.",
+    "borders": "Sharp or slightly rounded edges. Use rounded-lg or rounded-xl maximum. Standardize on 1px border-slate-200 for cards, tables, and inputs.",
+    "glassmorphism": "Use sparingly. Apply backdrop-blur-md bg-white/80 to sticky headers, floating action bars, or top-level navigation to maintain context while scrolling.",
+    "hover_states": "All interactive elements must provide immediate feedback. Table rows should change background (hover:bg-slate-50). Buttons should scale slightly (active:scale-[0.98]) and change color or opacity."
+  },
+  "layouts": {
+    "general": "Responsive desktop-first admin layout. Fixed left sidebar for main navigation. Top header for global search, notifications, and user profile. Main content area has a max-width and generous padding (p-6 to p-10).",
+    "dashboard_kpi": "Bento-grid style (grid-cols-1 md:grid-cols-2 lg:grid-cols-4). Cards with metric, trend indicator (+/- %), and a sparkline or small chart.",
+    "data_tables": "Full-width Shadcn tables for Ventes and Clients. Include sticky headers, column sorting, and row actions (dropdown menus at the end of each row).",
+    "kanban_board": "Horizontal scrollable container taking full height. 3 distinct columns: 'À planifier' (To Schedule), 'En cours' (In Progress), 'Terminé' (Completed). Cards should be compact, showing client name, service, and priority.",
+    "calendar": "Full-height grid layout with weekly and monthly views. Scheduled projects should appear as solid color blocks. Use a robust calendar library or a custom CSS grid if simple.",
+    "forms_and_modals": "Use Shadcn Sheets (slide-out side panels) for complex forms like 'Nouvelle Vente' (New Sale) or 'Détails Client' to keep the user in the context of their current view. Use Dialogs for quick confirmations."
+  },
+  "motion": {
+    "transitions": "Use specific transitions (e.g., transition-colors, transition-transform). Do not use transition-all.",
+    "interactions": "Hover states on table rows, subtle scale-down on buttons when pressed.",
+    "page_load": "Staggered fade-in (opacity 0 to 1, translate-y-2 to 0) for dashboard widgets and table rows."
+  },
+  "accessibility": {
+    "contrast": "Ensure all text meets WCAG AA standards. Gray text (text-muted) must be dark enough against white/gray backgrounds.",
+    "focus": "Clear focus rings (focus:ring-2 focus:ring-primary focus:ring-offset-1) on all inputs, selects, and buttons.",
+    "aria": "Use aria-labels for icon-only buttons. Ensure modal overlays trap focus."
+  },
+  "media": {
+    "image_urls": {
+      "login_background": {
+        "url": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBob3VzZSUyMGV4dGVyaW9yfGVufDB8fHx8MTc4Nzc5MzA4NHww&ixlib=rb-4.1.0&q=85",
+        "description": "Modern house exterior, representing home improvement and door-to-door sales. Use on the left side of the split-screen login page."
+      },
+      "avatar_placeholder": {
+        "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+        "description": "Professional avatar placeholder for the current user profile."
+      }
+    }
+  },
+  "components": {
+    "instructions_to_main_agent": [
+      "Implement a unified Sidebar layout with navigation items: Tableau de bord, Ventes, Chantiers (Kanban), Planning (Calendrier), Clients. Ensure all text is in French.",
+      "For the Login view, create a 50/50 split screen (image on one side, login form on the other).",
+      "Use Shadcn UI for all structural and interactive components (Tables, Dialogs, Sheets, Select, Forms).",
+      "For the Kanban board (Chantiers), implement a drag-and-drop interface (using something like dnd-kit or react-beautiful-dnd if possible, or build a simple state-based clickable UI to move items).",
+      "For the Calendar (Planning), use 'react-big-calendar' or build a functional custom grid view. It must visualize projects scheduled on specific dates.",
+      "Crucial Workflow: The 'Nouvelle Vente' (New Sale) form should automatically create a client if it doesn't exist, and upon signing/validating, it should automatically push a record into the 'À planifier' (To Schedule) status of the Kanban board, preventing double-entry.",
+      "Include realistic mock data (clients, sales, projects) to populate the dashboard, sales list, and kanban board immediately on load.",
+      "Implement a global export function (CSV/Excel mockup) as requested in the prompt.",
+      "Add `data-testid` attributes to all major interactive elements (buttons, form inputs, navigation links, table rows) for robust testing."
+    ],
+    "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+      "Do not center align the app container (.App { text-align: left; } is correct).",
+      "Do not use generic simplistic gradients.",
+      "Create depth through layered design elements with z-index hierarchy.",
+      "Use specific transitions (e.g., transition-transform, transition-opacity) - NEVER transition-all.",
+      "Never use placeholder URLs (via.placeholder.com). Use the provided Unsplash URLs.",
+      "Ensure responsive design: Sidebar should collapse into a hamburger menu on mobile devices."
+    ]
+  }
+}

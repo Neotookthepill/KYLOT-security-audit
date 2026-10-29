@@ -1,0 +1,35 @@
+{
+  "summary": "iter29 frontend-only validation of ProjectDialog multi-day tech removal UX (QYLOT). All 7 scenarios from the bug fix passed. Seed project TEST_QA_Client was configured via PUT /api/projects/{id} with scheduled_date=2026-10-20, duration_days=3, assigned_to=[TEST_Tech_QA, TEST_Tech2_QA], then reconfigured for single-day and duration=1+extra_dates variants. All data-testids present and behavior is systematic.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ProjectDialog & remove-choice sub-dialog", "issues": ["Console warning: Missing `Description` or `aria-describedby={undefined}` for Radix DialogContent (a11y). Non-blocking."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ProjectDialog.jsx is >900 lines — could be split (photo lightbox portal + remove-choice dialog + main form).",
+    "In toggleTech, when the user restores an excluded day via chip, both excluded chip removal and toggleTech paths exist (consistent, but duplicated logic). Minor DRY opportunity.",
+    "Radix Dialog a11y warning (missing aria-describedby) on project-dialog + sub-dialogs — add DialogDescription or aria-describedby for accessibility compliance."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (7/7 scenarios)"},
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD",
+  "seed_data_creation": "Reused existing TEST_QA_Client project (id 32520b11-dcd3-4864-9969-b96ed12cf1d9). Mutated via PUT /api/projects/{id} and RESTORED at the end to scheduled_date=2026-10-20 duration=1 assigned_to=[] day_exclusions={} extra_dates=[]. No new persistent data created.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "ProjectDialog remove-choice dialog data-testids used: project-remove-choice-dialog, project-remove-day-picker, project-remove-day-YYYY-MM-DD, project-remove-this-day-btn, project-remove-whole-btn, project-remove-cancel, project-tech-excl-{techId}-{date}. Project tech checkbox: project-tech-checkbox-{techId}. Tech IDs: TEST_Tech_QA=4ab3bb75-49dd-4596-87b2-854de046c33f, TEST_Tech2_QA=f9b0949b-a45c-4f41-ab71-c71ecb03eb2f. Login must be submitted via Enter key (page.press on password), form onSubmit misfires with Button click force=True.",
+  "verified_scenarios": [
+    "Planning day 2 cell → uncheck tech → dialog appears with 2026-10-21 preselected (amber-500), label 'Uniquement le 21/10'. Save persists day_exclusion.",
+    "Kanban (no contextDate) → uncheck → dialog appears with first day (2026-10-20) preselected. Switching to 2026-10-22 updates label to 'Uniquement le 22/10'.",
+    "duration_days=1 + extra_dates=['2026-10-23'] → uncheck shows dialog with exactly 2 day buttons (2026-10-20 and 2026-10-23).",
+    "'Tout le chantier' button removes tech from assigned_to (checkbox unchecked, saved).",
+    "Single-day project (duration=1, no extra_dates) → uncheck removes directly, NO dialog appears.",
+    "'Retiré le' amber chip (project-tech-excl-{techId}-{date}) appears next to tech name for excluded days (other than contextDate) and clicking it restores the tech for that day.",
+    "Scenarios repeated across Planning and Kanban origins — behavior is systematic."
+  ],
+  "rca of the issue": "N/A — bug fix verified. Previous code only showed the remove-choice dialog when (a) opened from a Planning cell (had contextDate) AND (b) duration_days>1. Fix now uses projectDays.length>1 (consecutive duration + non-consecutive extra_dates) and no longer requires contextDate, so Kanban origin and non-consecutive multi-day projects also trigger the dialog systematically."
+}

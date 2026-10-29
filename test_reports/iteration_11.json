@@ -1,0 +1,37 @@
+{
+  "summary": "Blocker found immediately: the new backend endpoint GET /api/dashboard/executive does NOT exist in the codebase. grep for 'executive' across /app/backend/*.py returns zero matches (only the frontend call in Dashboard.jsx line 56). Live API confirms 404 for period=month with a valid admin bearer token. As a result the rewritten Dashboard renders but with all zeros and a CRA 'Uncaught runtime errors' overlay (AxiosError 404) blocking the whole page. No deeper frontend verification (period tabs data switching, ranking, recent sales -> EditSaleSheet, alert navigation) was possible because there is no data. Legacy /api/dashboard/stats still returns 200 (regression OK). Created pytest regression suite /app/backend/tests/test_dashboard_executive_iter11.py (5 failed / 1 passed - all failures are the missing endpoint).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/dashboard/executive", "issue": "Endpoint not implemented at all - returns 404 for period=month|prev|year (with and without auth). The claimed edit to server.py above /api/dashboard/stats was never applied (no 'executive' string anywhere in /app/backend).", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard", "issue": "CRA red 'Uncaught runtime errors' overlay covers the page because load() has no try/catch and the axios 404 rejection is unhandled. Add loading/error state handling per guidelines.", "selector": "[data-testid=\"dashboard-ca-hero\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Dashboard executive data load", "issue": "GET /api/dashboard/executive?period=month returns 404 -> hero CA 0 EUR / objectif hardcoded fallback 100 000 EUR / 0% , all KPI cards 0, alerts show 'Tout est a jour' (false positive), ranking + recent sales empty. Note: /api/dashboard/stats reports 8 sales, CA 41 470 EUR, 10 clients, 4 to_schedule, 4 in_progress - so data exists.", "affected_selectors": ["[data-testid=\"dashboard-ca-hero\"]", "[data-testid=\"stat-sales\"]", "[data-testid=\"dashboard-ranking\"]", "[data-testid=\"dashboard-alerts\"]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_dashboard_executive_iter11.py"],
+  "action_items": [
+    "Implement GET /api/dashboard/executive?period=month|prev|year in /app/backend/server.py (mounted on api_router, above /api/dashboard/stats) returning period, range{start,end}, ca{total,objectif,progress,delta_pct}, sales{count,delta_pct}, clients_count, projects{to_schedule,in_progress,completed}, ranking[] sorted desc by ca with {commercial,ca,count,objectif,progress}, commissions{total,to_validate_count,to_validate_amount}, overtime{pending_hours,pending_count}, alerts[{key,label,count,href}], recent_sales[] (6 max, no _id), protected by require_sales_access (commercial 200 / technicien 403).",
+    "Wrap Dashboard load() in try/catch with an error state so a failed API does not blow up the page with the runtime-error overlay.",
+    "Do not show 'Tout est a jour' in the alerts card when the fetch failed - distinguish empty vs error."
+  ],
+  "critical_code_review_comments": [
+    "Frontend calls an endpoint that does not exist - backend/frontend were not committed together; verify with a curl before handing off.",
+    "Dashboard.jsx hardcodes an objectif fallback of 100000 in the client (line 59); objectif must come from backend/settings only.",
+    "No loading skeleton: data null renders zeros indistinguishable from a genuine 0 CA."
+  ],
+  "updated_files": ["/app/backend/tests/test_dashboard_executive_iter11.py"],
+  "success_rate": {"backend": "17% (1/6 - only legacy /api/dashboard/stats passes)", "frontend": "0% (no data, page overlay error)"},
+  "seed_data_creation": "none",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (login works, token 235 chars)",
+  "context_for_next_testing_agent": "Regression suite /app/backend/tests/test_dashboard_executive_iter11.py covers all executive shape/period/auth/CA-consistency assertions plus legacy stats. Re-run `python -m pytest tests/test_dashboard_executive_iter11.py -v` from /app/backend once the endpoint exists, then do the frontend flow (period tabs, alert-<key> navigation to /chantiers,/heures-sup,/commissions, commissions & overtime card navigation, ranking-row-<i> progress bars, recent-sale-<id> opening EditSaleSheet). Role-based checks (commercial 200 / technicien 403) were NOT run - no non-admin credentials available; main agent should provide or seed them.",
+  "rca_of_the_issue": "The /api/dashboard/executive route was never added to /app/backend/server.py (grep 'executive' -> 0 matches in backend; server.py has only /dashboard/stats at line 492). FastAPI therefore returns 404, axios rejects, and Dashboard.jsx's unguarded load() propagates the rejection to the CRA error overlay."
+}

@@ -1,0 +1,53 @@
+{
+  "summary": "iter179 testing: (1) backend GET /api/commissions/history structure + math + RBAC, (2) POST/GET/PUT /api/reinterventions photos, (3) frontend Commissions view toggle + CommissionHistory matrix, (4) accent-insensitive commercial search, (5) ReinterventionDialog photo capture/gallery/compression/lightbox. 15 pytest cases created (14 pass, 1 fail) + 4 Playwright runs. All 3 iter179 features work, BUT a pre-existing CRITICAL regression was found: GET /api/clients no longer exists (405) — the Clients page crashes and the reintervention 'global mode' client picker is empty, so a reintervention with photos cannot be created from the UI at all. Also found: the Commissions commercial dropdown filter does not match rows whose commercial name is a full name (Théo Fresh) while the dropdown lists team_members first names (Theo).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/clients", "issue": "Endpoint MISSING -> 405 Method Not Allowed. `list_clients` was deleted from server.py in commit 8907b8d (iter169 global search) and never restored (openapi shows /api/clients only supports POST). Clients.jsx (api.get('/clients')) throws an Uncaught runtime error and shows 'Tous (0) / Aucun client'; ReinterventionDialog global mode gets a 'Method Not Allowed' toast and an empty client Select, blocking creation of any reintervention (with or without photos) from the UI.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/commissions/history", "issue": "months=0 silently falls back to 12 and months>36 clamps to 36 without any 422 — acceptable but undocumented; consider Query(ge=1, le=36)."},
+      {"endpoint": "GET /api/commissions/history", "issue": "Rows with an empty commercial name are aggregated under the literal label '—' and returned as a real 'commercial' row (visible in the UI matrix). Consider grouping/labelling explicitly (e.g. 'Non attribué')."},
+      {"endpoint": "GET /api/commissions/history", "issue": "Calls list_commissions(user) directly on every request, which triggers the lazy evolutive_ca reconcile (writes) — history is a read-only view; response time was ~1s on 11 rows and will grow linearly with sales volume."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Commissions — commercial dropdown filter", "issue": "Filter uses strict equality norm(r.commercial) === norm(commercialFilter). The dropdown is fed from team_members (first names: 'Theo', 'Kilian') while commission rows carry the user's full name ('Théo Fresh', 'Kilian Blanc'), so selecting Theo/Kilian returns 'Aucune commission' even though matching rows exist (verified: 'Thomas' works, 'Theo' and 'Kilian' return 0 rows). Use the same substring/norm() logic as the text search, or feed the dropdown from the commercial names present in rows.", "selector": "[data-testid=commissions-commercial-filter]", "priority": "HIGH"},
+      {"component": "Clients page", "issue": "Full-page 'Uncaught runtime errors: Request failed with status code 405' overlay + empty list (consequence of the missing GET /api/clients). No error state handling in Clients.jsx load().", "selector": "/clients", "priority": "CRITICAL"},
+      {"component": "Onboarding modal (iter177)", "issue": "The welcome dialog opens on every page for the admin and its DialogOverlay intercepts pointer events, blocking all clicks (Commissions toggle unclickable until 'Passer et fermer' is pressed). Also logs a React a11y warning: 'DialogContent requires a DialogTitle'. Add a data-testid to the skip/close button and a DialogTitle.", "selector": "[x-component=DialogOverlay]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Create reintervention with photos from the UI", "issue": "Cannot be completed end-to-end: global mode (Planning > Réintervention) has no selectable client because GET /api/clients is 405, and client-fiche mode is unreachable because the Clients page is broken. Photo attach/compress/preview/remove and the display of photos in the history all work; only the client selection is blocked.", "affected_selectors": ["[data-testid=reinter-client]", "[data-testid=reinter-add]"]}
+    ],
+    "design_issues": [
+      {"screen": "Commissions > Historique", "issues": ["Matrix, sticky first column, month labels (oct. 24 … sept. 26), 6/12/24 switch and summary cards all render correctly and match the API (3 791 € / 500 € / 3 291 €)", "A commercial with a 0 € commission (Thomas) renders a row of only em-dashes with '1 ligne' — visually looks like a bug; consider hiding zero-total commercials or showing 0 €", "Row label '—' for sales without a commercial"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter179.py",
+    "/app/backend/tests/_iter179_seed_theo.py",
+    "/app/test_reports/pytest/iter179.xml"
+  ],
+  "action_items": [
+    "CRITICAL: restore GET /api/clients (list_clients with check_perm(user,'clients','view','own') + cq(user) + _commercial_client_ids scope for commercials) — deleted in iter169; it breaks the Clients page and the reintervention creation flow.",
+    "HIGH: fix the Commissions commercial dropdown filter so 'Theo' matches 'Théo Fresh' (substring norm() match, or build the option list from row commercial names).",
+    "MEDIUM: prevent the onboarding modal overlay from blocking interactions on every page and add DialogTitle + data-testid on its skip button.",
+    "LOW: add loading/error state in Clients.jsx instead of an uncaught axios error; consider Query(ge=1,le=36) on /commissions/history months; remove the now-unused eslint-disable directives in CommissionHistory.jsx (lines 33 and 38 warn 'Unused eslint-disable directive')."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py is 9423 lines — well over the 700-line guideline; the missing GET /api/clients regression is a direct symptom (a route silently disappeared inside a large diff). Split into routers (clients, sales, commissions, planning...) and add a smoke test asserting every frontend-consumed endpoint exists.",
+    "commissions_history reuses list_commissions() (a route handler) as a helper; extract the pure aggregation into a service function so the history endpoint does not trigger write-side reconciliation.",
+    "Commissions.jsx filter: text search is accent-insensitive (correct) but the commercial dropdown uses strict equality on a different name source — the two filters must share one matching helper."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter179.py",
+    "/app/backend/tests/_iter179_seed_theo.py"
+  ],
+  "success_rate": {"backend": "93% (14/15 pytest cases; the only failure is the missing GET /api/clients)", "frontend": "80% (history view, toggle, month switch, accent text search, photo attach/compress/remove/lightbox OK; commercial dropdown filter and reintervention creation flow broken)"},
+  "seed_data_creation": "Temporarily moved one 'Théo Fresh' commission (sale dcb3dada-8694-40de-ab58-57bb02613418) from commission_month 2026-08 to 2026-09 to exercise the monthly-view search, then REVERTED to 2026-08 (verified). Created and deleted TEST_iter179 reinterventions (with base64 photos). No residual test data.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (login returns {user, token} — note: field is `token`, not `access_token`)",
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iter179.py -v` — TestFrontendConsumedEndpoints::test_get_clients_listing_exists must go green once GET /api/clients is restored. In Playwright, ALWAYS dismiss the iter177 onboarding modal first (click text 'Passer et fermer') or its DialogOverlay blocks every click. The Commissions monthly view only exposes current+future month tabs, so Théo Fresh rows (commission_month 2026-08) are not reachable there; there is one Théo Fresh row in 2026-10 (tab 'Mois prochain — Octobre 2026') usable to retest the dropdown filter fix. Use /app/backend/tests/_iter179_seed_theo.py set|revert if you need a Théo row in the current month. /tmp/iter179_valid.jpg (2000x1200) is a valid image for testing the photo compression (verified: resized to 1600x960, ~13 KB data URI).",
+  "rca_of_the_issue": "1) GET /api/clients 405: `git log -S '@api_router.get(\"/clients\")'` shows the handler was removed in commit 8907b8d (iter169 'Recherche globale Cmd/Ctrl+K') where the /api/search endpoint was inserted over the list_clients block; `grep -n list_clients server.py` now returns nothing and the local /openapi.json lists /api/clients with POST only. FastAPI therefore answers 405 for GET. Repro: GET {BACKEND}/api/clients with a valid admin bearer -> 405; open /clients in the UI -> uncaught AxiosError overlay. Fix: re-add the handler. 2) Dropdown filter: Commissions.jsx L184 does an exact normalized equality between the commission row's `commercial` (user full name, e.g. 'Théo Fresh') and the selected team_members name ('Theo'), so full-name vs first-name entries never match; the accent stripping itself works (text search 'theo'/'THÉO' both match)."
+}

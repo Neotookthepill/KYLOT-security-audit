@@ -1,0 +1,52 @@
+{
+  "summary": "Verified the multi-technician save bug fix (backend PUT /api/projects + ProjectDialog UI), the new Rappel J-1 cron feature (auth, idempotency, admin manual trigger, payload), and regressions (clients bulk import, monthly report). 21/21 pytest backend tests pass. Frontend multi-tech selection + persistence works end-to-end from Kanban and Calendar with no 'Input should be a valid string' error. Found one real user-facing defect: technicians assigned in DB but absent from the team list (e.g. 'Yann') are counted in '(N sélectionnés)' and shown on kanban chips but have NO checkbox, so they can never be unselected — this very likely IS the user's original complaint about 'cliquer sur plusieurs techniciens'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE|PUT /api/team/{tid}", "issue": "No cascade: deleting/renaming a team member leaves orphan names inside projects.assigned_to (e.g. 'Yann' still assigned to 2 chantiers but no longer a technicien). Should $pull/rename the name in projects.assigned_to."},
+      {"endpoint": "POST /api/cron/rappel-chantiers-j1/test", "issue": "Sends real emails on every call and silently reports sent=0 when the email proxy returns 429 rate_limited; response has no errors/failed field so a failure is indistinguishable from 'nothing to send'. Suggest adding failed/errors counters and/or a dry_run flag."},
+      {"endpoint": "GET /api/team", "issue": "Duplicate name across types ('Guillaume' exists as both commercial and technicien). Assignment is name-based, so the same string matches two members — ambiguity in filters/reminders."},
+      {"endpoint": "POST /api/auth/login", "issue": "Playbook deviations: no httpOnly auth cookie is set on login (set_auth_cookies() is defined but never called), and no brute-force lockout (6 consecutive wrong passwords then a valid login all succeed). CORS uses allow_origins=['*'] with allow_credentials=False instead of explicit origins + credentials."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ProjectDialog - Techniciens assignés", "issue": "Assignees not present in the technicien list have no checkbox but are still counted: LEPESQUEUX Martine showed '(4 sélectionnés)' with only 3 checkboxes checked ('Yann' invisible); 'auguste delatour' shows '(1 sélectionné)' with 0 checkboxes checked. The user cannot remove such a technician. Fix: render orphan names as removable chips (or migrate/clean orphan names).", "selector": "[data-testid^='project-tech-checkbox-']", "priority": "HIGH"},
+      {"component": "ProjectDialog - tech list", "issue": "Scroll container clips a row mid-height (scrollHeight 222 vs clientHeight 158) with no visible scroll affordance; on desktop 1920px there is room to show all 6 technicians.", "selector": "[data-testid='project-dialog']", "priority": "LOW"},
+      {"component": "ProjectDialog - Date de début", "issue": "Uses the native browser date input (<input type=\"date\">) instead of the shadcn calendar/date-picker used elsewhere in the design system.", "selector": "[data-testid='project-scheduled-date']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ProjectDialog", "issues": ["Technician list vertical clipping (half-visible row)", "Native date picker vs shadcn calendar"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "ProjectDialog: show/allow removal of assigned technicians that are not in the team list (orphan names) so the selection count always matches the visible checkboxes.",
+    "Add cascade cleanup on DELETE/PUT /api/team/{tid} (pull or rename the technician name in projects.assigned_to); optionally a one-off migration to drop the orphan 'Yann' from the 2 chantiers referencing it.",
+    "De-duplicate team member names or key assignments by member id instead of name ('Guillaume' exists twice).",
+    "Cron test endpoint: surface email send failures (429 rate limit) in the response payload and consider a dry_run option.",
+    "Optional (playbook alignment): set httpOnly auth cookies on login, explicit CORS origins with allow_credentials=True, and brute-force lockout after 5 failed logins."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 1296 lines and mixes auth, projects, reports, email templating and cron — split into routers/modules (>700 line guideline).",
+    "assigned_to is stored as free-text names; a technicien renamed or deleted silently orphans project assignments and breaks the 'technicien' project filter (list_projects matches on user.name).",
+    "_run_reminders ignores send_email failures for the per-commercial loop; a 429/5xx from the email proxy yields a silent 'sent: 0' with HTTP 200.",
+    "PUT /api/projects builds updates by dropping None values, so a field can never be cleared to null (e.g. scheduled_date=None sent by the dialog is ignored)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py"
+  ],
+  "success_rate": {"backend": "100% (21/21 pytest)", "frontend": "90% (core multi-tech flow OK; orphan-assignee UI defect)"},
+  "seed_data_creation": "Created and deleted 2 TEST_QA clients via /api/clients/bulk. Project 0c63842d (LEPESQUEUX Martine) assigned_to/duration were changed during UI testing and left as ['Evan','Guillaume','Ludo'] + Yann orphan, duration 2 (values restored in backend tests, UI tests intentionally exercised toggles).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (from /app/memory/test_credentials.md) — bcrypt $2b$12$ verified",
+  "context_for_next_testing_agent": "Backend suite lives at /app/backend/tests/ (conftest.py + backend_test.py, classes: TestAuth, TestProjectsAssignedTo, TestCronRappelJ1, TestRegression). Cron secret is read from /app/backend/.env (WEBHOOK_CRON_SECRET). Repeated calls to /api/cron/rappel-chantiers-j1/test hit the Emergent email proxy rate limit (429) so 'sent' can legitimately be 0 — check backend logs for 202 Accepted. Technicien list in team: Evan, Guillaume, Ludo, Momo, Sébastien, Thanh (NO Yann). Frontend testids: nav-kanban, kanban-card-<id>, cal-event-<id>-<dayIndex>, project-tech-checkbox-<id>, project-duration, project-save-btn.",
+  "rca_of_the_issue": "Original bug (Pydantic 'Input should be a valid string') is fixed: startup migrate_projects_assigned_to() flattens legacy nested arrays, ProjectUpdate accepts Optional[List[str]], and PUT /api/projects flattens+dedups defensively — verified with flat/nested/duplicate payloads and via the UI (200 + 'Chantier mis à jour', values persisted after reopen, 1<->2<->3 techs switching works). Remaining user-visible symptom: assigned names that no longer exist in team_members (here 'Yann', present in the original seed list but not in the current team collection) have no checkbox in ProjectDialog, so the count label disagrees with the checkboxes and the user cannot deselect them — root cause is name-based assignment with no cascade on team member delete/rename."
+}

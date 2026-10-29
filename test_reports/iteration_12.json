@@ -1,0 +1,39 @@
+{
+  "summary": "Tested the 3 requested changes (delta cap, 'À traiter' alert navigation, overtime reject button). RESULT: 2 of 3 features are NOT implemented in the codebase. (1) Backend /api/dashboard/executive still returns ca.delta_pct=582.7 and sales.delta_pct=600 — the _delta helper in server.py (line 526) only returns None when prev==0; no 1000€ / 3-sales thresholds and no _delta_count function exists. (2) Alerts navigation works for all three keys (to_schedule→/chantiers, overtime→/heures-sup, commissions→/commissions), verified both via API hrefs and real UI clicks. (3) The overtime reject button does not exist: HeuresSup.jsx HoursCell renders only overtime-validate-<name>-<date>; no overtime-reject testid, no reject handler, no 'Refusé & retiré' toast. Validate still works (cell turns emerald, toast shown). Backend behaviour that reject would rely on (POST /overtime hours=0 deletes the entry) works correctly.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/dashboard/executive?period=month", "issue": "Delta cap NOT implemented. ca.delta_pct=582.7 returned with a tiny previous-month base; sales.delta_pct=600. server.py:526 _delta(cv,pv) returns None only when pv is falsy. Required: return None when prev CA < 1000€, and a separate _delta_count returning None when prev sales count < 3.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "HeuresSup / HoursCell", "issue": "Reject button not implemented. Only the validate button renders on hover for pending+admin cells; no [data-testid^='overtime-reject-'] element anywhere on /heures-sup (count=0 while validate count=1 for a pending cell).", "selector": "[data-testid='overtime-reject-Evan-2026-08-20']", "priority": "HIGH"},
+      {"component": "Dashboard stats", "issue": "Absurd deltas still visible in UI: '582.7% vs mois préc.' on CA card and '600% vs mois préc.' on Ventes card (frontend Delta guard is fine — it only hides null, backend sends the values).", "selector": "[data-testid='stat-sales']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dashboard_delta_iter12.py",
+    "/app/test_reports/pytest/iter12_results.xml"
+  ],
+  "action_items": [
+    "server.py dashboard_executive: implement _delta(cv, pv) -> None when pv < 1000 (CA) and add _delta_count(cv, pv) -> None when pv < 3, use it for sales.delta_pct.",
+    "HeuresSup.jsx HoursCell: add the red X reject button (data-testid=`overtime-reject-${techName}-${date}`) next to validate for pending entries when isAdmin, calling POST /overtime with hours=0, clearing the cell state and showing toast 'Refusé & retiré'.",
+    "No change needed for 'À traiter' alerts — navigation verified working."
+  ],
+  "critical_code_review_comments": [
+    "server.py:526 — single _delta used for both currency and count metrics; counts need their own low-base guard, otherwise 1→7 sales yields +600%.",
+    "Dashboard.jsx line 92 duplicates the Delta rendering logic already in the Stat component (lines 33) — extract to avoid divergence.",
+    "/app/backend/server.py is 2283 lines; consider splitting into routers (dashboard, overtime, commissions)."
+  ],
+  "updated_files": ["/app/backend/tests/test_dashboard_delta_iter12.py"],
+  "success_rate": {"backend": "80% (4/5 pytest cases; the delta-cap case fails)", "frontend": "50% (alerts nav + validate OK; reject button missing, absurd deltas rendered)"},
+  "seed_data_creation": "Created and then removed a pending overtime entry (Evan, 2026-08-20, 2.5h) to exercise validate/reject hover buttons; cleaned up via POST /api/overtime hours=0 (verified absent).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (login OK, token key access_token)",
+  "context_for_next_testing_agent": "Use /app/backend/tests/test_dashboard_delta_iter12.py (params: period must be month|prev|year — 'last_month' returns 422). Current month has tiny prev-month data so delta caps are directly observable. /heures-sup has no pending entries by default: create one via POST /api/overtime {technician_name:'Evan', date:'<current-month>-20', hours:2.5} then hover cell [data-testid='overtime-cell-Evan-<date>']; clean up with hours=0.",
+  "rca_of_the_issue": "Both reported changes were never applied to the source: server.py still has the original single _delta with only a zero-division guard, and HeuresSup.jsx HoursCell contains only validateOne/validate button. Alerts navigation was already correct (hrefs returned by backend + nav(a.href) in Dashboard.jsx)."
+}

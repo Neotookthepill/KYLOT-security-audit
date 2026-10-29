@@ -1,0 +1,36 @@
+{
+  "summary": "iter135 re-test: the claimed frontend fix WAS NOT APPLIED. /app/frontend/src/lib/useTeam.js is byte-identical to the previous iteration (mtime Aug 30, not listed in `git status -s` modified files) and still derives sousTraitants exclusively from GET /users filtered on role==='sous_traitant'; it never calls GET /team?type=sous_traitant and there is no _account_less flag anywhere in the codebase. SousTraitantList.removeRole() still unconditionally calls PUT /users/{id}. Reproduced end-to-end in the UI: adding a sous-traitant with a name only shows the success toast 'TEST_QA_ST_R2_85398 ajouté comme sous-traitant (sans compte)' but the entry does NOT appear in the list, the badge stays at 1, and it is still absent after a full page reload. Backend regression is green: 7/7 pytest pass (create no-email 200, duplicate 400, invalid type 400/422, blank name 400/422, email persisted, delete, non-admin 403).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SousTraitantList", "issue": "Remove button testid is `sous-traitant-{id}-remove`, not the `team-sous-traitant-{id}-remove` stated in the request — align naming or update the spec.", "selector": "[data-testid='sous-traitant-{id}-remove']", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Add sous-traitant without email (Users page > Sous-traitants block)", "issue": "UNCHANGED FROM ITERATION 23 — fix not present in the codebase. POST /api/team returns 200 and the toast appears, but useTeam.js (lines 17-27) only reads GET /users (role==='sous_traitant'), so the team_members record is never fetched: invisible immediately and after reload, counter badge does not increment.", "affected_selectors": ["team-sous-traitant-add-btn", "team-sous-traitants"]},
+      {"flow": "Remove ('X') on an account-less sous-traitant", "issue": "Untestable (such entries never render) and still incorrect in code: removeRole() calls PUT /users/{id} for every entry; it must call DELETE /api/team/{id} for team_members-sourced entries.", "affected_selectors": ["sous-traitant-{id}-remove"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter135_sous_traitant.py",
+    "/app/test_reports/pytest/iter135_r2.xml",
+    "/app/backend/tests/_cleanup_iter135_r2.py"
+  ],
+  "action_items": [
+    "APPLY the useTeam.js change — it is missing on disk. load() must also `api.get('/team?type=sous_traitant')` and merge those records with users having role 'sous_traitant', de-duplicating by lowercased email or normalized name, tagging team_members-sourced entries with _account_less=true.",
+    "Update SousTraitantList.removeRole() to branch: DELETE /api/team/{id} when m._account_less, else PUT /api/users/{id} {role:'technicien'}.",
+    "Verify the change actually lands on disk (git status showed only backend/server.py and TeamSection.jsx modified) before requesting a retest."
+  ],
+  "critical_code_review_comments": [
+    "Two sources of truth for sous-traitants (users.role vs team_members.type) with no reconciliation; the no-email path still produces records the UI cannot see.",
+    "No cross-collection duplicate check: the same person can be added once via POST /users (email path) and once via POST /team (no-email path)."
+  ],
+  "updated_files": ["/app/backend/tests/_cleanup_iter135_r2.py"],
+  "success_rate": { "backend": "100%", "frontend": "0% (target fix absent)" },
+  "seed_data_creation": "Created team_member TEST_QA_ST_R2_85398 during UI test; deleted afterwards via /app/backend/tests/_cleanup_iter135_r2.py (GET /team?type=sous_traitant now contains only 'Sub Test').",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (login OK)",
+  "context_for_next_testing_agent": "Before UI testing, `grep -n 'type=sous_traitant' /app/frontend/src/lib/useTeam.js` — if it returns nothing the fix was never written. UI repro: login -> /utilisateurs -> scroll to [data-testid='team-sous-traitants'] -> fill team-sous-traitant-input -> team-sous-traitant-add-btn. Remove testid is sous-traitant-{id}-remove. pytest.ini forces xdist. Use @keylot.example.com emails.",
+  "rca_of_the_issue": "The reported fix to /app/frontend/src/lib/useTeam.js (merge of GET /team?type=sous_traitant) and the removeRole routing in TeamSection.jsx were not saved: useTeam.js is untouched since Aug 30 and grep for 'type=sous_traitant' / '_account_less' in frontend/src returns nothing. Consequently the iteration-23 defect reproduces identically."
+}

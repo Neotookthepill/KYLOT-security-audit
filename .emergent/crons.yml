@@ -1,0 +1,17 @@
+crons:
+  - name: rappel-chantiers-j1
+    description: "Envoie chaque jour à 20h Paris le rappel des chantiers du lendemain aux commerciaux"
+    cron: "0 20 * * *"
+    timezone: "Europe/Paris"
+    endpoint: "{{BASE_URL}}/api/cron/rappel-chantiers-j1"
+    method: POST
+    enabled: true
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+  - name: bilan-mensuel
+    description: "Envoie à 9h Paris le 1er de chaque mois le bilan du mois écoulé à l'admin"
+    cron: "0 9 1 * *"
+    timezone: "Europe/Paris"
+    endpoint: "{{BASE_URL}}/api/cron/bilan-mensuel"
+    method: POST
+    enabled: true
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.

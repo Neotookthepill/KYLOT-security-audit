@@ -1,0 +1,22 @@
+{
+  "summary": "Frontend retest of the iteration_31 mobile issues at 390x844, plus desktop regression check at 1920. Logged in as admin admin@example.invalid. Overflow sweep on 16 main pages (/, ventes, rapport, progression, heures-sup, chantiers, planning, clients, carte, commissions, prospecteur, stock, utilisateurs, journal, parametres, abonnement): every page has scrollWidth 390 and no element sticks out past the viewport. All 9 retest items pass. (1) EditSaleSheet footer: Supprimer is full width, with Annuler and Enregistrer above it; Enregistrer is fully visible (x=118 to 223). (2) NewSaleSheet and EditSaleSheet are 390px wide on mobile (inner scrollWidth equals clientWidth, 389), and the date inputs are not clipped. (3) /parametres: settings-save-btn at x=169, no overflow. (4) /rapport: no overflow, report-next visible. (5) /commissions: buttons wrap, no overflow. (6) /planning: cal-prev, the month label and cal-next share one row (y=258), and the filter is full width. (7) /prospecteur has 16px padding. (8) main has 96px bottom padding (pb-24). (9) Heures sup sticky cells have opaque backgrounds (white or slate-50). The payment select lists 'RAC' as the last option, not 'RAC (Reste à charge)'. Stock shows mobile cards (no table visible). ProjectDialog date and duration fields stack full width (340px). Desktop 1920: no overflow on Ventes, Planning, Parametres, Rapport and Commissions; NewSale and EditSale sheets are 576px wide (max-w-xl).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "MonthlyReport header (390px)", "issues": ["LOW: the controls row wraps. report-prev and the 'Octobre 2026' label sit on one line and report-next drops alone to the next line (x=16), so the < and > buttons are split. Suggest grouping prev/label/next in their own non-wrapping flex (like CalendarPage) and letting only Export PDF wrap above."]},
+      {"screen": "EditSaleSheet footer (390px)", "issues": ["COSMETIC: Annuler and Enregistrer are auto-width and left-aligned while Supprimer is full width. Consider 'w-full sm:w-auto' on the inner div with flex-1 buttons."]},
+      {"screen": "NewSale/EditSale evolutive block (390px)", "issues": ["INFO: the 3-column Seuil/Taux row does not stack, but each column is 97px and '30000' and the % values fit, so it is acceptable."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": ["Optional: keep report-prev, the month label and report-next on one row on mobile in MonthlyReport.jsx", "Optional: make the EditSaleSheet Annuler/Enregistrer buttons full width on mobile"],
+  "critical_code_review_comments": ["The iOS date fix is present in index.css:63 (::-webkit-date-and-time-value text-align left).", "sheet.jsx side=right/left now uses w-full sm:w-3/4 sm:max-w-sm; consumers override with sm:max-w-xl, which is correct."],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% of retest items pass (2 low-priority cosmetic notes)"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Mobile overflow sweep: compare document scrollWidth with the viewport and walk the elements. Sales rows have inline-editable cells that stop click propagation; open EditSale with JS: document.querySelector('[data-testid^=sale-row-]').click() after clicking sales-period-year (the current month may be empty). The Sales mobile card view is a known gap, do not report it."
+}

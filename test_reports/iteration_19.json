@@ -1,0 +1,59 @@
+{
+  "summary": "Itération 19 — vérification du fix de déploiement annoncé (hoist des 2 useState au-dessus de l'early return dans ActionPreviewCard / AIHelper.jsx) + régression backend. RÉSULTAT MAJEUR : LE FIX N'EST PAS PRÉSENT DANS LE CODE. AIHelper.jsx contient toujours `if (intent === 'unknown') return (...)` en L134-143 et les deux `useState` en L157-158, donc APRÈS l'early return. ESLint et surtout `CI=true npx craco build` échouent toujours exactement comme dans le RCA de déploiement (`Failed to compile. [eslint] react-hooks/rules-of-hooks Line 157:33 / 158:29`, exit 1). Le build de production est donc TOUJOURS cassé et Cloud Build refailera. Conséquence directe en preview : le dev-server CRA affiche un overlay plein écran 'Compiled with problems: ERROR' qui masque et bloque toute l'application (login inaccessible) tant que l'overlay n'est pas supprimé manuellement via JS. Après suppression forcée de l'overlay, tous les scénarios fonctionnels demandés passent au runtime : login admin OK, preview card create_sale rendue, les 4 champs (client_name/bdc/commercial/amount) présents+visibles+cliquables, clic sur client_name -> input ai-preview-input-client_name, saisie 'Robert Dumont' + Enter -> valeur enregistrée dans la preview ('Robert Dumont ✎'), intent 'coucou' -> 'Je n'ai pas compris l'action' affiché SANS crash React (0 erreur console, 0 erreur 'Rendered more/fewer hooks'), y compris lors de la transition create_sale -> unknown sur le même composant monté, et sur montage neuf. Backend : nouvelle suite pytest test_iter31_aihelper_regression.py = 12/12 PASS (health/healthz 200 sur le port conteneur, login admin CHANGE_ME_TEST_PASSWORD + /auth/me, /api/sales, /api/commissions, /api/bonuses, /api/project-bonuses/monthly?month=2026-08 + format invalide=400/422, /api/ai/action create_sale et unknown). Aucun _id Mongo exposé. Aucun 500 dans les logs backend pendant le run.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /health, GET /healthz",
+        "issue": "Non atteignables via l'URL publique : l'ingress route tout chemin non préfixé /api vers le frontend, donc https://<public>/health renvoie index.html (200 HTML, pas JSON). Les sondes retournent bien {\"status\":\"ok\"} sur le port conteneur 8001. À vérifier côté config des probes K8s si elles passent par l'ingress."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AIHelper.jsx / ActionPreviewCard",
+        "issue": "BLOQUANT DÉPLOIEMENT — le fix annoncé n'a jamais été appliqué : `useState(editing)` L157 et `useState(draft)` L158 sont toujours DÉCLARÉS APRÈS l'early return `if (intent === 'unknown') return (...)` L134-143. `CI=true npx craco build` -> 'Failed to compile' + exit 1 sur react-hooks/rules-of-hooks (mêmes lignes 157/158 que le RCA 50661f01). Cloud Build échouera à l'identique.",
+        "selector": "/app/frontend/src/components/AIHelper.jsx:134-158",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "App shell (dev preview)",
+        "issue": "Conséquence du point précédent : l'overlay webpack-dev-server 'Compiled with problems: ERROR' couvre 100% du viewport et rend l'app inutilisable en preview (page de login non atteignable). Il a fallu supprimer #webpack-dev-server-client-overlay par JS pour pouvoir tester.",
+        "selector": "#webpack-dev-server-client-overlay",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter31_aihelper_regression.py",
+    "/app/test_reports/pytest/iter31_results.xml"
+  ],
+  "action_items": [
+    "APPLIQUER RÉELLEMENT LE FIX dans /app/frontend/src/components/AIHelper.jsx : déplacer `const [editing, setEditing] = useState(null);` et `const [draft, setDraft] = useState('');` (actuellement L157-158) AU-DESSUS du bloc `if (intent === 'unknown') { return ... }` (L134), c.-à-d. juste après la déstructuration `const { intent, data, missing, summary, confidence } = preview;` (L129). Puis revalider avec `cd /app/frontend && CI=true npx craco build` (doit sortir exit 0).",
+    "Après le hoist, vérifier aussi que `missing.filter(...)` L145 ne casse pas si `missing` est undefined pour certains intents (préférer `(missing || [])`) — le backend renvoie bien un tableau aujourd'hui mais c'est fragile.",
+    "Optionnel (hygiène, non bloquant pour CRA aujourd'hui) : ESLint signale aussi react/no-unescaped-entities L139 et 7 `no-empty` (catch vides L313/332/363/364/478/480/520) dans AIHelper.jsx — à nettoyer pour éviter qu'un durcissement futur de la config ne casse le build.",
+    "Nettoyer le code mort en fin de fichier : labelFor_LEGACY_UNUSED / questionFor_LEGACY_UNUSED (L686-709)."
+  ],
+  "critical_code_review_comments": [
+    "Le fix annoncé au testeur n'était pas dans le working tree : toujours valider un fix de build par `CI=true npx craco build` (le dev-server ne fait pas échouer la compilation, il n'affiche qu'un overlay) avant de le déclarer appliqué.",
+    "ActionPreviewCard mélange rendu, parsing (amount) et side-effect (onFieldUpdate + log de correction) ; extraire l'édition inline dans un hook `useInlineFieldEdit` supprimerait définitivement ce risque de hook conditionnel.",
+    "AIHelper.jsx = 709 lignes avec du code mort : dépasse la limite de 700 lignes/module, à découper (ActionPreviewCard, parsing/labels, panneau de chat).",
+    "onBlur={commit} + onKeyDown Enter -> commit peut déclencher deux commits successifs (blur après Enter) et donc deux POST /ai/corrections ; ajouter un garde d'idempotence."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter31_aihelper_regression.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 sur la suite iter31)",
+    "frontend": "runtime 100% des scénarios demandés (après suppression forcée de l'overlay d'erreur) — MAIS build de production 0% : compilation en échec, non déployable"
+  },
+  "seed_data_creation": "Aucune donnée créée (tests en lecture seule + previews IA non confirmées, aucune vente n'a été validée).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@example.invalid / CHANGE_ME_TEST_PASSWORD (admin) — valide, login OK. /app/memory/test_credentials.md est complet et exploitable.",
+  "context_for_next_testing_agent": "1) Vérifier EN PREMIER que le hoist des useState est bien dans AIHelper.jsx (L129 environ) puis lancer `cd /app/frontend && CI=true npx craco build` : doit finir exit 0 sans react-hooks/rules-of-hooks. 2) Tant que le build échoue, l'app preview est masquée par l'overlay dev-server : le supprimer via `await page.evaluate(\"() => { const el = document.getElementById('webpack-dev-server-client-overlay'); if (el) el.remove(); }\")` avant tout selector, sinon les clics sont interceptés. 3) Suite backend rapide : `cd /app/backend && python -m pytest tests/test_iter31_aihelper_regression.py -v` (12 cas, ~4s ; pytest.ini force xdist, ne pas passer -n). 4) Les sondes /health//healthz doivent être testées sur http://localhost:8001 (l'ingress renvoie le frontend pour tout non-/api). 5) Scénarios AI validés au runtime : create_sale preview + édition inline client_name + intent unknown, aucune erreur console. 6) Le bug iter18 GET /api/bonuses/progress (team_members `role` vs `type`) n'a pas été re-testé cette itération.",
+  "rca_of_the_issue": "Le déploiement échoue toujours car le correctif décrit dans la demande de test n'existe pas dans le code livré. Preuve : (a) lecture de /app/frontend/src/components/AIHelper.jsx -> early return `if (intent === 'unknown')` L134-143, `useState` L157-158 ; (b) `mcp_lint_javascript` -> 2x Error react-hooks/rules-of-hooks L157:33 et L158:29 ; (c) `CI=true npx craco build` -> 'Failed to compile. [eslint] ... Line 157:33 / 158:29 react-hooks/rules-of-hooks', EXIT=1 ; (d) le navigateur affiche l'overlay CRA 'Compiled with problems' bloquant l'UI. Le runtime, lui, ne crashe pas (React n'a pas levé 'Rendered more/fewer hooks' sur les transitions testées) : le problème est donc strictement un échec de compilation CRA (ESLint errors = build fail), pas une exception runtime. Correctif : déplacer les 2 lignes useState au-dessus de l'early return, puis revalider par un build CI."
+}

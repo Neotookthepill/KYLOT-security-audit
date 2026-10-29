@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 7: full backend + frontend testing of the new 'Heures sup' (overtime) feature plus regression of existing pages/endpoints and the auth playbook checklist. Backend: 25/25 pytest tests pass (new /app/backend/tests/test_overtime_iter7.py) covering auth guard, GET month shape/sorting/grand_total, POST create, upsert (no duplicates), multi-date sum, hours=0 delete, month isolation, validation errors, plus 200-regression on /api/auth/me, /api/sales, /api/team, /api/users, /api/clients, /api/projects, /api/dashboard/stats, /api/reports/monthly, /api/commissions, /api/subscription/me, /api/settings. Frontend: login OK, nav-overtime present, /heures-sup renders 6 technician summary cards + 6 grid rows x 31 day cells (empty rows shown), weekend columns shaded, today (27) highlighted indigo. Typing '3' + Enter -> toast 'Sébastien · 3h enregistrées', summary card, row Total and 'Total mois' all updated in place; value persisted after reload; second entry summed to 5.5h; clearing cell (empty) deleted entry on backend and persisted after reload; invalid '99' rejected client-side with toast 'Heures invalides (0–24)' and cell reverted. Month prev/next works (Août -> Juillet / Septembre), 'Ce mois' button appears only off current month. Regression navigation over all nav items (dashboard, ventes, rapport, chantiers, planning, heures-sup, commissions, clients, utilisateurs, abonnement, parametres) produced zero page/console errors; Ventes status dropdown still opens. All test overtime data cleaned up (July/Aug/Sept 2026 entries = 0).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/overtime", "issue": "No upper/lower bound validation on 'hours' — hours=99 is accepted and stored (only the frontend enforces 0–24). Add server-side validation (e.g. Field(ge=0, le=24))."},
+      {"endpoint": "POST /api/overtime", "issue": "date is only length-checked (len>=10); '2026-13-45' or arbitrary 10+ char strings are accepted. Add a YYYY-MM-DD regex/date parse."},
+      {"endpoint": "POST /api/overtime", "issue": "technician_name is free text and not validated against team_members (type=technicien); a typo creates a phantom row in GET /api/overtime output."},
+      {"endpoint": "db.overtime", "issue": "No unique index on (technician_name, date); upsert relies on find_one+update so concurrent writes could create duplicates. Recommend create_index([('technician_name',1),('date',1)], unique=True)."},
+      {"endpoint": "POST /api/auth/login", "issue": "Auth playbook deviation: set_auth_cookies()/create_refresh_token() are dead code — login/register never set httpOnly access_token/refresh_token cookies (verified: response Set-Cookie contains no token cookies). Auth works only via Bearer token stored in localStorage."},
+      {"endpoint": "CORS middleware", "issue": "allow_origins=['*'] with allow_credentials=False — cookie-based auth cannot work cross-origin. Playbook expects explicit origins + allow_credentials=True."},
+      {"endpoint": "POST /api/auth/login", "issue": "No brute-force lockout: 6 consecutive wrong-password attempts all return 401 and the account remains usable (valid login immediately after returns 200). Playbook expects lockout after 5 failures."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/heures-sup daily grid", "issues": [
+        "The sticky right 'Total' column overlaps the last day column: day 31's header/cell is partially hidden behind the Total cell at 1920px width (visible clipping of '31').",
+        "Rows and summary cards are re-sorted by total_hours desc on every save, so the row a user is typing in can jump position mid-entry (loss of context). Consider sorting only on month load or sorting the grid alphabetically and keeping the desc sort for the cards only.",
+        "Toast pluralisation: 'Sébastien · 3h enregistrées' — for 0.5h it reads 'enregistré' (hours > 1 check); minor grammar nit for values between 1 and 2."
+      ]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_overtime_iter7.py",
+    "/app/test_reports/pytest/overtime_iter7.xml"
+  ],
+  "action_items": [
+    "Add server-side validation for POST /api/overtime: hours 0–24 (Field(ge=0, le=24)) and strict YYYY-MM-DD date parsing.",
+    "Add unique index on overtime (technician_name, date) or use update_one(..., upsert=True) to make the upsert atomic.",
+    "Fix the sticky Total column overlapping day 31 in the overtime grid (add right padding / min-width or reduce sticky column overlap).",
+    "Avoid re-sorting grid rows on each cell save (keeps the typing position stable).",
+    "Optional/security: either wire set_auth_cookies() into login/register with explicit CORS origins + allow_credentials=True, or delete the dead cookie code; add login rate-limit/lockout after 5 failed attempts."
+  ],
+  "critical_code_review_comments": [
+    "HeuresSup.jsx: unused variable 'set' inside the allTechs useMemo (dead code, lint noise) — remove.",
+    "HeuresSup.jsx HoursCell: onBlur commits and Enter triggers blur, so saves are duplicated only once — OK, but there is no debounce/abort; rapid tab-through of many cells fires sequential POSTs with no batching (acceptable at current scale).",
+    "server.py is 2082 lines — consider splitting into routers (auth, sales, projects, overtime, payments) per the >700-line guideline.",
+    "GET /api/overtime uses a $regex prefix scan on 'date' with a 5000-doc limit; add an index on date and consider a range query ($gte/$lt) for scalability."
+  ],
+  "updated_files": ["/app/backend/tests/test_overtime_iter7.py"],
+  "success_rate": {"backend": "100% (25/25 tests)", "frontend": "100% of tested overtime + regression flows"},
+  "seed_data_creation": "Temporary overtime entries for TEST_Sebastien (2026-08-27/28) and Sébastien (2026-08-15/16) created during testing — all deleted; overtime collection verified empty (0 docs).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (from /app/memory/test_credentials.md) — valid, login 200",
+  "context_for_next_testing_agent": "System clock is August 2026 (currentMonth = 2026-08, today = 27) — use 2026-08-XX dates for overtime cells. Technicians in team: Evan, Guillaume, Ludo, Momo, Sébastien, Thanh. Overtime testids: nav-overtime, overtime-prev/next, overtime-month-label, overtime-summary-<name>, overtime-row-<name>, overtime-cell-<name>-<YYYY-MM-DD>. Chantiers/Planning nav testids are nav-kanban / nav-calendar (not nav-chantiers/nav-planning). Chantiers API path is /api/projects. Reusable suite: /app/backend/tests/test_overtime_iter7.py (pytest.ini forces xdist loadscope, so keep ordered CRUD inside one class).",
+  "rca_of_the_issue": "No functional defect found in the overtime feature. Reported items are hardening gaps: (1) hours/date validation lives only in HoursCell (client-side), so a direct API call can persist out-of-range values; (2) the upsert is a read-then-write without a unique index, so it is not atomic; (3) the sticky Total column has no width allowance for the last day column, causing visual clipping of day 31; (4) auth cookie helpers exist but are never invoked by the login/register handlers, so the httpOnly-cookie requirement of the auth playbook is not met (Bearer token in localStorage is the only working mechanism)."
+}

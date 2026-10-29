@@ -1,0 +1,207 @@
+/* app-level tweaks */
+.App { text-align: left; }
+
+/* ---------- QYLOT login screen (iter188) : fond bleu nuit + courbes lumineuses ---------- */
+.qy-login {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 800px at 15% 20%, rgba(37, 76, 168, 0.35) 0%, rgba(37, 76, 168, 0) 55%),
+    radial-gradient(900px 700px at 85% 80%, rgba(29, 60, 130, 0.45) 0%, rgba(29, 60, 130, 0) 60%),
+    linear-gradient(135deg, #0a1229 0%, #0d1735 40%, #091026 100%);
+}
+/* Arcs / cercles décoratifs avec bord doré léger, identiques à la maquette */
+.qy-login__deco {
+  position: absolute; inset: 0; pointer-events: none;
+  overflow: hidden;
+}
+.qy-login__arc {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 210, 130, 0.18);
+  box-shadow:
+    inset 0 0 40px rgba(120, 180, 255, 0.08),
+    0 0 80px rgba(255, 200, 120, 0.10);
+}
+.qy-login__arc--tl {
+  width: 720px; height: 720px;
+  top: -320px; left: -260px;
+  border-color: rgba(200, 220, 255, 0.22);
+  animation: qyFloat 14s ease-in-out infinite;
+}
+.qy-login__arc--br {
+  width: 900px; height: 900px;
+  bottom: -420px; right: -320px;
+  border-color: rgba(180, 210, 255, 0.14);
+  animation: qyFloat 18s ease-in-out infinite reverse;
+}
+.qy-login__arc--r {
+  width: 620px; height: 620px;
+  top: 20%; right: -220px;
+  border-color: rgba(255, 210, 150, 0.12);
+  animation: qyFloat 22s ease-in-out infinite;
+}
+@keyframes qyFloat {
+  0%, 100% { transform: translate3d(0,0,0); }
+  50%      { transform: translate3d(0,-14px,0); }
+}
+/* Carte glass-morphism */
+.qy-login__card {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border-radius: 24px;
+  box-shadow:
+    0 30px 80px -20px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.qy-login__side {
+  position: absolute; z-index: 2;
+  color: rgba(226, 232, 240, 0.7);
+  letter-spacing: 0.28em;
+  font-size: 11px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.qy-login__side--tr { top: 40px; right: 44px; text-align: right; }
+.qy-login__side--bl { bottom: 40px; left: 44px; }
+.qy-login__side::after {
+  content: ""; display: block; width: 42px; height: 2px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, #6ea8ff, transparent);
+  border-radius: 2px;
+}
+.qy-login__side--tr::after { margin-left: auto; }
+/* Input & bouton pour fond sombre */
+.qy-login input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #fff !important;
+}
+.qy-login input::placeholder { color: rgba(226, 232, 240, 0.45); }
+.qy-login label { color: rgba(226, 232, 240, 0.85); }
+
+/* ---------- QYLOT launch splash ---------- */
+.kylot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(1200px 800px at 50% 45%, rgba(42, 84, 240, 0.18) 0%, rgba(42, 84, 240, 0) 55%),
+    radial-gradient(600px 400px at 50% 55%, rgba(80, 130, 255, 0.10) 0%, rgba(0, 0, 0, 0) 60%),
+    #05070f;
+  animation: kylotSplashFadeIn 260ms ease-out both;
+  will-change: opacity;
+  overflow: hidden;
+}
+.kylot-splash--out { animation: kylotSplashFadeOut 320ms ease-in both; }
+
+.kylot-splash__glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(42, 84, 240, 0.35) 0%, rgba(42, 84, 240, 0) 65%);
+  filter: blur(10px);
+  animation: kylotGlowPulse 1200ms ease-in-out both;
+  pointer-events: none;
+}
+
+.kylot-splash__logo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: kylotLogoRise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.kylot-splash__svg {
+  filter: drop-shadow(0 0 18px rgba(42, 84, 240, 0.55));
+}
+.kylot-splash__k {
+  animation: kylotKReveal 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 50%;
+}
+.kylot-splash__accent {
+  animation: kylotAccentIn 500ms cubic-bezier(0.22, 1, 0.36, 1) 320ms both;
+  transform-origin: 50% 50%;
+}
+.kylot-splash__wordmark {
+  color: #eaf0ff;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;   /* balances the letter-spacing on the right side */
+  opacity: 0;
+  animation: kylotWordIn 500ms ease-out 420ms both;
+}
+
+@keyframes kylotSplashFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes kylotSplashFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; visibility: hidden; }
+}
+@keyframes kylotLogoRise {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.96); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes kylotKReveal {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes kylotAccentIn {
+  0%   { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes kylotWordIn {
+  from { opacity: 0; letter-spacing: 0.28em; }
+  to   { opacity: 0.9; letter-spacing: 0.42em; }
+}
+@keyframes kylotGlowPulse {
+  0%   { opacity: 0; transform: scale(0.7); }
+  55%  { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 0.55; transform: scale(1); }
+}
+
+/* Respect users who prefer reduced motion — still show a clean fade */
+@media (prefers-reduced-motion: reduce) {
+  .kylot-splash,
+  .kylot-splash__logo,
+  .kylot-splash__k,
+  .kylot-splash__accent,
+  .kylot-splash__wordmark,
+  .kylot-splash__glow {
+    animation-duration: 200ms !important;
+    animation-timing-function: ease-out !important;
+  }
+}
+
+/* Mobile: slightly smaller logo footprint + slower, more premium timings */
+@media (max-width: 640px) {
+  .kylot-splash__svg { width: 104px; height: 104px; }
+  .kylot-splash__glow { width: 280px; height: 280px; animation-duration: 1800ms; }
+  .kylot-splash__wordmark {
+    font-size: 17px;
+    letter-spacing: 0.42em;
+    text-indent: 0.42em;
+    animation-duration: 700ms;
+    animation-delay: 650ms;
+  }
+  .kylot-splash { animation-duration: 380ms; }
+  .kylot-splash--out { animation: kylotSplashFadeOut 480ms ease-in both; }
+  .kylot-splash__logo { animation-duration: 950ms; }
+  .kylot-splash__k { animation-duration: 850ms; }
+  .kylot-splash__accent { animation-duration: 700ms; animation-delay: 500ms; }
+}

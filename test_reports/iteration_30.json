@@ -1,0 +1,43 @@
+{
+  "summary": "Frontend E2E testing of offline mode (Playwright context.set_offline). Found & fixed 2 bugs in /app/frontend/src/lib/offline.js that broke the core feature: (1) the GET cache stored raw JSON strings (custom adapter runs before transformResponse) so findBase/patchCaches never matched -> no conflict base snapshot (conflict detection NEVER triggered, silent last-write-wins) and offline edits/creations were not reflected in lists; (2) false conflict dialog when editing a sale created offline (base = optimistic item vs server-normalized fields commercial_share/prospecteur_commission). After fixes, all requested flows pass: offline navigation from cache, no logout, banner, offline client note, offline sale edit, offline sale create (+chained edit with temp id remapped), conflict dialog keep-mine and keep-server, regression (online create, prospecteur, carte, 401 redirect).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "lib/offline.js cache", "issue": "FIXED BY TESTER: cache stored raw JSON strings -> conflict detection & optimistic list updates never worked", "selector": "offline-conflict-dialog", "priority": "CRITICAL"},
+      {"component": "lib/offline.js syncNow", "issue": "FIXED BY TESTER: false conflict for PUT on records created offline (temp id offline-*) — dialog showed 'commercial share 1 vs 0.5', 'prospecteur commission — vs 0'", "selector": "offline-conflict-dialog", "priority": "HIGH"},
+      {"component": "EditSaleSheet", "issue": "api.get('/clients').then(...) has no .catch -> offline when /clients not cached yet: unhandled 'Network Error' (dev overlay blocks UI) and client PUT silently skipped", "selector": "edit-sale-save-btn", "priority": "MEDIUM"},
+      {"component": "Sales page", "issue": "Automatic POST /sales/check-attente-14j on mount is queued offline -> '1 modification en attente' + 'synchronisée' toast without any user action; one extra op per Sales visit offline", "selector": "offline-bar-text", "priority": "MEDIUM"},
+      {"component": "OfflineBar ConflictDialog", "issue": "Shadcn X close button / Escape do nothing (onOpenChange noop) — confusing; hide close button", "selector": "offline-conflict-dialog", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Offline create sale", "issue": "Optimistic row shows client name '—' (client_name not filled from cached clients); after sync the list stays stale until manual 'Actualiser' (no auto refetch on qylot:synced)", "affected_selectors": ["sale-row-offline-*"]},
+      {"flow": "Offline client note", "issue": "Optimistic note shows author '—' (author_name missing)", "affected_selectors": ["client-notes"]},
+      {"flow": "Conflict keep-server", "issue": "Choosing 'Garder la version actuelle' skips the WHOLE op, also discarding my non-conflicting field changes (e.g. amount) of the same PUT; and success toast still counts it as 'synchronisée'", "affected_selectors": ["offline-conflict-keep-server"]},
+      {"flow": "Offline toasts", "issue": "Offline saves show 'Vente mise à jour' / 'Vente créée · chantier ajouté au planning' — should say saved locally / pending sync", "affected_selectors": []}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/tests/offline_helper.py"],
+  "action_items": [
+    "Review/keep tester fixes in /app/frontend/src/lib/offline.js (asJson parse in readCache/writeCache; skip conflict check when op.id starts with 'offline-')",
+    "Add .catch to api.get('/clients') in EditSaleSheet (and audit other offline-uncached GETs without catch)",
+    "Do not queue background/automatic mutations (e.g. POST /sales/check-attente-14j) — mark with _direct or skip when offline",
+    "Clear IndexedDB cache + outbox on logout / user change (privacy: next user sees previous user's cached data offline, and queued ops would replay with the next user's token)",
+    "On keep-server, still send non-conflicting fields of the op; exclude skipped ops from 'synchronisée' count",
+    "Refetch current page data after qylot:synced; fill client_name/author_name in optimistic items",
+    "Hide close X in conflict dialog"
+  ],
+  "critical_code_review_comments": [
+    "offline.js: no logout cleanup of qylot-offline/qylot-outbox stores (security/privacy, cross-user replay)",
+    "offline.js: 4xx during sync drops the op permanently (only a toast) — consider keeping failed ops for review",
+    "offline.js: findBase/patchCaches iterate all IDB keys and read every value per mutation — O(cache size) each enqueue; acceptable now but may get slow",
+    "serverItem falls back to GET full collection (/sales has no GET /sales/{id} -> 405) for every queued sale PUT during sync — heavy with many ops"
+  ],
+  "updated_files": ["/app/frontend/src/lib/offline.js", "/app/frontend/src/components/EditSaleSheet.jsx (added data-testid=edit-sale-notes)", "/app/tests/offline_helper.py"],
+  "success_rate": {"backend": "N/A", "frontend": "100% of requested flows after tester fixes (conflict detection was 0% before fix)"},
+  "seed_data_creation": "None persistent. Created & deleted TEST_ sales/notes; sale a037daa5 restored to amount 5000, notes ''.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Offline tests: login, visit /clients then /ventes online (so /clients is cached, otherwise EditSaleSheet throws), click 'Année' filter to see sale a037daa5 (TEST_QA_Client, 2026-09-04). Use subprocess to call /app/tests/offline_helper.py setnotes <sid> <val> to make server-side conflicting change while browser offline. Sale notes textarea: data-testid=edit-sale-notes.",
+  "rca of the issue": "axios custom adapter returns the raw XHR response (string body); JSON parsing happens later in transformResponse. writeCache(k, r.data) therefore stored strings; mapArrays/findBase only handle arrays/objects, so base snapshot was always null -> `if (op.base && ...)` never ran conflict detection, and patchCaches never updated lists. Fix: parse strings in readCache/writeCache. Verified conflict dialog then appears with field 'notes' Ma version/Version actuelle and both buttons behave correctly."
+}

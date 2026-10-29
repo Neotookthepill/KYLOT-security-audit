@@ -1,0 +1,40 @@
+{
+  "summary": "Retest of iteration_12 nits against the current build — ALL THREE items now verified working. (1) Backend delta caps implemented: GET /api/dashboard/executive?period=month returns ca.delta_pct=87.4 (base July=7470€) and sales.delta_pct=null (prev count=1 < 3). Edge cases verified by injecting temporary sales into the month-2 slot: prev CA=0 -> null, prev CA=500 (<1000€) -> null, prev CA=1500 & count=3 -> numeric deltas; all injected sales + the TEST_QA client were deleted afterwards. (2) 'À traiter' alerts navigate correctly: alert-to_schedule -> /chantiers, alert-commissions -> /commissions, alert-overtime -> /heures-sup (verified with a freshly created pending entry). (3) Overtime reject button exists and works: hovering overtime-cell-Evan-2026-08-20 reveals BOTH overtime-validate-Evan-2026-08-20 (green check) and overtime-reject-Evan-2026-08-20 (red X); clicking reject empties the cell, fires the 'Refusé & retiré' toast, tech card total drops 2.5h -> 0h, and the backend returns {deleted:true} with the entry gone from GET /api/overtime?month=. Dashboard shows no absurd delta pill (only 87.4% on the CA card; Ventes card shows no delta). Iteration_12's failure was indeed a stale bundle/backend. 8/8 backend pytest cases pass, all frontend checks pass.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/heures-sup daily grid", "issues": [
+        "Reject click fires TWO toasts simultaneously: 'Refusé & retiré' and 'Evan · 0h enregistrée' (the shared onSaved/optimisticUpdate callback also toasts). Cosmetic but contradictory wording — pass a flag to optimisticUpdate to suppress its toast on reject (HeuresSup.jsx L98-100 vs L162).",
+        "Validate/reject hover buttons are only 16x16px (h-4 w-4) and sit outside the cell (-top-1 -right-1); very small hit targets and impossible to reach on touch devices (hover-only, opacity-0 group-hover). Consider larger targets or a tap/long-press affordance for mobile."
+      ]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_dashboard_delta_iter13.py",
+    "/app/backend/tests/test_delta_threshold_edge_iter13.py",
+    "/app/test_reports/pytest/iter13_results.xml",
+    "/app/test_reports/pytest/iter13_edge.xml"
+  ],
+  "action_items": [
+    "Optional polish only: suppress the duplicate '0h enregistrée' toast when the reject button is used.",
+    "Optional polish: enlarge the validate/reject hover buttons and provide a non-hover path for touch."
+  ],
+  "critical_code_review_comments": [
+    "/app/backend/server.py is ~2291 lines — split into routers (dashboard, sales, overtime, commissions) before it grows further.",
+    "Thresholds 1000€ / 3 sales are magic numbers inline in _delta/_delta_count; hoist to module constants (or settings) so the product rule is discoverable.",
+    "Reject reuses POST /overtime with hours=0 to delete; a dedicated DELETE /overtime/{id} (or /reject) would be more explicit and avoid the shared success toast path."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_dashboard_delta_iter13.py",
+    "/app/backend/tests/test_delta_threshold_edge_iter13.py"
+  ],
+  "success_rate": {"backend": "100% (8/8 pytest cases)", "frontend": "100% (delta pills, 3 alert navigations, validate+reject buttons, reject persistence)"},
+  "seed_data_creation": "Temporary only, all cleaned up: overtime entries Evan 2026-08-20 (2.5h, removed via reject) and Evan 2026-08-21 (1.5h, removed via hours=0); TEST_QA_Tech13 2026-08-19; three TEST_QA sales in the 2026-06 slot (500/900/100€) deleted via DELETE /api/sales plus client TEST_QA_DeltaClient deleted. Post-cleanup executive deltas re-verified as null.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD — login returns JSON key 'token' (NOT access_token)",
+  "context_for_next_testing_agent": "Login response key is 'token'; frontend stores it in localStorage under 'pylot_token' (useful for in-browser fetch during Playwright). pytest.ini enables xdist so -s print output is swallowed unless run per-worker. Reusable suites: test_dashboard_delta_iter13.py (delta caps + alert hrefs + reject deletion) and test_delta_threshold_edge_iter13.py (injects/deletes sales in the month-2 slot to exercise the 1000€/3-count thresholds — always let its finally block run so the seed data is removed). Current data: Aug 2026 CA=14000€/4 sales, Jul=7470€/1 sale, so period=month gives ca.delta_pct=87.4 and sales.delta_pct=null.",
+  "rca_of_the_issue": "Iteration_12's 'not implemented' verdict was a stale-build artefact: the current source (server.py L526-535 _delta/_delta_count, HeuresSup.jsx L93-106 reject button) is live and the deployed preview now serves it. No code defect remains for the three requested nits."
+}

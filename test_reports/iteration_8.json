@@ -1,0 +1,60 @@
+{
+  "summary": "Iteration 8: tested the new overtime pending/approved validation workflow + configurable monthly threshold alert (backend + frontend). Backend: new suite /app/backend/tests/test_overtime_status_iter8.py (30 tests) + full regression run of /app/backend/tests => 121/121 pass. Verified POST /api/overtime defaults status='pending'; PUT /overtime/{id}/validate -> approved + validated_at + validated_by (404 on unknown id, 401/403 without auth); PUT /reject -> back to pending with validated_at=null; POST /overtime/validate-tech bulk-validates only pending entries of that tech+month (returns correct 'validated' count, 400 without month, auth-guarded); admin edit of an approved entry preserves status='approved'; GET /api/overtime returns rows with approved_hours/pending_hours/total_hours/over_threshold and top-level threshold. Hardening confirmed: hours=99 -> 422, hours=-1 -> 422, date='2026-13-45' -> 400 'Date invalide', hours=8 flow unchanged, hours=0 still deletes, upsert still de-duplicates. Settings: GET returns overtime_alert_threshold (default 30), PUT persists 20 / 0 / 30 (admin only; unauthenticated 401/403); threshold=0 disables over_threshold for all rows. Frontend (/heures-sup, admin): typing 4h -> dashed amber cell + 'Xh à valider' in summary; per-cell hover check button (overtime-validate-<name>-<date>) validates the entry -> solid emerald cell + 'Xh validées'; mixed state shows '4h validées + 3h à valider' with 'Tout valider' link (overtime-validate-all-<name>) which bulk-approves and then disappears; rows are alphabetical (Evan, Guillaume, Ludo, Momo, Sébastien, Thanh) and no longer jump while typing. Threshold alert: with threshold=5 the red 'Seuil d'alerte atteint (5h/mois)' banner (overtime-alert) lists 'Sébastien (9h)', the summary card gets a red border + AlertTriangle and the row total renders red; threshold=0 removes banner + red styling. All test data cleaned (Sébastien 2026-08-10/11/12 deleted, overtime collection has 0 TEST_ docs) and overtime_alert_threshold restored to 30.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/settings", "issue": "updates filter drops None but also cannot ever clear a field; also no bounds on overtime_alert_threshold (negative values accepted, e.g. -5, which silently disables the alert). Suggest Field(ge=0, le=500)."},
+      {"endpoint": "POST /api/overtime/validate-tech", "issue": "payload typed as raw dict instead of a Pydantic model (no validation/schema); month is only truncated to 7 chars, '9999-99' is accepted (returns validated:0)."},
+      {"endpoint": "POST /api/overtime", "issue": "technician_name still free text (not checked against team_members) and there is still no unique index on (technician_name,date) — carried over from iteration 7."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Settings (/parametres)", "issue": "P0 NOT IMPLEMENTED: there is no 'Alerte heures supplémentaires' Card and no input data-testid='settings-overtime-threshold' (verified count=0 on the rendered page, and grep finds no 'threshold'/'overtime' in /app/frontend/src/pages/Settings.jsx). SettingsContext DEFAULTS also lacks overtime_alert_threshold, so the value is not exposed to the UI. The threshold can currently only be changed via a direct API call.", "selector": "[data-testid='settings-overtime-threshold']", "priority": "CRITICAL"},
+      {"component": "HeuresSup HoursCell", "issue": "After typing hours (optimistic insert), the created entry has no id (optimisticUpdate pushes {technician_name,date,hours,status:'pending'} without the id returned by POST). The hover validate button is still rendered, and clicking it is a silent no-op (validateOne returns early on !entry?.id — no toast, no error). Reproduced: cell stayed dashed amber after the click; only works after a page reload.", "selector": "[data-testid='overtime-validate-<name>-<date>']", "priority": "HIGH"},
+      {"component": "HeuresSup 'Total mois'", "issue": "Optimistic grand_total is wrong when a technician has both approved and pending hours: computeTotals does Object.values({...approved, ...pending}) so the pending amount OVERWRITES the approved amount per tech. Reproduced: 7h approved + 2h new pending showed 'Total mois : 2h' (row total correctly 9h); correct 9h only after reload.", "selector": "text=Total mois", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Alert banner -> settings", "issue": "The 'Ajuster le seuil' link uses <a href='/parametres'> (full page reload instead of react-router Link) and lands on a Settings page that has no threshold field, so the CTA is a dead end.", "affected_selectors": ["[data-testid='overtime-alert'] a"]}
+    ],
+    "design_issues": [
+      {"screen": "/heures-sup daily grid", "issues": [
+        "Day 31 column is still clipped/hidden behind the sticky right 'Total' column at 1920px (carried over from iteration 7, unfixed).",
+        "When threshold=0 (alert disabled) the header subtitle still reads 'Alerte au seuil de 30h' because of the `data.threshold || 30` fallback — misleading; should read 'désactivée'.",
+        "The per-cell validate button is a 16x16px target revealed only on hover (opacity-0 group-hover) — hard to hit and invisible on touch devices; consider always-visible or a row-level action."
+      ]},
+      {"screen": "Lint", "issues": ["HeuresSup.jsx: 2 react/no-unescaped-entities errors (lines 177, 196) and 1 unused eslint-disable directive (line 111)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_overtime_status_iter8.py",
+    "/app/backend/tests/test_overtime_iter7.py",
+    "/app/test_reports/pytest/iter8_all.xml"
+  ],
+  "action_items": [
+    "IMPLEMENT the missing Settings UI: 'Alerte heures supplémentaires' Card + Input data-testid='settings-overtime-threshold' in /app/frontend/src/pages/Settings.jsx, include overtime_alert_threshold in the form state/save payload and in SettingsContext DEFAULTS (currently absent).",
+    "Fix optimisticUpdate to store the id returned by POST /api/overtime so the per-cell validate button works without a reload (or hide the button until the entry has an id).",
+    "Fix computeTotals grand_total: sum approved+pending per tech instead of spread-merging the two maps ({...approved, ...pending} loses approved hours).",
+    "Replace <a href='/parametres'> in the alert banner with react-router <Link> (avoid full reload) once the settings field exists.",
+    "Fix the day-31 column clipped by the sticky Total column (still open from iteration 7).",
+    "Show 'alerte désactivée' instead of '30h' in the subtitle when threshold=0; add server-side bounds on overtime_alert_threshold (ge=0) and type validate-tech payload with a Pydantic model."
+  ],
+  "critical_code_review_comments": [
+    "HeuresSup.jsx computeTotals: `Object.values({ ...approved, ...pending })` is a data-loss bug — per-tech keys collide.",
+    "HeuresSup.jsx optimisticUpdate: the synthetic entry lacks `id`, so downstream actions (validate) silently fail; return the API response and merge it.",
+    "server.py validate-tech accepts an untyped dict payload — use a Pydantic model (technician_name, month) for validation and OpenAPI accuracy.",
+    "server.py is now 2145 lines — split into routers (auth/sales/projects/overtime/settings/payments) per the >700-line guideline.",
+    "GET /api/overtime still uses a $regex prefix scan on date with limit 5000 and no index; prefer $gte/$lt range + index."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_overtime_status_iter8.py (new)",
+    "/app/backend/tests/test_overtime_iter7.py (row-sort assertion updated for the new (over_threshold, -total, name) ordering)"
+  ],
+  "success_rate": {"backend": "100% (121/121 pytest tests, incl. 30 new overtime status/threshold tests)", "frontend": "80% — validation workflow + threshold alert UI work; Settings threshold UI missing and 2 optimistic-state bugs"},
+  "seed_data_creation": "Temporary overtime entries for Sébastien on 2026-08-10 (4h), 2026-08-11 (3h), 2026-08-12 (2h) and TEST_OT8* techs — all deleted; overtime_alert_threshold restored to 30 (verified via GET /api/settings).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (from /app/memory/test_credentials.md) — login 200",
+  "context_for_next_testing_agent": "Current month 2026-08 (today 27). Technicians: Evan, Guillaume, Ludo, Momo, Sébastien, Thanh. Testids verified: overtime-alert, overtime-validate-<name>-<YYYY-MM-DD> (hover), overtime-validate-all-<name>, overtime-summary-<name>, overtime-row-<name>, overtime-cell-<name>-<date>, overtime-prev/next/month-label. settings-overtime-threshold does NOT exist yet. Backend suite: /app/backend/tests/test_overtime_status_iter8.py — each class uses its own technician name (TEST_OT8 / TEST_OT8_H / TEST_OT8_T) because pytest.ini runs -n 2 --dist loadscope and parallel classes previously wiped each other's data; keep that pattern. Threshold changes are global settings — always restore to 30. In-browser API calls can be made with page.evaluate + localStorage 'pylot_token' (relative /api/... paths work).",
+  "rca_of_the_issue": "1) Settings threshold UI: never added to Settings.jsx / SettingsContext DEFAULTS — the backend field exists and works, only the UI layer is missing. 2) Validate-after-typing no-op: optimisticUpdate builds a local entry object without the id from the POST response, and HoursCell.validateOne early-returns when entry.id is undefined, so the rendered check button does nothing until a reload re-fetches real ids. 3) Wrong 'Total mois' in optimistic state: computeTotals merges the approved and pending maps with object spread, so for a tech present in both maps the pending value replaces the approved value before summing. Backend GET /api/overtime returns the correct grand_total, hence the value self-heals after reload."
+}

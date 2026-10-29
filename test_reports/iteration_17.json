@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 17 — tested ONLY the 4 new tweaks (RAC payment method, Absences dialog + Kanban banner + Calendar red pills, co-visible technicians on project cards, editable commission rates). Backend: 17/17 pytest cases passed (/api/absences GET/POST/DELETE + validation + RBAC 403 for technicien + strict cross-tenant isolation, /api/settings commission_rates persistence/dedup/sort/range-filter + non-admin 403, RAC sale creation & persistence + dashboard/commissions regression). Frontend (public URL, admin + 2 technicien accounts): RAC option present & selectable in NewSaleSheet and EditSaleSheet, RAC sale created and displayed as 'RAC (Reste à charge)' in Ventes list; Absences button visible on Chantiers & Planning, dialog CRUD works end-to-end (create commercial absence + delete with confirm), red banner 'ABSENTS AUJOURD'HUI' lists absent people on Kanban (also visible for technicien role), Calendar shows red pills (cal-absence-{id}-{iso}) on every day of the range; adding '18%' rate in Commissions persists to /api/settings and propagates to Commissions summary/table and to NewSaleSheet commission dropdown (cache invalidated), delete removes it, and existing sale commission (10 %) was NOT recalculated; both co-assigned techniciens see BOTH badges (TEST_Tech_QA + TEST_Tech2_QA) on the same project card.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/projects/{id}", "issue": "status is not validated against the allowed enum (a_planifier|en_cours|termine). Sending status='planifie' returns 200 and the chantier then disappears from ALL Kanban columns and is silently invisible to assigned techniciens. Add a Literal/enum validation in ProjectUpdate (found while seeding, reproducible)."},
+      {"endpoint": "POST /api/absences", "issue": "No overlap/duplicate guard — the exact same person/date range can be inserted repeatedly, producing duplicate red pills/banner entries. Low impact, optional dedup."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Commission rates propagation", "issue": "useCommissionRates uses a module-level 60s cache and only fetches on mount; a NewSaleSheet/EditSaleSheet already mounted in another open tab/route keeps the stale rate list until remount. Works correctly in the tested navigation flow (invalidateCommissionRatesCache is called after save), reported as a design note only.", "affected_selectors": ["[data-testid=\"sale-commission\"]", "[data-testid=\"edit-sale-commission\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "AbsencesDialog / Rates dialog", "issues": ["Radix console warning: Missing `Description` or `aria-describedby` for DialogContent (a11y, non-blocking)", "Absence date inputs use native browser date pickers (type=date) instead of the shadcn calendar used elsewhere — consistent with the rest of the app's sheets, flagged only if design consistency with shadcn Calendar is desired"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter17_absences_rac_rates.py",
+    "/app/backend/tests/_seed_iter17_ui.py",
+    "/app/test_reports/pytest/iter17_results.xml"
+  ],
+  "action_items": [
+    "Validate project status against the allowed enum in PUT /api/projects/{id} (currently any string is accepted and hides the chantier from the Kanban)",
+    "Optional: add aria-describedby/DialogDescription to AbsencesDialog and the rates dialog to clear the Radix a11y warning"
+  ],
+  "critical_code_review_comments": [
+    "server.py ProjectUpdate.status should be typed as Literal['a_planifier','en_cours','termine'] — free-text status breaks Kanban/Calendar filtering.",
+    "AbsenceIn validation is solid (regex dates, person_type pattern, min_length name) and delete/list are tenant-scoped via cq(user) with {'_id': 0} projection — no ObjectId leak.",
+    "GET /api/settings normalises commission_rates (dedup + sort + 0..1 range) but PUT stores the raw list; consider normalising on write too so the stored document stays clean."
+  ],
+  "updated_files": ["/app/backend/tests/_seed_iter17_ui.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% of the 4 new features verified"},
+  "seed_data_creation": "Created technicien user test-tech2@keylot.app / CHANGE_ME_TEST_PASSWORD (name TEST_Tech2_QA); test-tech@keylot.app / CHANGE_ME_TEST_PASSWORD (TEST_Tech_QA) already existed. Project 7138fb47 (client TEST_QA_DeltaClient) co-assigned to both techs, status a_planifier, scheduled_date today — left in place for future retests. Temporary RAC sale (BDC TEST-UI-RAC-1) + client TEST_UI_RAC_Client and all TEST_UI absences were DELETED after testing; commission_rates restored to the default [0, 0.10, 0.13, 0.15, 0.20, 0.25, 0.30]. Pre-existing absences (Sébastien 2026-09-01, Evan 2026-08-28) were left untouched.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD ; Techniciens test-tech@keylot.app and test-tech2@keylot.app / CHANGE_ME_TEST_PASSWORD (names TEST_Tech_QA, TEST_Tech2_QA)",
+  "context_for_next_testing_agent": "All 4 iteration-17 tweaks are functional (backend + UI). Regression suite for them: /app/backend/tests/test_iter17_absences_rac_rates.py (run with `pytest tests/test_iter17_absences_rac_rates.py` from /app/backend; pytest.ini already enables xdist). UI seed helper: /app/backend/tests/_seed_iter17_ui.py — note it must use status 'a_planifier' (valid Kanban column key) when updating projects. Kanban cards expose data-testid kanban-card-{id}; edit sale sheet uses prefix 'edit-sale-*' (not 'sale-*'). Sidebar user name is full text in DOM, so body.inner_text() checks for technicien names are unreliable — assert inside the kanban-card element instead. Only open item: project status enum validation.",
+  "rca_of_the_issue": "Only real defect found: PUT /api/projects/{id} accepts an arbitrary status string (ProjectUpdate.status is Optional[str]). Repro: PUT {status:'planifie'} → 200; the project then matches none of the Kanban columns (a_planifier/en_cours/termine) and shows nowhere for admin or assigned techniciens. Mitigation: constrain with Literal/enum and return 422 on invalid values."
+}

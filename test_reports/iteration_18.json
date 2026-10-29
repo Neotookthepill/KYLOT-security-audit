@@ -1,0 +1,76 @@
+{
+  "summary": "Backend-only validation (URL publique REACT_APP_BACKEND_URL) des itérations 25/27/28/29 + non-régression. 2 nouvelles suites pytest créées: test_iter29_full_regression.py (54 cas) et test_iter30_auth_playbook.py (5 cas) => 58/59 PASS (98%). Non-régression sur l'ensemble des suites existantes (hors suites legacy à comptes supprimés): 272/275 PASS. Sondes K8s /health et /healthz = 200 sans auth. Login OK pour les 6 comptes (admin, commercial, responsable, 2 techniciens, tenant Acme); /api/auth/logout révoque bien le token (401 'Session révoquée') et un nouveau login refonctionne. iter29 bonus techniciens: 100% OK (création admin, upsert idempotent par (chantier,technicien), technicien ne voit QUE son bonus, POST technicien=403, tech non assigné=400, chantier inconnu=404, montant négatif=422, /project-bonuses/monthly agrégé + scope technicien + format invalide=400, PUT/DELETE, isolation Acme 404 sur les 3 routes). iter25 corrections IA: 100% OK (POST/GET/DELETE admin, commercial 403 en lecture ET écriture, corrected_value vide non persistée, isolation tenant). iter27 commissions flexibles: 100% OK (evolutive_ca = 10% sous 30000€ / 15% au-dessus recalculé sur le cumul, fixed reste à 10% même quand le CA evolutive dépasse le seuil, PUT inline du taux reflété dans /api/commissions). iter23 notes chantier: 100% OK (technicien écrit/lit uniquement sa note, cross-tech PUT=403, DELETE technicien=403, admin voit tout et supprime). Régression ventes: GET/POST/PUT /api/sales OK, projet auto-créé, client_name enrichi, aucun _id Mongo exposé. UN SEUL ÉCHEC RÉEL: GET /api/bonuses/progress renvoie [] pour toute prime ciblant tous les commerciaux (commerciaux=['*'] ou liste vide) — cause racine identifiée (mauvais nom de champ dans la requête team_members).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/bonuses/progress",
+        "issue": "Renvoie systématiquement [] pour les primes avec commerciaux=['*'] (ou liste vide = 'tous'), qui est le cas d'usage par défaut du module iter28. server.py:2628 interroge `db.team_members.find(cq(user, {\"role\": \"commercial\"}))` alors que la collection team_members stocke le métier dans le champ `type` (aucun document n'a de champ `role`: db.team_members.distinct('role') = []). Résultat: all_commerciaux vide -> aucune ligne de progression, la prime paraît inexistante côté API/UI. Correctif: utiliser {\"type\": \"commercial\"} (ou {'$or': [{'type':'commercial'},{'role':'commercial'}]} pour la compat). Vérifié par contre-test: avec commerciaux=['Thomas'] explicite, /bonuses/progress renvoie bien la ligne complète (ca_current, reached, remaining corrects).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "GET /api/bonuses/awards",
+        "issue": "Endpoint fonctionnel (200 + liste) mais la collection `bonus_awards` n'est JAMAIS écrite dans server.py (aucun insert_one sur bonus_awards) => l'historique des primes atteintes sera toujours vide."
+      },
+      {
+        "endpoint": "POST/PUT /api/bonuses",
+        "issue": "Les champs `notify_near`, `notify_reached` sont persistés mais jamais consommés: aucun appel à emit_notification pour les primes (seul near_threshold_pct est utilisé pour le flag `near` dans /progress). Les toggles de notification de prime sont donc inopérants."
+      },
+      {
+        "endpoint": "CORS (global)",
+        "issue": "CORS_ORIGINS n'est pas défini => allow_origins=['*'] (ACAO: * au préflight). Non exploitable car allow_credentials=False et auth par Bearer, mais l'attendu playbook (origines explicites) n'est pas respecté; définir CORS_ORIGINS pour la prod."
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "Aucun cookie httpOnly n'est posé au login (le token est seulement retourné dans le body, le front le stocke en localStorage). /auth/logout fait pourtant delete_cookie('access_token'). Écart au playbook auth + /app/memory/test_credentials.md ligne 24 qui affirme à tort qu'un cookie httpOnly est posé. Anti brute-force OK (429 + Retry-After après 5 échecs) mais en mémoire process (perdu au reload, non partagé si multi-worker)."
+      },
+      {
+        "endpoint": "POST /api/overtime/validate-tech (test legacy)",
+        "issue": "Pré-existant / non lié aux itérations testées: renvoie 422 alors que tests/test_overtime_status_iter8.py attend 400 (validation Pydantic). Soit ajuster le test, soit normaliser le code d'erreur."
+      },
+      {
+        "endpoint": "GET /api/payments/status/{sid} (test legacy)",
+        "issue": "Pré-existant: tests/test_subscription_iter10.py::test_payment_status_unknown_session attend 404/400 sans auth mais reçoit 401 (auth vérifiée avant l'existence). Comportement correct côté API, test obsolète."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter29_full_regression.py",
+    "/app/backend/tests/test_iter30_auth_playbook.py",
+    "/app/test_reports/pytest/iter30_results.xml"
+  ],
+  "action_items": [
+    "CORRIGER server.py:2628 — remplacer db.team_members.find(cq(user, {'role': 'commercial'})) par le champ réel `type` sinon /api/bonuses/progress reste vide pour toutes les primes 'tous les commerciaux' (bug bloquant fonctionnel iter28).",
+    "Implémenter l'écriture de `bonus_awards` (ou retirer l'endpoint /api/bonuses/awards) et brancher notify_near/notify_reached sur emit_notification, sinon ces options sont trompeuses côté UI.",
+    "Optionnel prod: définir CORS_ORIGINS explicitement dans backend/.env.",
+    "Corriger /app/memory/test_credentials.md (pas de cookie httpOnly au login) ou implémenter le cookie httpOnly conformément au playbook.",
+    "Nettoyage tests legacy: test_prelaunch_iter14/15.py et test_multitenant_rbac_iter14.py échouent au setup (comptes TEST_ alpha/beta supprimés -> login KO -> lockout 429 qui pollue les runs suivants pendant 15 min). Les re-seeder via tests/_seed_prelaunch.py ou supprimer ces suites."
+  ],
+  "critical_code_review_comments": [
+    "server.py = 4751 lignes: à découper en routers (auth, sales, projects, bonuses, commissions, ai) — la limite de 700 lignes/module est largement dépassée et augmente le risque de régression à chaque itération.",
+    "bonuses/progress: la résolution de la population 'tous les commerciaux' repose sur team_members alors que les autres modules utilisent la collection users; unifier la source de vérité (helper unique) pour éviter ce type de divergence de schéma (`role` vs `type`).",
+    "bonuses/progress fait un appel Mongo par (commercial, période) via _ca_for_commercial (cache seulement intra-requête): avec N commerciaux x M primes, coût O(N) requêtes; préférer un $group aggregate unique.",
+    "PUT /api/sales/{sid} applique `{k: v for ... if v is not None}` : impossible de remettre un champ à null (ex. discount_percent) — comportement à documenter ou gérer via model_dump(exclude_unset=True).",
+    "Anti brute-force en dict mémoire (_LOGIN_ATTEMPTS) : non persistant et non partagé entre workers; à déplacer en Mongo/Redis pour être fiable en prod."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter29_full_regression.py",
+    "/app/backend/tests/test_iter30_auth_playbook.py"
+  ],
+  "success_rate": {
+    "backend": "98% (58/59 sur les nouvelles suites; 272/275 sur l'ensemble hors suites legacy à comptes supprimés)",
+    "frontend": "non testé (backend only, comme demandé)"
+  },
+  "seed_data_creation": "Données créées puis supprimées automatiquement (fixtures de teardown): primes TEST_QA_Prime_*, TEST_QA_PrimeExpl_*, ventes+chantiers TEST_QA_Bonus_*/TEST_QA_Notes_*/TEST_QA_Comm_* (commercial TEST_QA_Evo_*), bonus chantier pour TEST_Tech_QA/TEST_Tech2_QA, corrections IA TEST_QA_*. Note: les clients TEST_QA_* créés par les ventes ne sont pas supprimés par DELETE /api/sales (clients orphelins résiduels, sans impact).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Toutes les credentials de /app/memory/test_credentials.md sont valides et fonctionnelles (admin, comm-perms, resp-perms, test-tech, test-tech2, boss@acme). ATTENTION: le lockout anti-brute-force (5 échecs/15 min par email) peut bloquer un compte après des tests d'échec de login.",
+  "context_for_next_testing_agent": "1) Nouvelles suites: `cd /app/backend && pytest tests/test_iter29_full_regression.py tests/test_iter30_auth_playbook.py` (xdist -n 2 loadscope OK). 2) Le seul échec attendu est TestBonusesIter28::test_progress_endpoint = bug réel team_members `role` vs `type` (server.py:2628); il doit passer après correctif. 3) Ne PAS mettre resp-perms dans d'autres classes en parallèle: la classe TestLogoutRevocation révoque son token_epoch (test_multitenant_rbac_iter14 utilise aussi ce compte -> conflit si exécution simultanée de toute la suite). 4) Éviter de rejouer test_prelaunch_iter14/15 et test_multitenant_rbac_iter14 sans re-seed: leurs logins échouent et déclenchent 429 pendant 15 min pour les comptes concernés. 5) Aucun 500 dans les logs backend pendant ce run (les 500 historiques sur /api/ai/action/execute et /api/cron/bilan-mensuel/test sont antérieurs et n'ont pas reproduit). 6) Écrire un fichier dans /app/backend/tests déclenche un reload uvicorn (watchfiles surveille tout /app/backend) — attendre ~2s avant le premier appel API.",
+  "rca_of_the_issue": "GET /api/bonuses/progress vide pour les primes 'tous les commerciaux': server.py:2628 résout la population via `db.team_members.find(cq(user, {\"role\": \"commercial\"}))`. Inspection directe de MongoDB (company_id=default): 14 documents team_members, tous du type {'id','name','type','created_at','company_id'} — le champ discriminant est `type` (ex. type='commercial'), et distinct('role') renvoie []. La requête ne matche donc rien, all_commerciaux reste vide et la boucle de progression ne produit aucune ligne. Reproduction: POST /api/bonuses {commerciaux:['*'], ca_threshold:25000, active:true} puis GET /api/bonuses/progress -> aucune entrée avec ce bonus_id. Contre-preuve: la même prime avec commerciaux:['Thomas'] renvoie une ligne correcte -> le calcul de CA (_ca_for_commercial) et le reste du endpoint sont sains. Correctif minimal: filtrer sur `type` (avec $or sur `role` pour la compatibilité future)."
+}

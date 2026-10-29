@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only retest iter90 of the /utilisateurs crash hardening. Ran 4 admin scenarios (normal load, mocked non-array bodies on /api/users + /api/team, mocked HTTP 500 on /api/users, action-button clicks) plus role regression navigation for commercial, technicien and sous-traitant. Non-array resilience is now CONFIRMED FIXED (no pageerror, page renders with empty cards). Remaining defect: Users.jsx load() is still NOT wrapped in try/catch, so an HTTP 500 on /api/users produces 2 unhandled AxiosError rejections (CRA red overlay) and NO error toast — contrary to the claim in the review request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "pages/Users.jsx", "issue": "load() (line 33: `const load = async () => setUsers((await api.get('/users')).data);`) has no try/catch and no Array.isArray coerce. On HTTP 500 it throws 2 unhandled 'Request failed with status code 500' AxiosErrors -> CRA 'Uncaught runtime errors' overlay covers the page in preview; no toast.error shown to the user. The claim 'Users.jsx load() wrapped try/catch + Array.isArray coerce' is not present in the code.", "selector": "/utilisateurs", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "/utilisateurs with /api/users returning 500", "issue": "No user-visible error feedback (0 sonner toasts detected); table silently renders empty header only", "affected_selectors": ["[data-sonner-toast]", "h1:has-text('Utilisateurs')"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Wrap Users.jsx load() in try/catch with toast.error(formatApiError(err)) and coerce: const d=(await api.get('/users')).data; setUsers(Array.isArray(d)?d:[]);"
+  ],
+  "critical_code_review_comments": [
+    "useTeam.js and TeamSection.jsx guards verified correct (asArr on c.data/t.data/users.data; safeMembers + (Array.isArray(members)?members:[]) on all 3 badges/panels).",
+    "Users.jsx is the only remaining unguarded fetch on this page; PermissionsDialog onSaved={load} would also swallow into an unhandled rejection."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested", "frontend": "85% (5/6 scenarios pass)"},
+  "seed_data_creation": "none",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin admin@example.invalid/CHANGE_ME_TEST_PASSWORD, test-comm@keylot.app/CHANGE_ME_TEST_PASSWORD, test-tech@keylot.app/CHANGE_ME_TEST_PASSWORD, test-sub@keylot.app/CHANGE_ME_TEST_PASSWORD — all working",
+  "context_for_next_testing_agent": "Playwright route mocking pattern used: page.route('**/api/users**') fulfilling body '{}' (non-array) and status 500. Non-array case is fully resilient. Verified: admin /utilisateurs 15 rows + 3 team columns; perms(Shield) and password(KeyRound) dialogs open fine; commercial /dashboard+/ventes OK; technicien /stock 'Mon stock' + 'Ajouter un produit' dialog OK; sous-traitant /chantiers kanban OK. Only re-verify the 500 case after the try/catch fix.",
+  "rca_of_the_issue": "pages/Users.jsx line 33 defines load() as a bare async arrow returning setUsers((await api.get('/users')).data). Any rejection (500/network) escapes both the useEffect mount call and PermissionsDialog onSaved, becoming an unhandled promise rejection; React StrictMode double-mount duplicates it. Page markup survives because the render path already guards `Array.isArray(users)`, so this is a UX/error-handling defect, not a crash."
+}

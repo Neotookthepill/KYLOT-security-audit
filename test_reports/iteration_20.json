@@ -1,0 +1,38 @@
+{
+  "summary": "Iter65 Stock manual overrides tested end-to-end. Backend: 13 pytest cases (SET/GET/DELETE override, persistence after POST /api/stock upsert, validation 422/400/404, RBAC 403 commercial+technicien, unauthenticated) -> 12 pass, 1 fail (cascade of besoin override to derived columns). Frontend: admin Stock page loads, inline edit + amber badge + pencil + tooltip (auteur/date/auto) + revert all work for besoin, stock_previsionnel and reste_a_commander; Escape/cancel works; commercial gets backend 403 with toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/stock", "issue": "reste_a_commander_auto / stock_previsionnel_auto are computed from besoin_auto instead of the effective (overridden) besoin. With override besoin=42, stock_disponible=5, commande=0 the table still shows À commander=0 and status green/orange, contradicting the on-screen formula 'À commander = max(0, Besoin - Stock physique - Commande en cours)'. Admin must override 3 columns manually to get a coherent row."},
+      {"endpoint": "GET /api/stock (commercial)", "issue": "Returns 403 for commercial as designed, but response body is only a toast-triggering error; the frontend still renders the full empty Stock table instead of a dedicated 'Accès refusé' state (see frontend issues)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Stock.jsx – Besoin cell (non-overridden branch)", "issue": "Clicking the pencil on a non-overridden 'Besoin chantiers' cell immediately PUTs an override equal to the current auto value (saveOverride(r,'besoin',r.besoin)) instead of opening the inline input. Result: an unwanted traced override (amber badge + author/date) is created on a simple click, and the user needs a 2nd pencil click to actually type a value. Prévisionnel / À commander open the inline input correctly on first click — behaviour is inconsistent.", "selector": "[data-testid=\"stock-besoin-{key}-edit-btn\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/stock as commercial", "issues": ["403 from API shows a red toast 'Accès refusé (stock réservé au responsable / technicien)' but the page still renders header, KPI cards and empty table — expected a clear 'Accès refusé' screen per spec"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_stock_override_iter65.py", "/app/test_reports/pytest/pytest_iter65_stock_override.xml"],
+  "action_items": [
+    "Decide/fix cascade: compute reste_a_commander_auto and stock_previsionnel_auto from the effective besoin (besoin_eff) so overriding Besoin updates the derived columns and the status colour, or update the footer formula text to state that overrides do not cascade.",
+    "Make the Besoin pencil open the inline input (reuse OverrideCell editing state) instead of writing an override with the current value on first click.",
+    "Render an explicit 'Accès refusé' state on /stock when GET /api/stock returns 403 (commercial)."
+  ],
+  "critical_code_review_comments": [
+    "server.py list_stock: reste_auto/prev_auto use besoin_auto; move them after besoin_eff resolution to keep the displayed formula true.",
+    "Stock.jsx duplicates the Besoin cell rendering logic outside OverrideCell (~40 lines) — merge the drill-down button into OverrideCell to avoid the divergent click behaviour.",
+    "server.py is very large (>6000 lines) — split stock/planning/sales routers into modules."
+  ],
+  "updated_files": ["/app/backend/tests/test_stock_override_iter65.py"],
+  "success_rate": {"backend": "92%", "frontend": "90%"},
+  "seed_data_creation": "Created and deleted TEST_Override_Iter65 (pytest fixture) and TEST_UI_Override65 (UI test, deleted after run). Stock collection back to its original single row 'Système anti-incendie'.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin admin@example.invalid/CHANGE_ME_TEST_PASSWORD, commercial test-comm@keylot.app/CHANGE_ME_TEST_PASSWORD, technicien test-tech@keylot.app/CHANGE_ME_TEST_PASSWORD",
+  "context_for_next_testing_agent": "Regression suite for overrides: /app/backend/tests/test_stock_override_iter65.py (one intentionally failing test documents the non-cascading besoin override). Frontend testids confirmed: stock-besoin-{key}[-edit-btn|-input|-confirm|-cancel|-revert], stock-previsionnel-{key}..., stock-reste-{key}.... Frontend URL: REACT_APP_BACKEND_URL=http://127.0.0.1:8000.",
+  "rca_of_the_issue": "In list_stock, reste_auto = max(0, besoin_auto - dispo - commande) and prev_auto = dispo + commande - besoin_auto are computed before overrides are applied; only their own explicit overrides can change them, so a besoin override never propagates. On the frontend, the non-overridden Besoin cell has a bespoke pencil handler that calls saveOverride with the current value instead of switching OverrideCell into editing mode."
+}

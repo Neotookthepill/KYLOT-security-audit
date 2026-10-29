@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration 3 re-verification of the 4 fixes from iteration_2 + full endpoint audit. Backend: 49/49 pytest tests pass (added /app/backend/tests/test_ai_status_iter3.py). GET /api/commissions 200 + list; PUT /api/projects/{id} now accepts rich photo objects [{src,lat,lng,taken_at}] AND plain base64 strings, persisted unchanged; AI update_sale_status resolved the LEPESQUEUX sale 5/5 consecutive times with data.resolved_sale_id present and NO 'sale_not_found', and /ai/action/execute returned 200 with status='chantier_fini' (reverted to en_cours afterwards); unresolvable sale correctly returns missing=['sale_not_found']; AI create_sale still returns intent=create_sale missing=[] and /execute creates the sale (5000 EUR, 0.20). Route audit: @api_router.post('/ai/action') present exactly once (line 632), ai_action defined once, 44 api_router decorators; all 22 audited paths respond with expected auth codes, none returns FastAPI 'Not Found'. Frontend (Playwright, 1920x1080): ai-helper-btn absent on /login, present on all 10 authenticated pages; all navs (dashboard, ventes, chantiers, planning, clients, utilisateurs, rapport, abonnement, parametres, commissions) load with 0 runtime-error overlay, 0 pageerror, 0 failed /api calls; AI preview shows the humanised French 'Vente introuvable — precise le n° de BDC ou le nom exact du client.' with Confirmer disabled; GPS badge renders on the rich photo with the correct Google Maps deep link (maps?q=50.7239,3.1611) and is absent on legacy string photos.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "set_auth_cookies()/create_refresh_token() are defined but never called — login only returns a Bearer token, so NO httpOnly access_token/refresh_token cookie is set (auth playbook item 2 not satisfied) and there is no refresh flow. Dead code should either be wired up or removed."},
+      {"endpoint": "CORS middleware (server.py:2018)", "issue": "allow_origins=['*'] with allow_credentials=False. Playbook expects explicit origins + credentials; with the current config the httpOnly cookie fallback could never work cross-origin."},
+      {"endpoint": "POST /api/auth/login", "issue": "No brute-force protection / lockout: repeated wrong passwords keep returning 401 indefinitely (no attempt counter, no delay, no lockout after 5 fails)."},
+      {"endpoint": "PUT /api/projects/{id}", "issue": "photos accepts any dict (Optional[List[Union[str, dict]]]) with no shape validation — arbitrary keys and truncated/invalid base64 are stored as-is (project a873a71c currently holds two 39/63-char corrupt base64 strings that render as broken images in ProjectDialog). Consider a PhotoIn Pydantic model (src required, lat/lng floats)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AIHelper (confirm result label)", "issue": "After confirming an update_sale_status action the success bubble says 'Client créé — rafraîchis la page Ventes ou Clients pour la voir.' The label ternary at AIHelper.jsx:158 only handles create_sale/create_client. Should read e.g. 'Statut mis à jour'.", "selector": "[data-testid='ai-helper-panel']", "priority": "MEDIUM"},
+      {"component": "AIHelper ActionPreviewCard", "issue": "For intent=update_sale_status the card title shows the raw token 'update_sale_status' (title ternary line 39 has no case) and the details box is rendered empty (no rows for client/BDC/current status/new status, although the API returns client_name, current_status, resolved_amount). The confirm button also says 'Création…' while executing a status change.", "selector": "[data-testid='ai-action-preview']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ProjectDialog (Chantiers)", "issues": ["'Date de début' uses the native browser date input (renders as mm/dd/yyyy, US format, in a French app) instead of the shadcn Calendar/Popover used elsewhere.", "Legacy/corrupt string photos render as broken image placeholders with alt text 'Photo 1' — no onError fallback/placeholder."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ai_status_iter3.py",
+    "/app/backend/tests/test_commissions_regression.py",
+    "/app/backend/tests/test_photos_gps.py",
+    "/app/backend/tests/test_endpoints_reachability.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results_iter3.xml"
+  ],
+  "action_items": [
+    "AIHelper.jsx:158 — set the done-label per intent ('Statut mis à jour' for update_sale_status) instead of always 'Client créé'.",
+    "AIHelper.jsx:39/50 — add a title + detail rows (client, BDC, statut actuel -> nouveau statut, montant) for intent=update_sale_status; change the executing label from 'Création…' to a generic 'Exécution…'.",
+    "Optional (security hardening): wire set_auth_cookies/refresh token into /auth/login or delete the dead code; tighten CORS to explicit origins with allow_credentials=True; add login attempt rate limiting/lockout.",
+    "Optional: validate the photo payload shape (PhotoIn model) and clean the 2 corrupt base64 photos on project a873a71c (left untouched on purpose)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 2023 lines (auth, clients, sales, projects, AI, Stripe, PDF, crons) — split into routers per the >700-line guideline.",
+    "set_auth_cookies() and create_refresh_token() are unreachable dead code; no refresh-token endpoint exists.",
+    "_resolve_sale_for_status() correctly de-duplicates the bdc -> bdc-as-name -> client_name chain; it uses an unescaped user string in a $regex (re.escape it to avoid regex injection / ReDoS on names like '(' )."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ai_status_iter3.py",
+    "/app/backend/tests/test_commissions_regression.py"
+  ],
+  "success_rate": {"backend": "100% (49/49 pytest)", "frontend": "100% of tested flows (2 cosmetic AI-preview copy bugs)"},
+  "seed_data_creation": "AI create_sale test created 1 client + 1 sale (TestQA R3) — both deleted; project 70d7cef2 was temporarily seeded with 1 string + 1 rich GPS photo for the UI check and reset to []; LEPESQUEUX sale status set to chantier_fini by the tests then restored to en_cours. DB back to 7 sales / 9 clients.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD — works, bcrypt hash prefix $2b$",
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/ -q -p no:randomly (49 tests, all green as of iteration_3). test_commissions_regression.py was updated to assert data['resolved_sale_id'] (old '_sale_id' key is gone). test_ai_status_iter3.py contains the 5x update_sale_status reliability loop, the create_sale regression and the 22-path route audit (a 404 is only treated as a missing route when the body is FastAPI's default 'Not Found', so GET /api/payments/status/<bad sid> -> 404 'Transaction introuvable' is accepted). /app/backend/tests/_seed_photos.py seed|clean seeds rich GPS photos on the first project. Remaining open items are the 2 AIHelper copy bugs (update_sale_status title/rows/success label) and the auth hardening notes; no functional blockers.",
+  "rca_of_the_issue": "All three previously reported defects are confirmed fixed. Photos: ProjectUpdate.photos is now Optional[List[Union[str, dict]]] (server.py:183) so the rich {src,lat,lng,taken_at,accuracy} payload persists unchanged and legacy base64 strings still work. AI status: the duplicated if/elif lookup was replaced by _resolve_sale_for_status() (server.py:609) chaining bdc -> bdc-as-client-name -> client_name, and the key was renamed to resolved_sale_id (FastAPI's jsonable_encoder sqlalchemy_safe was stripping keys starting with '_sa'), so 5/5 consecutive LLM calls resolved the sale. Gating: AIHelper is now mounted from <AuthedAIHelper /> behind useAuth().user, verified absent on /login. Commissions: @api_router.get('/commissions') present (server.py:1101), page loads clean.  Only cosmetic AI-preview copy for the update_sale_status intent remains."
+}

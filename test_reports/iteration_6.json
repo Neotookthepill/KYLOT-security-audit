@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 6 — tested inline status dropdown on /ventes + TAP source. Found and fixed one CRITICAL blocker: Sales.jsx used SALE_STATUSES without importing it, causing a full white-screen ReferenceError on /ventes (page unusable). After adding the missing import, all P0 flows pass. Backend: 13 new tests (test_status_tap_iter6.py) + full regression suite = 68/68 passing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/sales/{id}", "issue": "No single-sale GET endpoint (returns 405). Tests must verify persistence via the list endpoint; consider adding it for cleaner API."},
+      {"endpoint": "GET /api/reports/monthly.pdf", "issue": "PDF generates 200 application/pdf but table header is still hardcoded R1/Assist/CQ/CA — TAP sales are not visible in the PDF (accepted for this iteration per request)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Sales.jsx", "issue": "FIXED BY TESTER: `SALE_STATUSES` was used in the status DropdownMenu but not imported from @/lib/saleConstants → 'Uncaught runtime error: SALE_STATUSES is not defined', /ventes rendered a blank error overlay. Import added.", "selector": "[data-testid^='sale-status-trigger-']", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/rapport (Rapport mensuel)", "issues": ["Monthly report table has no TAP column (headers R1/Assist/CQ/CA only) although backend now returns sources.TAP — TAP sales are invisible in this report. Sales page 'CA par commercial' table does show TAP correctly."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_status_tap_iter6.py",
+    "/app/test_reports/pytest/iter6_results.xml",
+    "/app/test_reports/pytest/iter6_full.xml"
+  ],
+  "action_items": [
+    "Review the SALE_STATUSES import fix in /app/frontend/src/pages/Sales.jsx (applied by tester) — such regressions mean /ventes was completely broken; add the import in your source of truth.",
+    "Decide whether to add a TAP column to /rapport table + monthly PDF (currently TAP counts exist in API but are not rendered there)."
+  ],
+  "critical_code_review_comments": [
+    "Sales.jsx shipped with an undefined identifier (SALE_STATUSES) — run a lint/build check before handing off; ESLint on the file now returns clean.",
+    "Sales.jsx is large (~450+ lines) with the table row, KPI gauge, and commercial table inline — consider extracting SalesTable/StatusCell components.",
+    "changeStatus() optimistic update + load() rollback on error is correct; PUT payload restricted to {status} and stopPropagation on the status <td> prevents the edit sheet from opening — verified."
+  ],
+  "updated_files": [
+    "/app/frontend/src/pages/Sales.jsx (added missing SALE_STATUSES import)",
+    "/app/backend/tests/test_status_tap_iter6.py (new)"
+  ],
+  "success_rate": {"backend": "100% (68/68)", "frontend": "100% after the import fix (0% before — page crashed)"},
+  "seed_data_creation": "Created and deleted TEST_TAP_Client / TEST_TAP_UI sales+clients (source=TAP). Verified zero leftover TEST_ records at the end. One pre-existing sale's status was toggled by the UI test (final value 'En cours' / 'Chantier fini' on test rows only, all test rows deleted).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (from /app/memory/test_credentials.md)",
+  "context_for_next_testing_agent": "Verified: status pill dropdown (6 options, PUT /api/sales/{id}, toast 'Statut mis à jour → X', in-place pill update, persisted after reload, edit sheet NOT opened on pill click, row click still opens 'Modifier la vente'); TAP option in NewSale source select; TAP badge renders with bg-amber-100; monthly report JSON rows+totals include TAP; monthly PDF 200 application/pdf; sales list sorted created_at DESC. Not covered: EditSale source select TAP selection end-to-end (Select is driven by same SOURCES array so it follows), TAP column in /rapport (absent by design this iteration).",
+  "rca_of_the_issue": "Root cause of the blocker: the new status DropdownMenu in Sales.jsx mapped over SALE_STATUSES but the import statement only pulled STATUS_MAP/SOURCE_MAP/SOURCES from @/lib/saleConstants, so React threw ReferenceError during render of the Sales page → CRA error overlay, no rows visible. Fix: add SALE_STATUSES to the import list. Re-tested end-to-end after fix: all flows green."
+}

@@ -1,0 +1,39 @@
+{
+  "summary": "iter135 verification: POST /api/team now accepts type='sous_traitant' with no email (backend 7/7 pytest pass, auth playbook regression 5/5 pass). Frontend 'Ajouter' button is correctly enabled with name only and shows the 'ajouté comme sous-traitant (sans compte)' toast. HOWEVER the created no-email sous-traitant NEVER appears in the 'Sous-traitants' list (before or after reload) because useTeam derives sousTraitants from GET /users filtered on role==='sous_traitant', while the no-email path writes to team_members. Email-based paths (new account with temp password panel, existing-user promotion) work correctly.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Add sous-traitant without email (Users page > Sous-traitants block)",
+        "issue": "Creation succeeds (POST /api/team 200, success toast) but the member is invisible in the UI: the Sous-traitants list and counter do not include it, even after a full page reload. Root cause: /app/frontend/src/lib/useTeam.js line 17-27 builds sousTraitants only from GET /users (role==='sous_traitant') and never reads GET /team?type=sous_traitant. The user-reported feature is therefore only half fixed - an admin cannot see the sous-traitant he just added.",
+        "affected_selectors": ["team-sous-traitant-add-btn", "team-sous-traitants"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter135_sous_traitant.py",
+    "/app/test_reports/pytest/iter135.xml",
+    "/app/test_reports/pytest/iter135_auth.xml",
+    "/app/backend/tests/_cleanup_iter135.py"
+  ],
+  "action_items": [
+    "Fix useTeam.js to merge GET /team?type=sous_traitant (account-less members) with users having role 'sous_traitant', de-duplicating by name/email, so no-email sous-traitants show up in the list and counter.",
+    "Ensure the remove ('X') action in SousTraitantList handles account-less members: it currently calls PUT /users/{id} which will 404 for a team_members id - it must call DELETE /team/{id} for those entries.",
+    "Decide/implement where account-less sous-traitants are usable downstream (chantiers/planning assignment) - today they only exist in team_members and are referenced nowhere else in the frontend."
+  ],
+  "critical_code_review_comments": [
+    "Two sources of truth for sous-traitants (users.role vs team_members.type) with no reconciliation; the no-email creation path silently produces orphan records.",
+    "SousTraitantList.removeRole() assumes every listed member is a user account (PUT /users/{id}); will break once team_members-sourced entries are rendered.",
+    "POST /api/team does not create a matching user, and POST /users (email path) does not create a matching team_member -> duplicates are possible if the same person is added both ways (no cross-collection duplicate check)."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100%", "frontend": "60%" },
+  "seed_data_creation": "Created and deleted TEST_QA_ST_UI1 (team_member), TEST_QA_ST_UI3 user (test-st-qa3@keylot.example.com); TEST_Tech2_QA was temporarily promoted to sous_traitant then reverted to technicien. All cleaned up via /app/backend/tests/_cleanup_iter135.py.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin admin@example.invalid / CHANGE_ME_TEST_PASSWORD (worked)",
+  "context_for_next_testing_agent": "Backend tests for this feature: /app/backend/tests/test_iter135_sous_traitant.py (7 pass, covers no-email create, duplicate 400, invalid type 400/422, blank name, email persist, delete, non-admin 403). UI reproduction: login -> /utilisateurs -> data-testid team-sous-traitant-input + team-sous-traitant-add-btn. Note pytest.ini forces xdist; do not pass -p no:xdist. Use domain @keylot.example.com for test emails (@*.test is rejected 422 by email validator).",
+  "rca_of_the_issue": "iter135 added 'sous_traitant' to the POST /api/team type Literal and routed the no-email frontend path to /team, but the display layer (useTeam.js) still lists sous-traitants exclusively from GET /users role==='sous_traitant'. Records created in team_members are thus never fetched, so the list stays unchanged and the badge counter does not increment despite the success toast."
+}

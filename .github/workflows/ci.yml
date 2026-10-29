@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - run: corepack enable
+      - run: yarn install --frozen-lockfile --ignore-scripts
+      - run: CI=true yarn test --watchAll=false
+      - run: CI=true yarn build
+      - name: Enforce frontend dependency advisory baseline
+        run: |
+          yarn audit --groups dependencies --json > "$RUNNER_TEMP/yarn-audit.json" || true
+          node scripts/check-audit.js "$RUNNER_TEMP/yarn-audit.json"
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-test.txt
+      - run: python -m pip install -r backend/requirements-test.txt pip-audit
+      - run: python -m py_compile backend/server.py backend/setup_stripe.py backend/preflight.py backend/migrate.py
+      - run: python -m unittest backend.test_preflight backend.test_security_invariants
+      - run: python -m unittest backend.test_app_smoke
+      - run: python -m unittest backend.test_integration_security
+      - name: Run adversarial, multi-tenant and bounded-scale security suites
+        env:
+          PYTHONPATH: .
+        run: |
+          python audit/security_adversarial_checks.py
+          python audit/security_adversarial_round2.py
+          python audit/security_adversarial_round3.py
+          python audit/security_e2e_matrix.py
+          python audit/security_hostile_inputs.py
+          python audit/security_scale_checks.py
+          python audit/security_route_business_fuzz.py
+      - name: Reject medium and high severity Python security findings
+        run: bandit -q -r backend -x backend/tests -ll
+      - name: Audit pinned public Python dependencies
+        run: |
+          grep -vE '^(emergentintegrations==|litellm @)' backend/requirements.txt > "$RUNNER_TEMP/requirements-public.txt"
+          pip-audit --no-deps --disable-pip --requirement "$RUNNER_TEMP/requirements-public.txt"
+          pip-audit --no-deps --disable-pip --requirement backend/requirements-test.txt
+      - name: Validate a production-shaped configuration
+        env:
+          ENVIRONMENT: production
+          MONGO_URL: mongodb://database.internal:27017
+          DB_NAME: kylot
+          JWT_SECRET: validation-random-secret-value-at-least-32-bytes
+          FRONTEND_URL: https://app.example.invalid
+          CORS_ORIGINS: https://app.example.invalid
+          ALLOW_PUBLIC_REGISTRATION: "false"
+          ALLOW_DEMO_DATA: "false"
+          ALLOW_TOKEN_RESPONSE: "false"
+          RUN_STARTUP_MIGRATIONS: "false"
+          EXPOSE_API_DOCS: "false"
+          COOKIE_SECURE: "true"
+          COOKIE_SAMESITE: lax
+          ADMIN_EMAIL: admin@example.invalid
+          ADMIN_PASSWORD: validation-admin-password-with-24-chars
+          SUPER_ADMIN_EMAIL: owner@example.invalid
+          SUPER_ADMIN_PASSWORD: validation-owner-password-with-24-chars
+          EMERGENT_LLM_KEY: ci-placeholder
+          EMERGENT_EMAIL_KEY: ci-placeholder
+          STRIPE_SECRET_KEY: configured-ci-placeholder
+          STRIPE_WEBHOOK_SECRET: configured-ci-placeholder
+          WEBHOOK_CRON_SECRET: validation-cron-secret-value-at-least-24-chars
+        run: python backend/preflight.py --strict
