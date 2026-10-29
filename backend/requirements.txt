@@ -75,7 +75,7 @@ pillow==13.0.0
 platformdirs==4.11.4
 pluggy==1.6.0
 propcache==0.5.2
-proto-plus==1.28.2
+proto-plus==1.29.0
 protobuf==5.29.6
 pyasn1==0.6.4
 pyasn1_modules==0.4.2
