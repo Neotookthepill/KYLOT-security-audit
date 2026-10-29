@@ -3,8 +3,10 @@ session, purge notifications, reset notification prefs to all-OFF (product defau
 restore app_name and drop the orphan sale left by a previous iteration."""
 import requests
 from dotenv import dotenv_values
+from _remote_test_guard import require_http_mutation_permission
 
 BASE = dotenv_values("/app/frontend/.env")["REACT_APP_BACKEND_URL"].rstrip("/")
+require_http_mutation_permission(BASE)
 ADMIN = {"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}
 CATS = ["new_sales", "objectives", "planning", "overtime", "project_alerts"]
 PREFIXES = ("TEST_UI Notif", "TEST_Notif", "TEST_Isolation Notif", "TEST_Audit Delete", "TEST Thomas sale")

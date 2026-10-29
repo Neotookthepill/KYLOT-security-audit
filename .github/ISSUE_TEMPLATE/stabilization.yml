@@ -1,0 +1,34 @@
+name: Chantier de stabilisation
+description: Suivre un jalon P0-P9 avec critères d'acceptation.
+title: "[Stabilisation] "
+labels: [stabilization]
+body:
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Jalon
+      options: [P0 - périmètre, P1 - préproduction, P2 - données, P3 - recette, P4 - tests, P5 - refactorisation, P6 - sécurité externe, P7 - performance et UX, P8 - exploitation, P9 - documentation et juridique]
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objectif
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Périmètre et hors périmètre
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risques et dépendances
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation et preuves attendues
+    validations:
+      required: true

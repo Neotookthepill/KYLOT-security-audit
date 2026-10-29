@@ -3,9 +3,11 @@ import os
 from datetime import date, timedelta
 import requests
 from dotenv import dotenv_values
+from _remote_test_guard import require_http_mutation_permission
 
 fe = dotenv_values("/app/frontend/.env")
 BASE = (os.environ.get("REACT_APP_BACKEND_URL") or fe["REACT_APP_BACKEND_URL"]).rstrip("/") + "/api"
+require_http_mutation_permission(BASE)
 ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
 TECHS = [
     ("test-tech@keylot.app", "Tech@2026", "TEST_Tech_QA"),

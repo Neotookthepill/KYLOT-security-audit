@@ -8,8 +8,10 @@ import sys
 from pathlib import Path
 
 import requests
+from _remote_test_guard import require_http_mutation_permission
 
 B = "http://127.0.0.1:8000/api"
+require_http_mutation_permission(B)
 STATE = Path("/tmp/iter179_theo_state.json")
 
 

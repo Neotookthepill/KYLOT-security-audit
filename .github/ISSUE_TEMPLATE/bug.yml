@@ -1,0 +1,35 @@
+name: Régression ou anomalie
+description: Signaler un comportement incorrect sans inclure de donnée sensible.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Comportement observé
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      description: Ne joindre aucun secret, jeton ou donnée client réelle.
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Gravité estimée
+      options: [P0 - critique, P1 - élevée, P2 - normale, P3 - faible]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Preuves non sensibles

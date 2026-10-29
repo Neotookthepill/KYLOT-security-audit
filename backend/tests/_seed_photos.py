@@ -1,8 +1,10 @@
 import asyncio, json, sys
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import dotenv_values
+from _remote_test_guard import require_mongo_mutation_permission
 
 env = dotenv_values("/app/backend/.env")
+require_mongo_mutation_permission(env["MONGO_URL"])
 TINY = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
 
 async def main():

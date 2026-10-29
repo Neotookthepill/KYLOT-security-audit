@@ -9,8 +9,10 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 from dotenv import dotenv_values
+from _remote_test_guard import require_http_mutation_permission
 
 BASE = dotenv_values("/app/frontend/.env")["REACT_APP_BACKEND_URL"].rstrip("/") + "/api"
+require_http_mutation_permission(BASE)
 SUPER = ("super@keylot.app", "Super@2026")
 ALPHA_NAME = "TEST_Alpha SARL"
 BETA_NAME = "TEST_Beta SAS"

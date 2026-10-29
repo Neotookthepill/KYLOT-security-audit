@@ -5,12 +5,14 @@ from pathlib import Path
 import pytest
 import requests
 from dotenv import dotenv_values
+from backend.tests._remote_test_guard import require_http_mutation_permission
 
 frontend_env = dotenv_values("/app/frontend/.env")
 _base = os.environ.get("REACT_APP_BACKEND_URL") or frontend_env.get("REACT_APP_BACKEND_URL")
 if not _base:
     raise RuntimeError("REACT_APP_BACKEND_URL missing")
 BASE_URL = _base.rstrip("/")
+require_http_mutation_permission(BASE_URL)
 
 backend_env = dotenv_values("/app/backend/.env")
 
