@@ -11,7 +11,10 @@ ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 RUN CI=true yarn build
 
 FROM nginx:1.27-alpine
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+ENV PORT=8080 \
+    BACKEND_HOSTPORT=backend:8000 \
+    NGINX_ENVSUBST_FILTER="^(PORT|BACKEND_HOSTPORT)$"
+COPY frontend/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/build /usr/share/nginx/html
 
 EXPOSE 8080

@@ -3,6 +3,11 @@
 Ce dossier prépare un pilote **mono-instance** derrière un reverse proxy TLS de
 l'hébergeur. Il ne publie pas MongoDB et n'embarque aucun secret.
 
+Pour la méthode guidée sans administrer de serveur, utiliser le Blueprint
+`render.yaml` à la racine du dépôt. Render crée un frontend public et un backend
+privé reliés automatiquement. Les étapes utilisateur figurent dans
+`deploy/RENDER-GUIDE.md`.
+
 ## Préconditions
 
 - un serveur avec Docker Compose ;

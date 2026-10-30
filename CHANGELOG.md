@@ -2,6 +2,8 @@
 
 ## Non publié
 
+- Ajout d'un Blueprint Render pour créer une préproduction avec frontend public
+  et backend privé sans administrer de serveur.
 - Ajout d'un emballage Docker de préproduction avec backend privé et proxy
   frontend en origine unique.
 - Ajout de procédures protégées de sauvegarde, restauration de validation et

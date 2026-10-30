@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate operational scripts and Compose configuration
         run: |
-          sh -n scripts/backup_mongo.sh scripts/restore_mongo_validation.sh scripts/smoke_deployment.sh
+          sh -n backend/start.sh scripts/backup_mongo.sh scripts/restore_mongo_validation.sh scripts/smoke_deployment.sh
           mkdir -p deploy/secrets
           cp deploy/backend.env.example deploy/secrets/backend.env
           docker compose -f deploy/compose.preproduction.yml config --quiet

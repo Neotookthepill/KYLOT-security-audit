@@ -1,0 +1,69 @@
+services:
+  - type: pserv
+    runtime: docker
+    name: kylot-preview-api
+    region: frankfurt
+    plan: 0.5c-512mb
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: ENVIRONMENT
+        value: production
+      - key: DB_NAME
+        value: kylot_preview
+      - key: MONGO_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_HOSTNAME
+        fromService:
+          name: kylot-preview
+          type: web
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: ALLOW_PUBLIC_REGISTRATION
+        value: "false"
+      - key: ALLOW_DEMO_DATA
+        value: "false"
+      - key: ALLOW_TOKEN_RESPONSE
+        value: "false"
+      - key: RUN_STARTUP_MIGRATIONS
+        value: "false"
+      - key: EXPOSE_API_DOCS
+        value: "false"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: lax
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: ALLOW_EXTERNAL_AI
+        value: "false"
+      - key: ALLOW_EXTERNAL_GEOCODING
+        value: "false"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+  - type: web
+    runtime: docker
+    name: kylot-preview
+    region: frankfurt
+    plan: free
+    branch: main
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: BACKEND_HOSTPORT
+        fromService:
+          name: kylot-preview-api
+          type: pserv
+          property: hostport
