@@ -6,6 +6,7 @@ from backend.preflight import validate_config
 def valid_production_env():
     return {
         "ENVIRONMENT": "production",
+        "APP_VERSION": "0123456789abcdef",
         "MONGO_URL": "mongodb://database.internal:27017",
         "DB_NAME": "kylot",
         "JWT_SECRET": "a-random-runtime-secret-longer-than-32-characters",
@@ -19,6 +20,7 @@ def valid_production_env():
         "ALLOW_EXTERNAL_GEOCODING": "false",
         "COOKIE_SECURE": "true",
         "COOKIE_SAMESITE": "lax",
+        "TRUST_PROXY_HEADERS": "false",
         "ADMIN_EMAIL": "admin@example.invalid",
         "ADMIN_PASSWORD": "a-strong-admin-password",
         "SUPER_ADMIN_EMAIL": "owner@example.invalid",
@@ -27,6 +29,7 @@ def valid_production_env():
         "EMERGENT_EMAIL_KEY": "configured",
         "STRIPE_SECRET_KEY": "configured",
         "STRIPE_WEBHOOK_SECRET": "configured",
+        "STRIPE_RETURN_ORIGINS": "https://app.example.invalid",
         "WEBHOOK_CRON_SECRET": "a-random-cron-secret-value",
     }
 
@@ -84,6 +87,26 @@ class PreflightTests(unittest.TestCase):
         result = validate_config(env)
         self.assertTrue(any("FRONTEND_URL" in error for error in result.errors))
         self.assertTrue(any("wildcard" in error for error in result.errors))
+
+    def test_rejects_unknown_build_invalid_mongo_and_database_name(self):
+        env = valid_production_env()
+        env["APP_VERSION"] = "local"
+        env["MONGO_URL"] = "https://database.example.invalid"
+        env["DB_NAME"] = "kylot unsafe"
+        result = validate_config(env)
+        self.assertTrue(any("APP_VERSION" in error for error in result.errors))
+        self.assertTrue(any("MONGO_URL" in error for error in result.errors))
+        self.assertTrue(any("DB_NAME" in error for error in result.errors))
+
+    def test_rejects_invalid_proxy_flag_limits_and_stripe_return_origin(self):
+        env = valid_production_env()
+        env["TRUST_PROXY_HEADERS"] = "perhaps"
+        env["MAX_UPLOAD_FILES"] = "0"
+        env["STRIPE_RETURN_ORIGINS"] = "https://another.example.invalid"
+        result = validate_config(env)
+        self.assertTrue(any("TRUST_PROXY_HEADERS" in error for error in result.errors))
+        self.assertTrue(any("MAX_UPLOAD_FILES" in error for error in result.errors))
+        self.assertTrue(any("STRIPE_RETURN_ORIGINS" in error for error in result.errors))
 
     def test_rejects_placeholder_secrets(self):
         env = valid_production_env()

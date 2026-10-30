@@ -12,6 +12,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  packaging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate operational scripts and Compose configuration
+        run: |
+          sh -n scripts/backup_mongo.sh scripts/restore_mongo_validation.sh scripts/smoke_deployment.sh
+          mkdir -p deploy/secrets
+          cp deploy/backend.env.example deploy/secrets/backend.env
+          docker compose -f deploy/compose.preproduction.yml config --quiet
+      - name: Build the production-shaped backend image
+        run: docker build --file backend/Dockerfile --tag kylot-backend:${{ github.sha }} .
+      - name: Build the production-shaped frontend image
+        run: docker build --file frontend/Dockerfile --tag kylot-frontend:${{ github.sha }} .
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -70,6 +86,7 @@ jobs:
       - name: Validate a production-shaped configuration
         env:
           ENVIRONMENT: production
+          APP_VERSION: ${{ github.sha }}
           MONGO_URL: mongodb://database.internal:27017
           DB_NAME: kylot
           JWT_SECRET: validation-random-secret-value-at-least-32-bytes
@@ -82,6 +99,7 @@ jobs:
           EXPOSE_API_DOCS: "false"
           COOKIE_SECURE: "true"
           COOKIE_SAMESITE: lax
+          TRUST_PROXY_HEADERS: "false"
           ADMIN_EMAIL: admin@example.invalid
           ADMIN_PASSWORD: validation-admin-password-with-24-chars
           SUPER_ADMIN_EMAIL: owner@example.invalid
@@ -90,5 +108,6 @@ jobs:
           EMERGENT_EMAIL_KEY: ci-placeholder
           STRIPE_SECRET_KEY: configured-ci-placeholder
           STRIPE_WEBHOOK_SECRET: configured-ci-placeholder
+          STRIPE_RETURN_ORIGINS: https://app.example.invalid
           WEBHOOK_CRON_SECRET: validation-cron-secret-value-at-least-24-chars
         run: python backend/preflight.py --strict

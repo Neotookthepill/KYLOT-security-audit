@@ -2,6 +2,11 @@
 
 Cette procédure vise un déploiement mono-utilisateur sûr et réversible. Une exécution réussie ne dispense pas de vérifier le parcours métier sur l'environnement de staging.
 
+Le candidat Docker reproductible, son proxy en origine unique et les commandes
+de préproduction sont documentés dans `deploy/README.md`. Ce candidat désactive
+volontairement l'IA externe tant que la dépendance privée Emergent n'est pas
+archivée ou remplacée.
+
 ## 1. Conditions de passage
 
 Le déploiement est bloqué si l'un de ces points échoue :

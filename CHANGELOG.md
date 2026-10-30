@@ -2,6 +2,10 @@
 
 ## Non publié
 
+- Ajout d'un emballage Docker de préproduction avec backend privé et proxy
+  frontend en origine unique.
+- Ajout de procédures protégées de sauvegarde, restauration de validation et
+  tests de fumée externes.
 - Ajout de la gouvernance GitHub et des modèles de contribution.
 - Verrouillage des anciens scripts de seed et de nettoyage sur les cibles
   distantes.

@@ -2,8 +2,13 @@ import axios from "axios";
 import { toast } from "sonner";
 import { cacheKey, readCache, writeCache, enqueue, isSkipped, syncNow, setOnline, refreshPending, clearSensitiveClientState } from "@/lib/offline";
 
+// An empty value deliberately uses the current origin. This is the safest
+// production topology: the public reverse proxy serves the SPA and forwards
+// /api to the private backend, so no API hostname is baked into the bundle.
+const backendOrigin = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
+
 const api = axios.create({
-  baseURL: `${process.env.REACT_APP_BACKEND_URL}/api`,
+  baseURL: `${backendOrigin}/api`,
   withCredentials: true,
 });
 
