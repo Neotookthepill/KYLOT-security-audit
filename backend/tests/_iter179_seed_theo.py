@@ -16,7 +16,7 @@ STATE = Path("/tmp/iter179_theo_state.json")
 
 
 def tok():
-    return requests.post(f"{B}/auth/login", json={"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=60).json()["token"]
+    return requests.post(f"{B}/auth/login", json={"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=60).json()["token"]
 
 
 h = {"Authorization": f"Bearer {tok()}", "Content-Type": "application/json"}

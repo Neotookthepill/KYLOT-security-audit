@@ -72,6 +72,40 @@ describe("offline security boundaries", () => {
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
+  test("keeps the operation on transient server errors (500/429/409)", async () => {
+    for (const status of [500, 429, 409]) {
+      setOfflineIdentity("user-a");
+      await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Lyon" } });
+      const first = jest.fn().mockRejectedValue({ response: { status } });
+      await syncNow(first);
+      const retry = jest.fn().mockResolvedValue({ data: { ok: true } });
+      await syncNow(retry);
+      expect(retry).toHaveBeenCalledTimes(1);
+      await clearSensitiveClientState();
+    }
+  });
+
+  test("drops a permanently rejected operation after surfacing the error", async () => {
+    setOfflineIdentity("user-a");
+    await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Lyon" } });
+    await syncNow(jest.fn().mockRejectedValue({ response: { status: 403 } }));
+    const retry = jest.fn();
+    await syncNow(retry);
+    expect(retry).not.toHaveBeenCalled();
+  });
+
+  test("stops the replay if the authenticated identity changes mid-sync", async () => {
+    setOfflineIdentity("user-a");
+    await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Lyon" } });
+    await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Nice" } });
+    const send = jest.fn().mockImplementation(async () => {
+      setOfflineIdentity("user-b");
+      return { data: { ok: true } };
+    });
+    await syncNow(send);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
   test("logout cleanup removes queued data and sensitive drafts", async () => {
     setOfflineIdentity("user-a");
     await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Nice" } });

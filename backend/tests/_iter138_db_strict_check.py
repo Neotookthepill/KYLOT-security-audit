@@ -22,7 +22,7 @@ async def main():
     before = {n: await db[n].count_documents({}) for n in names}
 
     tok = requests.post(f"{BASE}/api/auth/login", json={
-        "email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=30).json()["token"]
+        "email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=30).json()["token"]
     h = {"Authorization": f"Bearer {tok}", "Content-Type": "application/json"}
     rows = [[f"{TAG}_{i}", f"0777{i:06d}", f"{TAG}_{i}@test.fr"] for i in range(5)]
     r = requests.post(f"{BASE}/api/clients/import/execute", headers=h, json={

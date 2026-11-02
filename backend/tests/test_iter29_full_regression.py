@@ -24,7 +24,7 @@ if not _base:
 BASE = _base.rstrip("/")
 API = f"{BASE}/api"
 
-ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
+ADMIN = ("admin@example.com", "CHANGE_ME_TEST_PASSWORD")
 COMM = ("comm-perms@keylot.app", "Comm@2026")
 RESP = ("resp-perms@keylot.app", "Resp@2026")
 TECH1 = ("test-tech@keylot.app", "Tech@2026")

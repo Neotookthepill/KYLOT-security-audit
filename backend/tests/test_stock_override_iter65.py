@@ -8,7 +8,7 @@ fenv = dotenv_values("/app/frontend/.env")
 BASE = (os.environ.get("REACT_APP_BACKEND_URL") or fenv.get("REACT_APP_BACKEND_URL")).rstrip("/")
 API = f"{BASE}/api"
 
-ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
+ADMIN = ("admin@example.com", "CHANGE_ME_TEST_PASSWORD")
 COMM = ("test-comm@keylot.app", "Comm@2026")
 TECH = ("test-tech@keylot.app", "Tech@2026")
 PRODUCT = "TEST_Override_Iter65"

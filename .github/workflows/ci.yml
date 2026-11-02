@@ -65,6 +65,7 @@ jobs:
       - run: python -m unittest backend.test_preflight backend.test_security_invariants
       - run: python -m unittest backend.test_app_smoke
       - run: python -m unittest backend.test_integration_security
+      - run: python -m unittest backend.test_counter_audit_fixes
       - name: Run adversarial, multi-tenant and bounded-scale security suites
         env:
           PYTHONPATH: .
@@ -89,7 +90,7 @@ jobs:
           APP_VERSION: ${{ github.sha }}
           MONGO_URL: mongodb://database.internal:27017
           DB_NAME: kylot
-          JWT_SECRET: validation-random-secret-value-at-least-32-bytes
+          JWT_SECRET: Q7mZ2pL9vX4cR8sT1nB6kH3dF5gJ0wAe
           FRONTEND_URL: https://app.example.invalid
           CORS_ORIGINS: https://app.example.invalid
           ALLOW_PUBLIC_REGISTRATION: "false"
@@ -100,14 +101,14 @@ jobs:
           COOKIE_SECURE: "true"
           COOKIE_SAMESITE: lax
           TRUST_PROXY_HEADERS: "false"
-          ADMIN_EMAIL: admin@example.invalid
-          ADMIN_PASSWORD: validation-admin-password-with-24-chars
-          SUPER_ADMIN_EMAIL: owner@example.invalid
-          SUPER_ADMIN_PASSWORD: validation-owner-password-with-24-chars
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: V7!mQ2#pL9$xR4@t
+          SUPER_ADMIN_EMAIL: owner@example.com
+          SUPER_ADMIN_PASSWORD: K3@nW8!zB5$cF1#q
           EMERGENT_LLM_KEY: ci-placeholder
           EMERGENT_EMAIL_KEY: ci-placeholder
           STRIPE_SECRET_KEY: configured-ci-placeholder
           STRIPE_WEBHOOK_SECRET: configured-ci-placeholder
           STRIPE_RETURN_ORIGINS: https://app.example.invalid
-          WEBHOOK_CRON_SECRET: validation-cron-secret-value-at-least-24-chars
+          WEBHOOK_CRON_SECRET: H4$kP9!mR2@vT7#xL6&nQ1
         run: python backend/preflight.py --strict

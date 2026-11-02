@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
@@ -66,6 +66,15 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
     status: "en_cours", notes: "",
   });
   const [saving, setSaving] = useState(false);
+  const requestIdRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    try {
+      requestIdRef.current = (crypto?.randomUUID && crypto.randomUUID()) || `sale-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    } catch (_) {
+      requestIdRef.current = `sale-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+  }, [open]);
   // iter113 : CA cumulé du commercial pour le mois (source de vérité pour le taux évolutif)
   const [commercialMonthCA, setCommercialMonthCA] = useState(0);
 
@@ -175,6 +184,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
         notes: form.notes,
         ...prospecteurPayload(form),
       };
+      payload.client_request_id = requestIdRef.current;
       if (clientMode === "existing") {
         if (!selectedClientId) throw new Error("Sélectionnez un client");
         payload.client_id = selectedClientId;

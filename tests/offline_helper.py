@@ -2,7 +2,7 @@
 import os, sys, json, requests
 BASE = open('/app/frontend/.env').read().split('REACT_APP_BACKEND_URL=')[1].split()[0].rstrip('/') + '/api'
 def tok():
-    r = requests.post(f"{BASE}/auth/login", json={"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"})
+    r = requests.post(f"{BASE}/auth/login", json={"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"})
     return r.json()["token"]
 H = {"Authorization": f"Bearer {tok()}"}
 CID = "68b69fa6-b17a-4eee-935b-f002a5af8bb3"

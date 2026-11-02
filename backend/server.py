@@ -31,7 +31,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
-from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
+from pydantic import BaseModel, Field, EmailStr, ValidationError, field_validator, model_validator
 from zoneinfo import ZoneInfo
 
 
@@ -45,8 +45,17 @@ JWT_ALGORITHM = "HS256"
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
-_RUNTIME_ENV = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
-_IS_PRODUCTION = _RUNTIME_ENV in ("production", "prod")
+_RUNTIME_ENV = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "").strip().lower()
+_DEPLOYED_ENVS = ("production", "prod", "staging")
+_DEV_ENVS = ("development", "dev", "test")
+if _RUNTIME_ENV not in _DEPLOYED_ENVS + _DEV_ENVS:
+    # Fail closed: an absent or misspelled ENVIRONMENT used to silently enable
+    # development defaults (external AI, geocoding, insecure cookies, startup
+    # migrations). Deployment must now state its environment explicitly.
+    raise RuntimeError(
+        "ENVIRONMENT must be explicitly set to production, staging, development or test"
+    )
+_IS_PRODUCTION = _RUNTIME_ENV in _DEPLOYED_ENVS
 _DOCS_REQUESTED = (os.environ.get("EXPOSE_API_DOCS") or ("false" if _IS_PRODUCTION else "true")).lower() in ("1", "true", "yes")
 _DOCS_ENABLED = _DOCS_REQUESTED and not _IS_PRODUCTION
 app = FastAPI(
@@ -62,19 +71,18 @@ logger = logging.getLogger("pylot")
 
 
 def _cors_origins() -> List[str]:
-    """Return explicit browser origins; production fails closed by default."""
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
+    """Return explicit browser origins; deployed environments fail closed."""
     raw = (os.environ.get("CORS_ORIGINS") or "").strip()
     if raw == "*":
-        if environment in ("production", "prod"):
-            raise RuntimeError("CORS_ORIGINS='*' est interdit en production")
+        if _IS_PRODUCTION:
+            raise RuntimeError("CORS_ORIGINS='*' est interdit en production/staging")
         raw = "http://localhost:3000,http://127.0.0.1:3000"
     origins = [o.strip() for o in raw.split(",") if o.strip()]
     # Always include the FRONTEND_URL (from env) if not present
     fu = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     if fu and fu not in origins:
         origins.append(fu)
-    if environment not in ("production", "prod"):
+    if _RUNTIME_ENV in _DEV_ENVS:
         for loc in ("http://localhost:3000", "http://127.0.0.1:3000"):
             if loc not in origins:
                 origins.append(loc)
@@ -230,13 +238,12 @@ async def _read_upload_limited(file: UploadFile) -> bytes:
 
 def _safe_frontend_url(requested: str, *, keep_path: bool = False) -> str:
     """Validate Stripe return URLs against server-controlled origins."""
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
     configured = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
     extra = [x.strip().rstrip("/") for x in (os.environ.get("STRIPE_RETURN_ORIGINS") or "").split(",") if x.strip()]
     allowed = set(extra)
     if configured:
         allowed.add(configured)
-    if environment not in ("production", "prod"):
+    if _RUNTIME_ENV in _DEV_ENVS:
         allowed.update({"http://localhost:3000", "http://127.0.0.1:3000"})
 
     parsed = urlparse((requested or "").strip())
@@ -250,11 +257,21 @@ def _safe_frontend_url(requested: str, *, keep_path: bool = False) -> str:
         return f"{origin}{path}"
     return origin
 
+def _password_digest(p: str) -> bytes:
+    """Pré-hachage SHA-256 pour éviter la troncature bcrypt à 72 octets."""
+    return hashlib.sha256((p or "").encode("utf-8")).hexdigest().encode("ascii")
+
+
 def hash_password(p: str) -> str:
-    return bcrypt.hashpw(p.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    # Le préfixe permet de distinguer les nouveaux hash des anciens hash bcrypt
+    # directs, tout en conservant la compatibilité de connexion.
+    return "sha256$" + bcrypt.hashpw(_password_digest(p), bcrypt.gensalt()).decode("utf-8")
+
 
 def verify_password(p: str, h: str) -> bool:
     try:
+        if h.startswith("sha256$"):
+            return bcrypt.checkpw(_password_digest(p), h[len("sha256$"):].encode("utf-8"))
         return bcrypt.checkpw(p.encode("utf-8"), h.encode("utf-8"))
     except Exception:
         return False
@@ -276,14 +293,13 @@ def create_access_token(user_id: str, email: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def set_auth_cookie(response: Response, access: str):
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
-    secure = (os.environ.get("COOKIE_SECURE") or ("true" if environment in ("production", "prod") else "false")).lower() in ("1", "true", "yes")
+    secure = (os.environ.get("COOKIE_SECURE") or ("true" if _IS_PRODUCTION else "false")).lower() in ("1", "true", "yes")
     samesite = (os.environ.get("COOKIE_SAMESITE") or "lax").lower()
     if samesite not in ("lax", "strict", "none"):
         raise RuntimeError("COOKIE_SAMESITE doit être lax, strict ou none")
     if samesite == "none" and not secure:
         raise RuntimeError("COOKIE_SAMESITE=none exige COOKIE_SECURE=true")
-    if environment in ("production", "prod") and samesite == "none":
+    if _IS_PRODUCTION and samesite == "none":
         raise RuntimeError("COOKIE_SAMESITE=none est interdit sans protection CSRF dédiée")
     response.set_cookie("access_token", access, httponly=True, secure=secure, samesite=samesite, max_age=60*60*12, path="/")
 
@@ -291,9 +307,8 @@ def set_auth_cookie(response: Response, access: str):
 def _auth_response(user: dict, token: str) -> dict:
     """Return the browser-safe login payload; token JSON is legacy opt-in only."""
     payload = {"user": public_user(user)}
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
     legacy_enabled = (os.environ.get("ALLOW_TOKEN_RESPONSE") or "false").strip().lower() in ("1", "true", "yes")
-    if legacy_enabled and environment not in ("production", "prod"):
+    if legacy_enabled and _RUNTIME_ENV in _DEV_ENVS:
         payload["token"] = token
     return payload
 
@@ -365,6 +380,13 @@ def public_user(u: dict) -> dict:
     for res, actions in defaults.items():
         if isinstance(actions, dict) and isinstance(merged.get(res), dict):
             merged[res] = {**actions, **{k: v for k, v in merged[res].items() if v is not None}}
+    # Aligner le contrat exposé au frontend sur le serveur : "team" n'existe
+    # pas et est ramené à "own" (fail closed).
+    for actions in merged.values():
+        if isinstance(actions, dict):
+            for action, value in list(actions.items()):
+                if value == "team":
+                    actions[action] = "own"
     return {
         "id": u["id"],
         "email": u["email"],
@@ -423,6 +445,17 @@ async def get_current_user(request: Request) -> dict:
         u.setdefault("company_id", DEFAULT_COMPANY_ID)
         if not u.get("permissions"):
             u["permissions"] = get_default_permissions(u.get("role", ""))
+        # Le modèle ne possède pas de notion d'équipe. Une valeur "team" legacy
+        # ou injectée en base est volontairement ramenée à "own" : sans cela,
+        # les routes qui ne distinguent que "own" et le reste accordaient un
+        # accès société entier.
+        _stored_perms = u.get("permissions")
+        if isinstance(_stored_perms, dict):
+            for _actions in _stored_perms.values():
+                if isinstance(_actions, dict):
+                    for _action, _value in list(_actions.items()):
+                        if _value == "team":
+                            _actions[_action] = "own"
         # Enforce role-critical rules (iter21): sales/commissions for commercial/responsable
         # are non-negotiable regardless of stale DB permissions.
         _role = u.get("role")
@@ -720,20 +753,65 @@ async def _scoped_client_query(user: dict, client_id: str) -> dict:
     clients they created themselves.  Broader scopes remain company-scoped.
     """
     q = cq(user, {"id": client_id})
-    if perm_scope(user, "clients", "view") == "own":
-        own_ids = await _commercial_client_ids(user)
-        q["$or"] = [
-            {"id": {"$in": own_ids}},
-            {"created_by": user["id"]},
-        ]
+    clause = await _client_ownership_clause(user)
+    if clause:
+        q["$or"] = clause["$or"]
     return q
 
 
-def _scoped_prospect_query(user: dict, prospect_id: str) -> dict:
+async def _client_ownership_clause(user: dict) -> Optional[dict]:
+    """Ownership predicate shared by client reads, mutations and imports.
+
+    A user restricted to ``own`` may only see clients linked to their own sales
+    or clients they created.  Every duplicate lookup must use the same rule as
+    the list/mutation routes, otherwise an import can disclose or overwrite a
+    colleague's client by matching a phone number or an email address.
+    """
+    if perm_scope(user, "clients", "view") != "own":
+        return None
+    own_ids = await _commercial_client_ids(user)
+    return {"$or": [
+        {"id": {"$in": own_ids}},
+        {"created_by": user["id"]},
+    ]}
+
+
+async def _client_duplicate_query(user: dict, or_terms: List[dict]) -> dict:
+    """Tenant- and ownership-scoped duplicate lookup for CSV/XLSX/PDF imports."""
+    q = cq(user, {"$or": or_terms})
+    clause = await _client_ownership_clause(user)
+    if clause:
+        q["$and"] = [clause]
+    return q
+
+
+async def _unique_user_id_by_name(user: dict, name: str) -> Optional[str]:
+    """Return the user id only when the normalized name is unique in the company."""
+    target = _norm_name(name)
+    if not target:
+        return None
+    rows = await db.users.find(cq(user), {"_id": 0, "id": 1, "name": 1}).to_list(2000)
+    matches = [r["id"] for r in rows if _norm_name(r.get("name") or "") == target]
+    return matches[0] if len(matches) == 1 else None
+
+
+async def _prospect_scope_clause(user: dict) -> Optional[dict]:
+    if perm_scope(user, "clients", "view") != "own":
+        return None
+    ors: List[dict] = [{"assigned_to_id": user["id"]}]
+    # Compatibilité avec les prospects legacy sans identifiant : uniquement si
+    # le nom de l'utilisateur est unique dans la société.
+    if await _unique_user_id_by_name(user, user.get("name") or "") == user.get("id"):
+        ors.append({"assigned_to_id": {"$in": [None, ""]}, "assigned_to": user.get("name") or "__none__"})
+    return {"$or": ors}
+
+
+async def _scoped_prospect_query(user: dict, prospect_id: str) -> dict:
     """Return a tenant- and ownership-scoped query for a prospect mutation."""
     q = cq(user, {"id": prospect_id})
-    if perm_scope(user, "clients", "view") == "own":
-        q["assigned_to"] = user.get("name") or "__none__"
+    clause = await _prospect_scope_clause(user)
+    if clause:
+        q["$and"] = [clause]
     return q
 
 
@@ -793,6 +871,9 @@ class SaleIn(BaseModel):
     commission_paid: Optional[bool] = False
     commission_month: Optional[str] = Field(default="", pattern=r"^(|\d{4}-\d{2})$")  # YYYY-MM
     sale_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
+    # Clé d'idempotence fournie par le navigateur : un double clic ou un retry
+    # réseau avec la même clé ne doit pas créer deux ventes/chantiers.
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     desired_intervention_date: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2}|attente_financement|attente_14j)$")
     status: str = Field(default="commercial_cheque", max_length=80)
     notes: Optional[str] = Field(default="", max_length=5000)
@@ -945,9 +1026,8 @@ async def register(data: RegisterIn, response: Response):
     # Production accounts must be created through an authenticated admin flow.
     # Public registration is an explicit, development-only opt-in so an
     # unauthenticated visitor can never join DEFAULT_COMPANY_ID by accident.
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
     registration_enabled = (os.environ.get("ALLOW_PUBLIC_REGISTRATION") or "false").strip().lower() in ("1", "true", "yes")
-    if not registration_enabled or environment in ("production", "prod"):
+    if not registration_enabled or _IS_PRODUCTION:
         raise HTTPException(status_code=403, detail="Inscription publique désactivée — demandez une invitation à un administrateur")
     email = data.email.lower()
     existing = await db.users.find_one({"email": email})
@@ -1096,6 +1176,10 @@ async def login(data: LoginIn, response: Response, request: Request):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     await _reset_login_attempts(email)
     await _reset_login_source(request)
+    if not (u.get("password_hash") or "").startswith("sha256$"):
+        # Migration silencieuse des anciens hash bcrypt directs : le mot de
+        # passe en clair est encore disponible uniquement à cet instant.
+        await db.users.update_one({"id": u["id"]}, {"$set": {"password_hash": hash_password(data.password)}})
     token = create_access_token(u["id"], email)
     # iter94 : appliquer le verrou éligibilité heures sup avant sérialisation
     u.setdefault("company_id", DEFAULT_COMPANY_ID)
@@ -1164,16 +1248,19 @@ async def mark_onboarding_complete(user: dict = Depends(get_current_user)):
 
 async def find_or_create_client(client_id: Optional[str], client: Optional[ClientIn], user: dict) -> dict:
     if client_id:
-        c = await db.clients.find_one(cq(user, {"id": client_id}), {"_id": 0})
+        c = await db.clients.find_one(await _scoped_client_query(user, client_id), {"_id": 0})
         if not c:
             raise HTTPException(status_code=404, detail="Client introuvable")
         return c
     if not client:
         raise HTTPException(status_code=400, detail="Client requis")
-    # Dedup by name+phone (within company)
+    # Dedup by name+phone, within the caller's ownership scope only.
     q = cq(user, {"name": client.name})
     if client.phone:
         q["phone"] = client.phone
+    clause = await _client_ownership_clause(user)
+    if clause:
+        q["$and"] = [clause]
     existing = await db.clients.find_one(q, {"_id": 0})
     if existing:
         return existing
@@ -1519,7 +1606,7 @@ async def list_clients(user: dict = Depends(get_current_user)):
     q = cq(user)
     if perm_scope(user, "clients", "view") == "own":
         ids = await _commercial_client_ids(user)
-        q["id"] = {"$in": ids}
+        q["$or"] = [{"id": {"$in": ids}}, {"created_by": user["id"]}]
     if _is_prospect_role(user):
         q["id"] = {"$in": (await _prospect_ids(user))[1]}
     docs = await db.clients.find(q, {"_id": 0}).sort("created_at", -1).to_list(20000)
@@ -1547,7 +1634,8 @@ async def clients_map(user: dict = Depends(get_current_user)):
     check_perm(user, "clients", "view", "own")
     q = cq(user)
     if perm_scope(user, "clients", "view") == "own":
-        q["id"] = {"$in": await _commercial_client_ids(user)}
+        ids = await _commercial_client_ids(user)
+        q["$or"] = [{"id": {"$in": ids}}, {"created_by": user["id"]}]
     if _is_prospect_role(user):
         q["id"] = {"$in": (await _prospect_ids(user))[1]}
     proj = {"_id": 0, "id": 1, "name": 1, "phone": 1, "address": 1, "postal_code": 1, "city": 1, "categories": 1, "geo_lat": 1, "geo_lng": 1, "geo_key": 1}
@@ -1559,8 +1647,7 @@ async def clients_map(user: dict = Depends(get_current_user)):
         if key and d.get("geo_key") != key:
             todo.append(d)
     todo = todo[:300]
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
-    geocoding_enabled = (os.environ.get("ALLOW_EXTERNAL_GEOCODING") or ("false" if environment in ("production", "prod") else "true")).strip().lower() in ("1", "true", "yes")
+    geocoding_enabled = (os.environ.get("ALLOW_EXTERNAL_GEOCODING") or ("false" if _IS_PRODUCTION else "true")).strip().lower() in ("1", "true", "yes")
     if todo and geocoding_enabled:
         async with httpx.AsyncClient() as hc:
             results = await asyncio.gather(*[_geocode_fr(hc, d["_key"]) for d in todo])
@@ -1714,23 +1801,36 @@ def _parse_bulk_clients_text(raw: str) -> List[dict]:
 async def create_clients_bulk(data: ClientsBulkIn, user: dict = Depends(get_current_user)):
     """Accept either 'text' (paste) or 'clients' (list). Dedup by name+phone."""
     check_perm(user, "clients", "create")
-    entries: List[dict] = []
+    raw_entries: List[dict] = []
     if data.clients:
-        for c in data.clients:
-            d = c.model_dump()
-            if d.get("name"):
-                entries.append(d)
+        raw_entries.extend(c.model_dump() for c in data.clients if c.name)
     if data.text:
-        entries.extend(_parse_bulk_clients_text(data.text))
+        raw_entries.extend(_parse_bulk_clients_text(data.text))
+    if len(raw_entries) > MAX_IMPORT_ROWS:
+        raise HTTPException(status_code=413, detail=f"Import limité à {MAX_IMPORT_ROWS} lignes")
+    entries: List[dict] = []
+    invalid: List[dict] = []
+    for e in raw_entries:
+        try:
+            # Le chemin texte ne passait auparavant par aucune validation
+            # Pydantic : il pouvait stocker des noms/notes de plusieurs Mo.
+            entries.append(ClientIn(**e).model_dump())
+        except ValidationError as exc:
+            invalid.append({"name": str(e.get("name", ""))[:120], "reason": exc.errors()[0].get("msg", "invalide")})
     if not entries:
-        raise HTTPException(status_code=400, detail="Aucun client à importer")
+        raise HTTPException(status_code=400, detail="Aucun client valide à importer")
+    if len(entries) > MAX_IMPORT_ROWS:
+        raise HTTPException(status_code=413, detail=f"Import limité à {MAX_IMPORT_ROWS} lignes")
 
     created: List[dict] = []
     skipped: List[dict] = []
+    ownership_clause = await _client_ownership_clause(user)
     for e in entries:
         q = cq(user, {"name": e["name"]})
         if e.get("phone"):
             q["phone"] = e["phone"]
+        if ownership_clause:
+            q["$and"] = [ownership_clause]
         existing = await db.clients.find_one(q, {"_id": 0})
         if existing:
             skipped.append({"name": e["name"], "reason": "déjà présent"})
@@ -1738,7 +1838,11 @@ async def create_clients_bulk(data: ClientsBulkIn, user: dict = Depends(get_curr
         doc = with_company({"id": str(uuid.uuid4()), "created_at": now_iso(), "created_by": user["id"], **e}, user)
         await db.clients.insert_one(doc.copy())
         created.append(doc)
-    return {"created_count": len(created), "skipped_count": len(skipped), "created": created, "skipped": skipped}
+    return {
+        "created_count": len(created), "skipped_count": len(skipped),
+        "invalid_count": len(invalid), "created": created, "skipped": skipped,
+        "invalid": invalid[:20],
+    }
 
 
 # ---------------- Clients File Import (CSV / XLSX) ----------------
@@ -2004,18 +2108,19 @@ async def execute_import_file(data: ClientImportExecuteIn, user: dict = Depends(
                 "city": _cell(row, "city"),
                 "notes": _cell(row, "notes"),
             }
-            # Détection doublon : phone OU email (dans la company)
+            # Détection doublon : phone OU email, strictement dans le périmètre
+            # de l'utilisateur. Un commercial ne doit jamais pouvoir lire ou
+            # écraser la fiche d'un collègue en important un numéro/email connu.
             existing = None
-            if phone or email:
-                or_terms = []
-                if phone:
-                    or_terms.append({"phone": phone})
-                if email:
-                    or_terms.append({"email": email})
-                if or_terms:
-                    existing = await db.clients.find_one(
-                        {"company_id": company_id, "$or": or_terms}, {"_id": 0}
-                    )
+            or_terms = []
+            if phone:
+                or_terms.append({"phone": phone})
+            if email:
+                or_terms.append({"email": email})
+            if or_terms:
+                existing = await db.clients.find_one(
+                    await _client_duplicate_query(user, or_terms), {"_id": 0}
+                )
             if existing:
                 if strategy == "ignore":
                     skipped.append({"line": i + 1, "name": name, "reason": "doublon (téléphone/email)", "existing_id": existing.get("id")})
@@ -2025,13 +2130,22 @@ async def execute_import_file(data: ClientImportExecuteIn, user: dict = Depends(
                     upd = {k: v for k, v in payload.items() if v}
                     if upd:
                         await db.clients.update_one(
-                            {"company_id": company_id, "id": existing["id"]},
+                            await _scoped_client_query(user, existing["id"]),
                             {"$set": upd},
                         )
                     merged = {**existing, **upd}
                     updated.append(merged)
                     continue
                 # strategy == "create" : on tombe dans le bloc création ci-dessous
+            elif or_terms and strategy != "create":
+                # Le client existe peut-être dans la société mais hors de notre
+                # périmètre : refuser sans exposer son contenu.
+                other = await db.clients.find_one(
+                    cq(user, {"$or": or_terms}), {"_id": 0, "id": 1}
+                )
+                if other:
+                    skipped.append({"line": i + 1, "name": name, "reason": "doublon hors périmètre"})
+                    continue
             doc = with_company(
                 {"id": str(uuid.uuid4()), "created_at": now_iso(), "created_by": user["id"], **payload},
                 user,
@@ -2248,7 +2362,6 @@ async def create_client_from_pdf(data: ClientPdfCreateIn, user: dict = Depends(g
     name = (data.name or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Nom requis")
-    company_id = company_id_of(user)
     # Notes = "Devis du <date>\n<notes optionnelles>"
     notes_parts = []
     if data.devis_date:
@@ -2267,7 +2380,7 @@ async def create_client_from_pdf(data: ClientPdfCreateIn, user: dict = Depends(g
         "notes": notes_str,
     }
 
-    # Détection doublon
+    # Détection doublon strictement dans le périmètre de l'utilisateur.
     existing = None
     or_terms = []
     if payload["phone"]:
@@ -2276,23 +2389,32 @@ async def create_client_from_pdf(data: ClientPdfCreateIn, user: dict = Depends(g
         or_terms.append({"email": payload["email"]})
     if or_terms:
         existing = await db.clients.find_one(
-            {"company_id": company_id, "$or": or_terms}, {"_id": 0}
+            await _client_duplicate_query(user, or_terms), {"_id": 0}
         )
 
     strategy = data.duplicate_strategy or "ignore"
     if existing:
         if strategy == "ignore":
-            return {"action": "skipped", "reason": "doublon (téléphone/email)", "existing": existing}
+            # Ne jamais renvoyer la fiche complète d'un client d'un collègue.
+            return {
+                "action": "skipped",
+                "reason": "doublon (téléphone/email)",
+                "existing": {"id": existing.get("id"), "name": existing.get("name", "")},
+            }
         if strategy == "update":
             upd = {k: v for k, v in payload.items() if v}
             if upd:
                 await db.clients.update_one(
-                    {"company_id": company_id, "id": existing["id"]},
+                    await _scoped_client_query(user, existing["id"]),
                     {"$set": upd},
                 )
             merged = {**existing, **upd}
             return {"action": "updated", "client": merged}
         # "create" → tombe dans le bloc création
+    elif or_terms and strategy != "create":
+        other = await db.clients.find_one(cq(user, {"$or": or_terms}), {"_id": 0, "id": 1})
+        if other:
+            return {"action": "skipped", "reason": "doublon hors périmètre"}
     doc = with_company(
         {"id": str(uuid.uuid4()), "created_at": now_iso(), "created_by": user["id"], **payload},
         user,
@@ -2320,27 +2442,18 @@ def _norm_name(s: str) -> str:
 
 
 def _own_sales_filter(user: dict) -> dict:
+    """Build the "own" scope filter for sales.
+
+    Seul ``commercial_user_id`` / ``commercial_2_user_id`` fait autorité. Le
+    fallback par nom complet permettait à deux homonymes exacts de voir les
+    mêmes ventes non rattachées ; les ventes legacy doivent être reliées par
+    ``_reconcile_sales_commercials`` ou par l'écran de rattachement admin.
     """
-    Build the "own" scope filter for sales.
-    iter122 : match STRICT sur commercial_user_id / commercial_2_user_id (source de vérité).
-    iter198 : fallback élargi au PRÉNOM (accent-insensible) quand `commercial_user_id`
-    est vide — permet à Théo Dudal de voir les ventes créées avec `commercial="Théo"`
-    même si `_reconcile_sales_commercials` n'a pas encore tourné.
-    """
-    import re as _re
-    name = (user or {}).get("name") or ""
     uid = (user or {}).get("id") or "__none__"
-    ors: List[dict] = [
+    return {"$or": [
         {"commercial_user_id": uid},
         {"commercial_2_user_id": uid},
-    ]
-    key = _norm_name(name)
-    if key:
-        # Nom complet exact (case-insensitive) — sécurité rétro-compat
-        pattern_full = _re.compile(rf"^\s*{_re.escape(name.strip())}\s*$", _re.IGNORECASE)
-        ors.append({"$and": [{"commercial_user_id": {"$in": [None, ""]}}, {"commercial": {"$regex": pattern_full}}]})
-        ors.append({"$and": [{"commercial_2_user_id": {"$in": [None, ""]}}, {"commercial_2": {"$regex": pattern_full}}]})
-    return {"$or": ors}
+    ]}
 
 
 def _levenshtein(a: str, b: str) -> int:
@@ -2485,6 +2598,15 @@ async def _require_active_sale_status(user: dict, status: str) -> None:
 async def create_sale(data: SaleIn, user: dict = Depends(get_current_user)):
     check_perm(user, "sales", "create")
     await _require_active_sale_status(user, data.status)
+    if data.client_request_id:
+        existing = await db.sales.find_one(
+            cq(user, {"client_request_id": data.client_request_id, "created_by": user["id"]}), {"_id": 0}
+        )
+        if existing:
+            existing["client_name"] = (
+                await db.clients.find_one(cq(user, {"id": existing.get("client_id")}), {"_id": 0, "name": 1}) or {}
+            ).get("name", "")
+            return existing
     c = await find_or_create_client(data.client_id, data.client, user)
     sid = str(uuid.uuid4())
     # Normalize prestations (products with quantity 1..10). Fallback: infer from service string.
@@ -2527,6 +2649,7 @@ async def create_sale(data: SaleIn, user: dict = Depends(get_current_user)):
         "commission_paid": bool(data.commission_paid or False),
         "commission_month": data.commission_month or ((data.sale_date or "")[:7]) or datetime.now(timezone.utc).strftime("%Y-%m"),
         "sale_date": data.sale_date,
+        "client_request_id": data.client_request_id,
         "desired_intervention_date": data.desired_intervention_date,
         "status": data.status,
         "notes": data.notes or "",
@@ -2534,7 +2657,18 @@ async def create_sale(data: SaleIn, user: dict = Depends(get_current_user)):
         "created_by": user["id"],
         "created_at": now_iso(),
     }, user)
-    await db.sales.insert_one(sale.copy())
+    try:
+        await db.sales.insert_one(sale.copy())
+    except DuplicateKeyError:
+        # Deux requêtes concurrentes avec la même clé : la seconde récupère la
+        # vente déjà créée au lieu de créer un doublon.
+        if data.client_request_id:
+            existing = await db.sales.find_one(
+                cq(user, {"client_request_id": data.client_request_id, "created_by": user["id"]}), {"_id": 0}
+            )
+            if existing:
+                return existing
+        raise
     await log_audit(user, "create", "sale", sid, after=sale)
     # iter137 : catégorise le client automatiquement selon le statut de vente
     await _auto_assign_client_category_from_sale(user, sale)
@@ -2558,15 +2692,18 @@ async def create_sale(data: SaleIn, user: dict = Depends(get_current_user)):
         logger.warning(f"bonus check on create_sale failed: {_e}")
     # Auto-create project unless the sale is cancelled or in litigation
     if sale["status"] not in ("annule", "litige"):
+        project_date = data.desired_intervention_date
+        if project_date in ("attente_financement", "attente_14j"):
+            project_date = None
         proj = with_company({
             "id": str(uuid.uuid4()),
             "sale_id": sid,
             "client_id": c["id"],
             "service": data.service,
             "prestations": prestas,
-            "status": ("en_cours" if data.desired_intervention_date else "a_planifier"),
+            "status": ("en_cours" if project_date else "a_planifier"),
             "priority": "moyenne",
-            "scheduled_date": data.desired_intervention_date,
+            "scheduled_date": project_date,
             "assigned_to": [],
             "duration_days": 1,
             "notes": "",
@@ -2672,10 +2809,13 @@ async def update_sale(sid: str, data: SaleUpdate, user: dict = Depends(get_curre
     if sale and sale.get("status") not in ("annule", "litige"):
         existing = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}))
         if not existing:
+            pdate = sale.get("desired_intervention_date")
+            if pdate in ("attente_financement", "attente_14j"):
+                pdate = None
             proj = with_company({
                 "id": str(uuid.uuid4()), "sale_id": sid, "client_id": sale["client_id"],
-                "service": sale["service"], "status": ("en_cours" if sale.get("desired_intervention_date") else "a_planifier"), "priority": "moyenne",
-                "scheduled_date": sale.get("desired_intervention_date"), "assigned_to": [],
+                "service": sale["service"], "status": ("en_cours" if pdate else "a_planifier"), "priority": "moyenne",
+                "scheduled_date": pdate, "assigned_to": [],
                 "duration_days": 1, "notes": "", "photos": [], "created_at": now_iso(),
             }, user)
             await db.projects.insert_one(proj.copy())
@@ -3076,9 +3216,11 @@ async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get
             if isinstance(p, dict): return p.get("src") or p.get("url") or ""
             return ""
         old_srcs = {_src(p) for p in old_list if _src(p)}
+        new_srcs = {_src(p) for p in new_list if _src(p)}
         added = [p for p in new_list if _src(p) and _src(p) not in old_srcs]
-        if added and not has_perm(user, "photos", "add"):
-            raise HTTPException(status_code=403, detail="Vous n'avez pas la permission d'ajouter des photos à ce chantier.")
+        removed = [src for src in old_srcs if src not in new_srcs]
+        if (added or removed) and not has_perm(user, "photos", "add"):
+            raise HTTPException(status_code=403, detail="Vous n'avez pas la permission d'ajouter ou de supprimer des photos de ce chantier.")
         validated_added = _validated_photo_entries(added, max_count=MAX_PHOTOS_PER_ENTITY)
         validated_by_src = {_src(p): p for p in validated_added}
         # Enrichit chaque nouvelle photo avec la traçabilité (sans écraser si déjà présent)
@@ -3256,6 +3398,9 @@ async def upsert_project_note(pid: str, technician_name: str, data: ProjectNoteI
     tname = (technician_name or "").strip()
     if not tname:
         raise HTTPException(status_code=400, detail="Nom du technicien requis")
+    # Écrire une note est une mutation de chantier : projects.edit est requis,
+    # en plus de l'assignation et de l'éventuelle restriction à sa propre note.
+    check_perm(user, "projects", "edit")
     proj = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     if not proj:
         raise HTTPException(status_code=404, detail="Chantier introuvable")
@@ -3934,9 +4079,8 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             # iter98 : pour un commercial en scope 'own', ne compter QUE la part qui lui revient
             if comm_scope == "own":
                 uid = user.get("id")
-                uname_norm = _norm_name(user.get("name") or "")
-                mine_slot1 = (s.get("commercial_user_id") == uid) or (_norm_name(s.get("commercial") or "") == uname_norm)
-                mine_slot2 = (s.get("commercial_2_user_id") == uid) or (_norm_name(s.get("commercial_2") or "") == uname_norm)
+                mine_slot1 = s.get("commercial_user_id") == uid
+                mine_slot2 = s.get("commercial_2_user_id") == uid
                 total = 0.0
                 if mine_slot1: total += amt * 0.5 * r1
                 if mine_slot2: total += amt * 0.5 * r2
@@ -5221,7 +5365,7 @@ async def list_team(
         # type is None : filtrer côté serveur, ne renvoyer que les commerciaux
         q["type"] = "commercial"
     docs = await db.team_members.find(q, {"_id": 0}).sort("name", 1).to_list(500)
-    limited_profile = user.get("role") in ("technicien", "sous_traitant", "prospecteur", "responsable_prospecteur")
+    limited_profile = user.get("role") in ("commercial", "technicien", "sous_traitant", "prospecteur", "responsable_prospecteur")
     for d in docs:
         if limited_profile:
             d.pop("objectif", None)
@@ -6099,9 +6243,8 @@ async def list_commissions(user: dict = Depends(get_current_user)):
         if scope == "own" and is_de:
             # iter98 : match par commercial_user_id (autorité) OU nom normalisé — fini le strict `uname == s.commercial` qui manquait les DE avec accent/casse différente
             uid = user.get("id")
-            uname_norm = _norm_name(user.get("name") or "")
-            mine_slot1 = (s.get("commercial_user_id") == uid) or (_norm_name(s.get("commercial") or "") == uname_norm)
-            mine_slot2 = (s.get("commercial_2_user_id") == uid) or (_norm_name(commercial_2) == uname_norm)
+            mine_slot1 = s.get("commercial_user_id") == uid
+            mine_slot2 = s.get("commercial_2_user_id") == uid
             if mine_slot1:
                 out.append(primary_row)
             if mine_slot2 and secondary_row is not None:
@@ -6341,15 +6484,20 @@ async def _check_and_award_bonuses(user: dict, commercial_names):
                 continue
             ca = await _ca_for_commercial(user, name, period)
             if ca >= threshold and threshold > 0:
+                award_uid = await _resolve_commercial_user_id(user, name)
                 await db.bonus_awards.insert_one({
                     **key_q, "id": str(uuid.uuid4()),
+                    "commercial_user_id": award_uid,
                     "bonus_name": b.get("name", ""),
                     "ca_reached": round(ca, 2),
                     "amount": amount,
                     "reached_at": now_iso(),
                 })
                 if b.get("notify_reached", True):
-                    u = await db.users.find_one(cq(user, {"role": "commercial", "name": name}), {"_id": 0, "id": 1})
+                    u = await db.users.find_one(
+                        cq(user, {"id": award_uid} if award_uid else {"role": "commercial", "name": name}),
+                        {"_id": 0, "id": 1},
+                    )
                     if u and u.get("id"):
                         await emit_notification_to_users(
                             company, [u["id"]],
@@ -6364,31 +6512,23 @@ async def _ca_for_commercial(user: dict, name: str, period: str) -> float:
     iter98 : matche par commercial_user_id (autorité) OU nom normalisé (insensible casse/accent),
     sur les 2 slots commercial et commercial_2. Résout `name` en uid en début d'exécution."""
     resolved_uid = await _resolve_commercial_user_id(user, name)
-    key = _norm_name(name)
+    if not resolved_uid:
+        return 0.0
     q = cq(user)
     start, end = _period_range(period)
     if start and end:
         q["sale_date"] = {"$gte": start, "$lte": end}
     q["status"] = {"$nin": ["annule", "litige"]}
-    or_clauses: List[dict] = []
-    if resolved_uid:
-        or_clauses.append({"commercial_user_id": resolved_uid})
-        or_clauses.append({"commercial_2_user_id": resolved_uid})
-    # regex fallback
-    import re as _re
-    if name:
-        pat = _re.compile(rf"^\s*{_re.escape(name.strip())}\s*$", _re.IGNORECASE)
-        or_clauses.append({"commercial": {"$regex": pat}})
-        or_clauses.append({"commercial_2": {"$regex": pat}})
-    if not or_clauses:
-        return 0.0
-    q["$or"] = or_clauses
+    q["$or"] = [
+        {"commercial_user_id": resolved_uid},
+        {"commercial_2_user_id": resolved_uid},
+    ]
     total = 0.0
     async for s in db.sales.find(q, {"_id": 0, "amount": 1, "commercial": 1, "commercial_2": 1, "commercial_user_id": 1, "commercial_2_user_id": 1, "is_de": 1}):
         amt = float(s.get("amount") or 0)
         is_de = bool(s.get("is_de")) and bool((s.get("commercial_2") or "").strip())
-        mine_slot1 = (resolved_uid and s.get("commercial_user_id") == resolved_uid) or (_norm_name(s.get("commercial") or "") == key)
-        mine_slot2 = (resolved_uid and s.get("commercial_2_user_id") == resolved_uid) or (_norm_name(s.get("commercial_2") or "") == key)
+        mine_slot1 = s.get("commercial_user_id") == resolved_uid
+        mine_slot2 = s.get("commercial_2_user_id") == resolved_uid
         if is_de and (mine_slot1 or mine_slot2):
             total += amt * 0.5 * ((1 if mine_slot1 else 0) + (1 if mine_slot2 else 0))
         elif mine_slot1:
@@ -6464,6 +6604,11 @@ async def delete_bonus(bid: str, user: dict = Depends(get_current_user)):
 async def bonuses_progress(user: dict = Depends(get_current_user)):
     """Return {bonus_id, commercial, ca_current, ca_threshold, amount, progress_pct, reached, near, remaining}
     entries. For a commercial user, only their own rows are returned."""
+    role = user.get("role")
+    # Les primes sont une donnée de rémunération. Un technicien, sous-traitant
+    # ou prospecteur n'a aucune raison de voir celles des commerciaux.
+    if role not in ("admin", "responsable", "comptable", "commercial"):
+        return []
     bonuses = await db.bonuses.find(cq(user, {"active": True}), {"_id": 0}).to_list(500)
     # Collect all commerciaux referenced (either explicitly, or via "*" -> use team_members)
     all_commerciaux = set()
@@ -6475,7 +6620,7 @@ async def bonuses_progress(user: dict = Depends(get_current_user)):
         else:
             all_commerciaux.update(cs)
     # Restrict for commercial role
-    if user.get("role") == "commercial":
+    if role == "commercial":
         me = user.get("name") or ""
         all_commerciaux = {me} if me in all_commerciaux else set()
     out = []
@@ -6511,19 +6656,14 @@ async def bonuses_progress(user: dict = Depends(get_current_user)):
 
 @api_router.get("/bonuses/awards")
 async def list_bonus_awards(user: dict = Depends(get_current_user)):
-    """History of bonuses reached. Techniciens/commerciaux only see their own.
-    iter98 : match par commercial_user_id + fallback nom normalisé pour être robuste
-    aux différences d'accent/casse."""
+    """History of bonuses reached. Seuls les managers/comptables voient tout,
+    et un commercial ne voit que ses propres lignes."""
+    role = user.get("role")
+    if role not in ("admin", "responsable", "comptable", "commercial"):
+        return []
     q = cq(user)
-    if user.get("role") == "commercial":
-        import re as _re
-        me = (user.get("name") or "").strip()
-        uid = user.get("id") or "__none__"
-        ors: List[dict] = [{"commercial_user_id": uid}]
-        if me:
-            pat = _re.compile(rf"^\s*{_re.escape(me)}\s*$", _re.IGNORECASE)
-            ors.append({"commercial": {"$regex": pat}})
-        q["$or"] = ors
+    if role == "commercial":
+        q["commercial_user_id"] = user.get("id") or "__none__"
     return await db.bonus_awards.find(q, {"_id": 0}).sort("reached_at", -1).to_list(500)
 
 
@@ -6550,12 +6690,15 @@ def _project_date_snapshot(proj: dict) -> str:
 
 @api_router.get("/projects/{pid}/bonuses")
 async def list_project_bonuses(pid: str, user: dict = Depends(get_current_user)):
+    role = user.get("role")
+    if role not in ("admin", "responsable", "comptable", "technicien", "sous_traitant"):
+        return []
     proj = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     if not proj:
         raise HTTPException(status_code=404, detail="Chantier introuvable")
     await _ensure_project_scope(user, proj)
     q = cq(user, {"project_id": pid})
-    if user.get("role") in ("technicien", "sous_traitant"):
+    if role in ("technicien", "sous_traitant"):
         q["technician_name_lc"] = _norm_name(user.get("name") or "")
     return await db.project_bonuses.find(q, {"_id": 0}).sort("technician_name_lc", 1).to_list(200)
 
@@ -6633,9 +6776,12 @@ async def project_bonuses_monthly(month: str = Query(default="", pattern=r"^(|\d
     if not month:
         month = datetime.now(timezone.utc).strftime("%Y-%m")
     month = _validated_month(month)
+    role = user.get("role")
+    if role not in ("admin", "responsable", "comptable", "technicien", "sous_traitant"):
+        return []
     prefix = month + "-"
     q = cq(user, {"project_date": {"$regex": f"^{prefix}"}})
-    if user.get("role") in ("technicien", "sous_traitant"):
+    if role in ("technicien", "sous_traitant"):
         q["technician_name_lc"] = _norm_name(user.get("name") or "")
     rows = await db.project_bonuses.find(q, {"_id": 0}).sort("project_date", 1).to_list(2000)
     by_tech: dict = {}
@@ -6681,6 +6827,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "overtime": True, "events": True, "ranking": True, "recent_sales": True,
     }
     can_view_commission_config = (user or {}).get("role") in ("admin", "responsable", "comptable")
+    can_view_prospect_bonus_config = (user or {}).get("role") in ("admin", "responsable", "comptable")
     # iter64 : les commerciaux ne doivent PAS voir les taux disponibles / seuils / paliers
     # de la société. Seul le taux appliqué à LEUR vente est visible via list_commissions.
     _all_rates = sorted({round(float(r), 4) for r in rates if 0 <= float(r) <= 1})
@@ -6703,14 +6850,14 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "commission_ca_rate_before": float(s.get("commission_ca_rate_before") if s.get("commission_ca_rate_before") is not None else DEFAULT_COMMISSION_CA_RATE_BEFORE) if can_view_commission_config else 0,
         "commission_ca_rate_after": float(s.get("commission_ca_rate_after") if s.get("commission_ca_rate_after") is not None else DEFAULT_COMMISSION_CA_RATE_AFTER) if can_view_commission_config else 0,
         "commission_discount_tiers": (list(s.get("commission_discount_tiers")) if isinstance(s.get("commission_discount_tiers"), list) else DEFAULT_COMMISSION_DISCOUNT_TIERS) if can_view_commission_config else [],
-        "show_bonuses_on_dashboard": bool(s.get("show_bonuses_on_dashboard") or False),
+        "show_bonuses_on_dashboard": bool(s.get("show_bonuses_on_dashboard") or False) if can_view_prospect_bonus_config else False,
         "prospect_smic_threshold": int(s.get("prospect_smic_threshold") or 3),
         "prospect_smic_amount": float(s.get("prospect_smic_amount") if s.get("prospect_smic_amount") is not None else 1867.0),
-        "prospect_mgr_goal_sales": int(s.get("prospect_mgr_goal_sales") or 12),
-        "prospect_mgr_rate_below": float(s.get("prospect_mgr_rate_below") if s.get("prospect_mgr_rate_below") is not None else 1.0),
-        "prospect_mgr_rate_above": float(s.get("prospect_mgr_rate_above") if s.get("prospect_mgr_rate_above") is not None else 2.0),
-        "prospect_mgr_base_amount": float(s.get("prospect_mgr_base_amount") if s.get("prospect_mgr_base_amount") is not None else 2329.97),
-        "prospect_mgr_bonuses": s.get("prospect_mgr_bonuses") or [],
+        "prospect_mgr_goal_sales": int(s.get("prospect_mgr_goal_sales") or 12) if can_view_prospect_bonus_config else 0,
+        "prospect_mgr_rate_below": float(s.get("prospect_mgr_rate_below") if s.get("prospect_mgr_rate_below") is not None else 1.0) if can_view_prospect_bonus_config else 0,
+        "prospect_mgr_rate_above": float(s.get("prospect_mgr_rate_above") if s.get("prospect_mgr_rate_above") is not None else 2.0) if can_view_prospect_bonus_config else 0,
+        "prospect_mgr_base_amount": float(s.get("prospect_mgr_base_amount") if s.get("prospect_mgr_base_amount") is not None else 2329.97) if can_view_prospect_bonus_config else 0,
+        "prospect_mgr_bonuses": (s.get("prospect_mgr_bonuses") or []) if can_view_prospect_bonus_config else [],
     }
 
 @api_router.put("/settings")
@@ -6753,12 +6900,36 @@ async def list_users(user: dict = Depends(require_admin)):
             u["permissions"] = get_default_permissions(u.get("role", ""))
     return users
 
+async def _ensure_unique_user_name(user: dict, name: str, exclude_id: Optional[str] = None) -> None:
+    """Empêche deux comptes strictement homonymes dans la même société.
+
+    Les prospects, heures sup et primes historiques sont encore indexés par nom
+    dans certains chemins. Tant que ce n'est pas entièrement migré vers des
+    identifiants, autoriser deux homonymes exacts recréerait le partage de
+    données constaté pendant l'audit.
+    """
+    target = _norm_name(name)
+    if not target:
+        return
+    rows = await db.users.find(cq(user), {"_id": 0, "id": 1, "name": 1}).to_list(2000)
+    for row in rows:
+        if row.get("id") == exclude_id:
+            continue
+        if _norm_name(row.get("name") or "") == target:
+            raise HTTPException(
+                status_code=409,
+                detail="Un utilisateur porte déjà ce nom. Ajoutez une initiale ou un identifiant pour distinguer les homonymes.",
+            )
+
+
 @api_router.post("/users")
 async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
     # Enforce plan user limit (per company)
     admin = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0}) or {}  # nosec B105
-    plan = admin.get("subscription_plan")
-    limit = PLAN_USER_LIMITS.get(plan) if plan else None
+    plan = admin.get("subscription_plan") or "keylot_essentiel_monthly"
+    # Une société sans abonnement n'est pas "illimitée" : elle reste au plan
+    # d'entrée tant qu'elle n'a pas payé.
+    limit = PLAN_USER_LIMITS.get(plan, 3)
     if limit is not None:
         current = await db.users.count_documents(cq(user))
         if current >= limit:
@@ -6768,6 +6939,7 @@ async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
     email = data.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+    await _ensure_unique_user_name(user, data.name)
     uid = str(uuid.uuid4())
     doc = with_company({
         "id": uid, "email": email, "name": data.name,
@@ -6775,6 +6947,9 @@ async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
         "role": data.role,
         "is_active": True,
         "permissions": get_default_permissions(data.role),
+        "subscription_plan": admin.get("subscription_plan"),
+        "subscription_status": admin.get("subscription_status"),
+        "stripe_subscription_id": admin.get("stripe_subscription_id"),
         "created_at": now_iso(),
     }, user)
     await db.users.insert_one(doc)
@@ -6800,6 +6975,7 @@ async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     updates = {}
     if data.name is not None:
+        await _ensure_unique_user_name(user, data.name, exclude_id=uid)
         updates["name"] = data.name
     if data.role is not None:
         if data.role not in ("admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"):
@@ -7068,7 +7244,7 @@ async def send_email(*, to: str, subject: str, html: str) -> Optional[str]:
         resp.raise_for_status()
         return resp.json().get("id")
     except httpx.HTTPStatusError as e:
-        logger.error(f"Email send failed: {e.response.status_code} {e.response.text}")
+        logger.error(f"Email send failed with HTTP {e.response.status_code}")
         return None
     except Exception as e:
         logger.error(f"Email send error: {e}")
@@ -7157,7 +7333,7 @@ async def _build_reminder_digest(target_date: str, company_id: Optional[str] = N
 
 
 def _digest_html_row(it: dict) -> str:
-    techs = ", ".join(it["technicians"]) if it["technicians"] else "<em>non assigné</em>"
+    techs = escape(", ".join(it["technicians"])) if it["technicians"] else "<em>non assigné</em>"
     dur = f"{it['duration_days']} jours" if it["duration_days"] > 1 else "1 jour"
     comm = it["commercial"]
     comm_html = f'<div>👔 {escape(comm)}</div>' if comm else ""
@@ -7201,13 +7377,16 @@ def _wrap_digest(target_date: str, intro: str, rows_html: str) -> str:
     )
 
 
-async def _run_reminders(target_date: str) -> dict:
+async def _run_reminders(target_date: str, company_id: Optional[str] = None) -> dict:
     # Build each digest independently so even colliding legacy IDs cannot join
     # a project to a client or sale from another tenant.
-    company_ids = {
-        cid for cid in await db.projects.distinct("company_id")
-        if isinstance(cid, str) and cid
-    } or {DEFAULT_COMPANY_ID}
+    if company_id:
+        company_ids = {company_id}
+    else:
+        company_ids = {
+            cid for cid in await db.projects.distinct("company_id")
+            if isinstance(cid, str) and cid
+        } or {DEFAULT_COMPANY_ID}
     items: List[dict] = []
     for company_id in company_ids:
         items.extend(await _build_reminder_digest(target_date, company_id))
@@ -7341,13 +7520,13 @@ async def cron_rappel_test(
     """Admin-only manual trigger for testing the reminder job."""
     td = target_date or _paris_tomorrow_iso()
     date.fromisoformat(td)
-    result = await _run_reminders(td)
+    result = await _run_reminders(td, company_id_of(user))
     return result
 
 
 # ---------------- Cron: Bilan mensuel automatique (1er du mois 9h Paris) ----------------
 
-async def _run_monthly_digest_email() -> dict:
+async def _run_monthly_digest_email(company_id: Optional[str] = None) -> dict:
     """Compute the report for the PREVIOUS month and email it to each company's admin (multi-tenant)."""
     tz = ZoneInfo("Europe/Paris")
     today = datetime.now(tz).date()
@@ -7364,7 +7543,10 @@ async def _run_monthly_digest_email() -> dict:
 
     sent_total = 0
     # Iterate every admin of every company and send them their own scoped report
-    admins = await db.users.find({"role": "admin"}, {"_id": 0, "id": 1, "email": 1, "company_id": 1, "name": 1, "role": 1}).to_list(2000)
+    admin_query = {"role": "admin"}
+    if company_id:
+        admin_query["company_id"] = company_id
+    admins = await db.users.find(admin_query, {"_id": 0, "id": 1, "email": 1, "company_id": 1, "name": 1, "role": 1}).to_list(2000)
     for admin in admins:
         if not admin.get("email") or not admin.get("company_id"):
             continue
@@ -7426,7 +7608,7 @@ async def _run_monthly_digest_email() -> dict:
             if msg_id:
                 sent_total += 1
         except Exception as e:
-            logger.warning(f"monthly digest for {admin.get('email')} failed: {e}")
+            logger.warning("monthly digest failed: %s", type(e).__name__)
     return {"month": prev_month, "sent": sent_total, "companies": len(admins)}
 
 
@@ -7462,7 +7644,7 @@ async def cron_bilan_mensuel(
 
 @api_router.post("/cron/bilan-mensuel/test")
 async def cron_bilan_test(user: dict = Depends(require_admin)):
-    return await _run_monthly_digest_email()
+    return await _run_monthly_digest_email(company_id_of(user))
 
 
 # ---------------- Stripe subscriptions ----------------
@@ -7545,15 +7727,23 @@ class CheckoutRequest(BaseModel):
 async def create_checkout(req: CheckoutRequest, user: dict = Depends(require_admin)):
     if not stripe.api_key:
         raise HTTPException(status_code=500, detail="Stripe non configuré")
-    if req.lookup_key not in PLAN_USER_LIMITS:
+    # Seuls les lookup_keys actuels du catalogue sont achetables. Les anciens
+    # prix restent résolus pour les abonnements existants, mais ne doivent plus
+    # permettre de souscrire à un tarif obsolète.
+    if req.lookup_key not in PLAN_PRICING:
         raise HTTPException(status_code=400, detail="Plan non autorisé")
     prices = stripe.Price.list(lookup_keys=[req.lookup_key], active=True, limit=1).data
     if not prices:
         raise HTTPException(status_code=400, detail=f"Plan introuvable : {req.lookup_key}")
     price = prices[0]
     return_origin = _safe_frontend_url(req.origin_url)
-    # Give a 14-day trial the first time an admin subscribes (or if their last sub is not currently active/trial)
-    give_trial = True
+    cid = company_id_of(user)
+    # Un essai par société, pas un essai à chaque changement de statut.
+    prior_trial = await db.payment_transactions.find_one(
+        {"company_id": cid, "trial_days": {"$gt": 0}, "status": {"$in": ["initiated", "completed", "pending", "trialing"]}},
+        {"_id": 1},
+    )
+    give_trial = prior_trial is None
     u = await db.users.find_one({"id": user["id"]}, {"_id": 0}) or {}
     if u.get("subscription_status") in ("active", "trialing"):
         give_trial = False
@@ -7564,7 +7754,7 @@ async def create_checkout(req: CheckoutRequest, user: dict = Depends(require_adm
         cancel_url=f"{return_origin}/payment/cancel",
         metadata={
             "user_id": user["id"],
-            "company_id": company_id_of(user),
+            "company_id": cid,
             "user_email": user["email"],
             "lookup_key": req.lookup_key,
         },
@@ -7572,7 +7762,7 @@ async def create_checkout(req: CheckoutRequest, user: dict = Depends(require_adm
     if price.recurring and give_trial:
         kwargs["subscription_data"] = {
             "trial_period_days": TRIAL_DAYS,
-            "metadata": {"user_id": user["id"], "company_id": company_id_of(user), "lookup_key": req.lookup_key},
+            "metadata": {"user_id": user["id"], "company_id": cid, "lookup_key": req.lookup_key},
         }
     try:
         session = stripe.checkout.Session.create(**kwargs, managed_payments={"enabled": True})
@@ -7589,7 +7779,7 @@ async def create_checkout(req: CheckoutRequest, user: dict = Depends(require_adm
     await db.payment_transactions.insert_one({
         "session_id": session.id,
         "user_id": user["id"],
-        "company_id": company_id_of(user),
+        "company_id": cid,
         "user_email": user["email"],
         "lookup_key": req.lookup_key,
         "amount": (price.unit_amount or 0),
@@ -7630,13 +7820,12 @@ async def get_payment_status(session_id: str, user: dict = Depends(get_current_u
                         "updated_at": now_iso(),
                     }},
                 )
-                # Mark user as subscribed
-                # The local transaction is the source of truth. Stripe metadata
-                # is useful for support/debugging, but must never select a user.
-                uid = record.get("user_id")
+                # L'abonnement appartient à la société, pas au seul admin qui
+                # a payé : tous ses utilisateurs doivent hériter du statut.
+                cid = record.get("company_id") or company_id_of(user)
                 lookup = record.get("lookup_key")
-                if uid:
-                    await db.users.update_one({"id": uid, "company_id": company_id_of(user)}, {"$set": {
+                if cid:
+                    await db.users.update_many({"company_id": cid, "role": {"$ne": "super_admin"}}, {"$set": {
                         "stripe_subscription_id": s.subscription,
                         "subscription_plan": lookup,
                         "subscription_status": subscription_status or "active",
@@ -7657,23 +7846,35 @@ async def get_payment_status(session_id: str, user: dict = Depends(get_current_u
     }
 
 
+async def _set_company_subscription(company_id: Optional[str], fields: dict) -> None:
+    """Apply a subscription state to every member of the tenant.
+
+    Un abonnement Stripe est souscrit par un admin mais couvre la société. Le
+    stocker sur le seul admin laissait les autres utilisateurs accéder au
+    service après une suspension ou un impayé.
+    """
+    if not company_id:
+        return
+    await db.users.update_many(
+        {"company_id": company_id, "role": {"$ne": "super_admin"}},
+        {"$set": fields},
+    )
+
+
 async def _set_subscription_status(subscription_id: str, status: str) -> None:
     """Update the owning user via the tenant-scoped payment transaction."""
     transaction = await db.payment_transactions.find_one(
         {"stripe_subscription_id": subscription_id},
         {"_id": 0, "user_id": 1, "company_id": 1},
     )
-    if not transaction or not transaction.get("user_id"):
+    if not transaction or not transaction.get("company_id"):
         logger.warning("Stripe subscription has no matching payment transaction")
         return
-    user_query = {"id": transaction["user_id"]}
-    if transaction.get("company_id"):
-        user_query["company_id"] = transaction["company_id"]
-    await db.users.update_one(user_query, {"$set": {
+    await _set_company_subscription(transaction["company_id"], {
         "stripe_subscription_id": subscription_id,
         "subscription_status": status,
         "subscription_updated_at": now_iso(),
-    }})
+    })
 
 
 async def _set_payment_intent_status(payment_intent_id: str, payment_status: str, *, suspend: bool) -> None:
@@ -7696,10 +7897,10 @@ async def _set_payment_intent_status(payment_intent_id: str, payment_status: str
         "updated_at": now_iso(),
     }})
     if suspend:
-        await db.users.update_one(
-            {"id": transaction["user_id"], "company_id": transaction["company_id"]},
-            {"$set": {"subscription_status": "suspended", "subscription_updated_at": now_iso()}},
-        )
+        await _set_company_subscription(transaction["company_id"], {
+            "subscription_status": "suspended",
+            "subscription_updated_at": now_iso(),
+        })
 
 
 async def _apply_checkout_session_state(obj: dict, *, force_payment_status: Optional[str] = None) -> None:
@@ -7737,15 +7938,12 @@ async def _apply_checkout_session_state(obj: dict, *, force_payment_status: Opti
     )
     if not entitled:
         return
-    await db.users.update_one(
-        {"id": transaction["user_id"], "company_id": transaction["company_id"]},
-        {"$set": {
-            "stripe_subscription_id": subscription_id,
-            "subscription_plan": transaction.get("lookup_key"),
-            "subscription_status": subscription_status or "active",
-            "subscription_updated_at": now_iso(),
-        }},
-    )
+    await _set_company_subscription(transaction["company_id"], {
+        "stripe_subscription_id": subscription_id,
+        "subscription_plan": transaction.get("lookup_key"),
+        "subscription_status": subscription_status or "active",
+        "subscription_updated_at": now_iso(),
+    })
 
 
 async def _process_stripe_event(event: dict) -> None:
@@ -7765,10 +7963,10 @@ async def _process_stripe_event(event: dict) -> None:
             {"session_id": obj["id"], "user_id": transaction["user_id"], "company_id": transaction["company_id"]},
             {"$set": {"status": "failed", "payment_status": "failed", "updated_at": now_iso()}},
         )
-        await db.users.update_one(
-            {"id": transaction["user_id"], "company_id": transaction["company_id"]},
-            {"$set": {"subscription_status": "past_due", "subscription_updated_at": now_iso()}},
-        )
+        await _set_company_subscription(transaction["company_id"], {
+            "subscription_status": "past_due",
+            "subscription_updated_at": now_iso(),
+        })
     elif event_type in ("invoice.payment_failed", "invoice.marked_uncollectible"):
         subscription_id = (obj or {}).get("subscription")
         if subscription_id:
@@ -7970,8 +8168,11 @@ async def list_overtime(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user:
     prefix = _validated_month(month)
     scope = perm_scope(user, "overtime", "view")
     q = cq(user, {"date": {"$regex": f"^{prefix}"}})
-    if scope == "own" and user.get("role") == "technicien":
-        q["technician_name"] = user.get("name") or "__none__"
+    if scope == "own":
+        ors: List[dict] = [{"technician_user_id": user["id"]}]
+        if await _unique_user_id_by_name(user, user.get("name") or "") == user.get("id"):
+            ors.append({"technician_user_id": {"$in": [None, ""]}, "technician_name": user.get("name") or "__none__"})
+        q["$or"] = ors
     entries = await db.overtime.find(q, {"_id": 0}).to_list(5000)
 
     # Threshold + curated eligibility list from settings
@@ -8092,10 +8293,11 @@ async def upsert_overtime(data: OvertimeIn, user: dict = Depends(get_current_use
     if not name:
         raise HTTPException(status_code=400, detail="Technicien requis")
     # A technician can only declare/edit their own overtime
-    if user.get("role") == "technicien" and name != (user.get("name") or ""):
+    if user.get("role") == "technicien" and _norm_name(name) != _norm_name(user.get("name") or ""):
         raise HTTPException(status_code=403, detail="Vous ne pouvez déclarer que vos propres heures")
     _validate_iso_date(data.date)
     hours = float(data.hours or 0)
+    tech_uid = user["id"] if user.get("role") == "technicien" else await _unique_user_id_by_name(user, name)
     q = cq(user, {"technician_name": name, "date": data.date})
     if hours <= 0:
         await db.overtime.delete_many(q)
@@ -8112,6 +8314,8 @@ async def upsert_overtime(data: OvertimeIn, user: dict = Depends(get_current_use
         else:
             new_status = prev_status
         updates = {"hours": hours, "status": new_status, "updated_at": now_iso(), "updated_by": user["id"]}
+        if tech_uid:
+            updates["technician_user_id"] = tech_uid
         if new_status != "refused":
             updates["refused_reason"] = None
             updates["refused_at"] = None
@@ -8121,6 +8325,7 @@ async def upsert_overtime(data: OvertimeIn, user: dict = Depends(get_current_use
     doc = with_company({
         "id": str(uuid.uuid4()),
         "technician_name": name,
+        "technician_user_id": tech_uid,
         "date": data.date,
         "hours": hours,
         "status": "pending",
@@ -8140,12 +8345,14 @@ async def upsert_overtime(data: OvertimeIn, user: dict = Depends(get_current_use
 
 async def _notify_tech_of_status(user: dict, entry: dict, action: str, reason: Optional[str] = None):
     """iter92 : notifier le technicien concerné quand son entrée est validée / refusée."""
-    if not entry or not entry.get("technician_name"):
+    if not entry or not (entry.get("technician_name") or entry.get("technician_user_id")):
         return
-    tech = await db.users.find_one(
-        cq(user, {"role": "technicien", "name": entry["technician_name"]}),
-        {"_id": 0, "id": 1},
-    )
+    tech_q = {"role": "technicien"}
+    if entry.get("technician_user_id"):
+        tech_q["id"] = entry["technician_user_id"]
+    else:
+        tech_q["name"] = entry["technician_name"]
+    tech = await db.users.find_one(cq(user, tech_q), {"_id": 0, "id": 1})
     if not tech or not tech.get("id"):
         return
     hours = entry.get("hours") or 0
@@ -8236,8 +8443,11 @@ async def overtime_history(months: int = Query(6, ge=1, le=24), user: dict = Dep
     prefix_regex = "|".join(m for m in month_list)
     q = cq(user, {"date": {"$regex": f"^({prefix_regex})"}})
     scope = perm_scope(user, "overtime", "view")
-    if scope == "own" and user.get("role") == "technicien":
-        q["technician_name"] = user.get("name") or "__none__"
+    if scope == "own":
+        ors: List[dict] = [{"technician_user_id": user["id"]}]
+        if await _unique_user_id_by_name(user, user.get("name") or "") == user.get("id"):
+            ors.append({"technician_user_id": {"$in": [None, ""]}, "technician_name": user.get("name") or "__none__"})
+        q["$or"] = ors
     entries = await db.overtime.find(q, {"_id": 0}).to_list(10000)
     # Aggregate per (technician, month)
     buckets: dict = {}
@@ -8700,7 +8910,7 @@ async def log_audit(user: dict, action: str, resource: str, resource_id: str, *,
         }
         await db.audit_log.insert_one(doc)
     except Exception as e:
-        logger.warning(f"audit log failed: {e}")
+        logger.warning("audit log failed: %s", type(e).__name__)
 
 
 @api_router.get("/audit")
@@ -8755,7 +8965,7 @@ async def seed_admin():
         "permissions": get_default_permissions("admin"),
         "created_at": now_iso(),
     })
-    logger.info(f"Admin créé: {admin_email}")
+    logger.info("Compte administrateur initial créé")
     # iter191 — Le mot de passe défini via l'UI (page Utilisateurs > icône clé) est la
     # SOURCE DE VÉRITÉ. La seed NE réécrit JAMAIS le password_hash d'un admin existant,
     # même si `ADMIN_PASSWORD` diverge, sinon chaque restart / redéploiement réinitialiserait
@@ -8797,15 +9007,26 @@ async def seed_super_admin():
         "permissions": {},
         "created_at": now_iso(),
     })
-    logger.info(f"Super-admin créé: {email}")
+    logger.info("Compte super-admin initial créé")
 
 async def migrate_multi_tenant():
     """Backfill company_id on all legacy documents and permissions on users."""
-    collections = ["users", "clients", "sales", "projects", "team_members", "overtime", "payment_transactions"]
+    # Toute collection tenantée doit être migrée. Les notes, stocks, prospects,
+    # absences, événements, off-days, réinterventions, primes, notifications,
+    # audits et préférences historiques étaient auparavant oubliés : ils
+    # devenaient invisibles après le passage en multi-tenant.
+    collections = list(TENANT_COLLECTIONS)
     for coll in collections:
-        await db[coll].update_many({"company_id": {"$exists": False}}, {"$set": {"company_id": DEFAULT_COMPANY_ID}})
-    # Users legacy without company_id (except super_admin which has null)
-    await db.users.update_many({"company_id": None, "role": {"$ne": "super_admin"}}, {"$set": {"company_id": DEFAULT_COMPANY_ID}})
+        if coll == "users":
+            # Le super-admin a volontairement company_id=None : ne jamais le
+            # rattacher à l'entreprise par défaut.
+            await db.users.update_many(
+                {"$or": [{"company_id": {"$exists": False}}, {"company_id": None}], "role": {"$ne": "super_admin"}},
+                {"$set": {"company_id": DEFAULT_COMPANY_ID}},
+            )
+        else:
+            await db[coll].update_many({"company_id": {"$exists": False}}, {"$set": {"company_id": DEFAULT_COMPANY_ID}})
+            await db[coll].update_many({"company_id": None}, {"$set": {"company_id": DEFAULT_COMPANY_ID}})
     # Backfill permissions per role
     cursor = db.users.find({"$or": [{"permissions": {"$exists": False}}, {"permissions": None}, {"permissions": {}}]}, {"_id": 1, "role": 1})
     async for u in cursor:
@@ -8926,7 +9147,7 @@ async def _reconcile_sales_commercials(company_id: Optional[str] = None):
             k = _norm_name(u.get("name") or "")
             if not k:
                 continue
-            by_full.setdefault(k, u)
+            by_full.setdefault(k, []).append(u)
             first = k.split(" ", 1)[0]
             by_first.setdefault(first, []).append(u)
 
@@ -8962,7 +9183,8 @@ async def _reconcile_sales_commercials(company_id: Optional[str] = None):
                 if current_uid:
                     continue
                 # (Re)tentative de matching STRICT — plus de fuzzy Levenshtein
-                matched = by_full.get(k)
+                full_cands = by_full.get(k, [])
+                matched = full_cands[0] if len(full_cands) == 1 else None
                 if not matched:
                     first = k.split(" ", 1)[0]
                     cands = by_first.get(first, [])
@@ -9111,6 +9333,11 @@ async def on_startup():
     await db.sales.create_index("client_id")
     await db.projects.create_index("sale_id")
     await db.sales.create_index([("company_id", 1), ("id", 1)], unique=True)
+    await db.sales.create_index(
+        [("company_id", 1), ("created_by", 1), ("client_request_id", 1)],
+        unique=True,
+        partialFilterExpression={"client_request_id": {"$type": "string"}},
+    )
     await db.projects.create_index([("company_id", 1), ("id", 1)], unique=True)
     # A product is unique inside a company. Besides preventing duplicate rows,
     # this closes the race where two workers create the same normalized product.
@@ -9136,17 +9363,16 @@ async def on_startup():
     await seed_default_company()
     await seed_admin()
     await seed_super_admin()
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
     allow_demo = (os.environ.get("ALLOW_DEMO_DATA") or "false").strip().lower() in ("1", "true", "yes")
-    if allow_demo and environment not in ("production", "prod"):
+    if allow_demo and _RUNTIME_ENV in _DEV_ENVS:
         await seed_demo_data()
         await seed_team_members()
-    default_run_migrations = environment not in ("production", "prod")
+    default_run_migrations = _RUNTIME_ENV in _DEV_ENVS
     run_startup_migrations = (
         os.environ.get("RUN_STARTUP_MIGRATIONS")
         or ("true" if default_run_migrations else "false")
     ).strip().lower() in ("1", "true", "yes")
-    if environment in ("production", "prod") and run_startup_migrations:
+    if _IS_PRODUCTION and run_startup_migrations:
         raise RuntimeError("RUN_STARTUP_MIGRATIONS est interdit en production; utilisez la commande de migration explicite")
     if run_startup_migrations:
         await migrate_sales_statuses()
@@ -9238,10 +9464,10 @@ async def list_prospects(
     # Prospects visibility uses the same rules as clients
     check_perm(user, "clients", "view", "own")
     _validate_prospect_enums(source, status)
-    scope = perm_scope(user, "clients", "view")
     q = cq(user)
-    if scope == "own":
-        q["assigned_to"] = user.get("name") or "__none__"
+    clause = await _prospect_scope_clause(user)
+    if clause:
+        q["$and"] = [clause]
     if source:
         q["source"] = source
     if status:
@@ -9257,6 +9483,9 @@ async def create_prospect(data: ProspectIn, user: dict = Depends(get_current_use
     payload = data.model_dump()
     if perm_scope(user, "clients", "view") == "own":
         payload["assigned_to"] = user.get("name") or ""
+        payload["assigned_to_id"] = user["id"]
+    elif data.assigned_to:
+        payload["assigned_to_id"] = await _unique_user_id_by_name(user, data.assigned_to)
     doc = with_company({
         "id": str(uuid.uuid4()),
         "created_at": now_iso(),
@@ -9272,13 +9501,16 @@ async def create_prospect(data: ProspectIn, user: dict = Depends(get_current_use
 async def update_prospect(pid: str, data: ProspectUpdate, user: dict = Depends(get_current_user)):
     check_perm(user, "clients", "edit")
     _validate_prospect_enums(data.source, data.status)
-    prospect_q = _scoped_prospect_query(user, pid)
+    prospect_q = await _scoped_prospect_query(user, pid)
     before = await db.prospects.find_one(prospect_q, {"_id": 0})
     if not before:
         raise HTTPException(status_code=404, detail="Prospect introuvable")
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    if perm_scope(user, "clients", "view") == "own" and "assigned_to" in updates:
+    if perm_scope(user, "clients", "view") == "own":
         updates["assigned_to"] = user.get("name") or ""
+        updates["assigned_to_id"] = user["id"]
+    elif "assigned_to" in updates:
+        updates["assigned_to_id"] = await _unique_user_id_by_name(user, updates["assigned_to"])
     if not updates:
         raise HTTPException(status_code=400, detail="Aucun champ à mettre à jour")
     await db.prospects.update_one(prospect_q, {"$set": updates})
@@ -9290,7 +9522,7 @@ async def update_prospect(pid: str, data: ProspectUpdate, user: dict = Depends(g
 @api_router.delete("/prospects/{pid}")
 async def delete_prospect(pid: str, user: dict = Depends(get_current_user)):
     check_perm(user, "clients", "delete")
-    prospect_q = _scoped_prospect_query(user, pid)
+    prospect_q = await _scoped_prospect_query(user, pid)
     before = await db.prospects.find_one(prospect_q, {"_id": 0})
     r = await db.prospects.delete_one(prospect_q)
     if r.deleted_count == 0:
@@ -9303,7 +9535,7 @@ async def delete_prospect(pid: str, user: dict = Depends(get_current_user)):
 async def convert_prospect_to_client(pid: str, user: dict = Depends(get_current_user)):
     """Convert a prospect into a full client (keeps a reference)."""
     check_perm(user, "clients", "create")
-    prospect_q = _scoped_prospect_query(user, pid)
+    prospect_q = await _scoped_prospect_query(user, pid)
     p = await db.prospects.find_one(prospect_q, {"_id": 0})
     if not p:
         raise HTTPException(status_code=404, detail="Prospect introuvable")
@@ -9497,6 +9729,8 @@ class ReinterventionUpdate(BaseModel):
 
 @api_router.get("/reinterventions")
 async def list_reinterventions(user: dict = Depends(get_current_user), client_id: Optional[str] = Query(None, max_length=128), month: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$")):
+    if not _is_prospect_role(user):
+        check_perm(user, "planning", "view", "own")
     q = cq(user)
     if client_id:
         q["client_id"] = client_id
@@ -9608,7 +9842,9 @@ async def list_off_days(user: dict = Depends(get_current_user), month: Optional[
     if month:
         q["date"] = {"$regex": f"^{_validated_month(month)}"}
     docs = await db.off_days.find(q, {"_id": 0}).sort("date", 1).to_list(2000)
-    if user.get("role") in ("technicien", "sous_traitant"):
+    if user.get("role") not in ("admin", "responsable", "super_admin"):
+        # Les jours OFF individuels et leur motif sont personnels. Les
+        # non-managers ne voient que les jours OFF société, sans motif.
         return [{k: v for k, v in d.items() if k != "reason"} for d in docs if d.get("scope") == "company"]
     return docs
 
@@ -10190,10 +10426,22 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
     """iter49 : détail des chantiers actifs qui consomment ce produit (drill-down UI).
     Renvoie une liste avec client, commercial, techniciens, montant, date, statut, quantité."""
     _stock_rbac_check(user)
+    # Le stock ne doit pas devenir une porte dérobée vers les chantiers d'un
+    # collègue : la même permission et la même portée que /api/projects sont
+    # exigées, puis vérifiées projet par projet.
+    check_perm(user, "projects", "view", "own")
     key = _norm_product_key(product_key)
     # Chantiers actifs uniquement : a_planifier + en_cours (terminés / cancelled exclus)
     q = cq(user, {"status": {"$in": ["a_planifier", "en_cours"]}, "cancelled": {"$ne": True}})
     projects = await db.projects.find(q, {"_id": 0}).to_list(5000)
+    scoped_projects = []
+    for project in projects:
+        try:
+            await _ensure_project_scope(user, project, "projects")
+        except HTTPException:
+            continue
+        scoped_projects.append(project)
+    projects = scoped_projects
     if not projects:
         return {"product_key": key, "projects": []}
 
@@ -10208,6 +10456,7 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
         crows = await db.clients.find(cq(user, {"id": {"$in": client_ids}}), {"_id": 0}).to_list(len(client_ids))
         clients_map = {r["id"]: r for r in crows}
 
+    can_view_amounts = has_perm(user, "financial", "view") or has_perm(user, "sales", "view", "own")
     results: list = []
     for p in projects:
         s = sales_map.get(p.get("sale_id")) or {}
@@ -10225,20 +10474,22 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
         techs = p.get("assigned_to") or []
         if isinstance(techs, str):
             techs = [techs] if techs else []
-        results.append({
+        row = {
             "project_id": p["id"],
             "sale_id": p.get("sale_id"),
             "client_name": p.get("client_name") or c.get("name") or "—",
-            "commercial": s.get("commercial") or p.get("commercial") or "",
-            "commercial_2": s.get("commercial_2") if s.get("is_de") else None,
             "techniciens": techs,
             "service": p.get("service") or s.get("service") or "",
-            "amount": float(s.get("amount") or 0),
             "scheduled_date": p.get("scheduled_date"),
             "duration_days": max(1, int(p.get("duration_days") or 1)),
             "status": p.get("status"),
             "quantity": qty,
-        })
+        }
+        if can_view_amounts:
+            row["commercial"] = s.get("commercial") or p.get("commercial") or ""
+            row["commercial_2"] = s.get("commercial_2") if s.get("is_de") else None
+            row["amount"] = float(s.get("amount") or 0)
+        results.append(row)
     # Chantiers non planifiés (scheduled_date=None) en fin de liste, sinon tri par date croissante
     results.sort(key=lambda r: (r["scheduled_date"] or "9999-99-99", r["client_name"]))
     total = sum(r["quantity"] for r in results)
@@ -10258,6 +10509,12 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
     Le stock société (dépôt) reste à 0 — l'admin peut valider ensuite si besoin."""
     if (user or {}).get("role") != "technicien":
         raise HTTPException(status_code=403, detail="Réservé technicien")
+    # Même le self-service stock exige l'accès à la rubrique et la visibilité
+    # sur son propre stock. Sans cela, un compte dont toutes les permissions
+    # stock ont été retirées pouvait quand même créer des lignes et des tenures.
+    _stock_rbac_check(user)
+    if not has_perm(user, "stock", "view_own"):
+        raise HTTPException(status_code=403, detail="Accès à votre stock désactivé")
     name = data.product_name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Nom produit requis")
@@ -10461,7 +10718,16 @@ async def receive_stock(sid: str, data: StockReceive, user: dict = Depends(get_c
             "updated_at": now_iso(), "updated_by": user["id"],
         }, {"qty": qty})
 
-    updated, _, _ = await _stock_compare_and_set(sid, user, mutate)
+    updated, context, previous = await _stock_compare_and_set(sid, user, mutate)
+    qty = int(context.get("qty") or 0)
+    if qty:
+        mv = _log_movement(
+            company_id_of(user), previous.get("product_key"),
+            previous.get("product_name") or "", user, "receive", qty,
+            None, None, None, "Réception de commande",
+        )
+        await db.stock_movements.insert_one(mv.copy())
+        await log_audit(user, "stock_receive", "stock", sid, after={"qty": qty})
     return updated
 
 
@@ -10469,9 +10735,21 @@ async def receive_stock(sid: str, data: StockReceive, user: dict = Depends(get_c
 async def delete_stock(sid: str, user: dict = Depends(get_current_user)):
     if not _is_manager(user):
         raise HTTPException(status_code=403, detail="Accès refusé")
+    before = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
+    if not before:
+        raise HTTPException(status_code=404, detail="Ligne stock introuvable")
+    if _holders_total(before.get("holders") or []) > 0:
+        raise HTTPException(status_code=409, detail="Ce produit est détenu par un ou plusieurs utilisateurs ; transférez ou remettez le stock à zéro avant suppression.")
     r = await db.stock.delete_one(cq(user, {"id": sid}))
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Ligne stock introuvable")
+    mv = _log_movement(
+        company_id_of(user), before.get("product_key"),
+        before.get("product_name") or "", user, "delete", 0,
+        None, None, None, "Suppression de la ligne stock",
+    )
+    await db.stock_movements.insert_one(mv.copy())
+    await log_audit(user, "stock_delete", "stock", sid, before=before)
     return {"ok": True}
 
 
@@ -10607,7 +10885,14 @@ async def transfer_stock(sid: str, data: StockTransferIn, user: dict = Depends(g
 async def adjust_holder_stock(sid: str, data: StockAdjustIn, user: dict = Depends(get_current_user)):
     """Un technicien déclare une entrée (+N) ou sortie (-N) sur SON propre stock.
     Sortie : utilisée sur chantier. Entrée : réception matériel."""
+    if (user or {}).get("role") != "technicien":
+        # Les managers disposent de /holder, /transfer, /receive pour agir sur
+        # n'importe quel détenteur. Ce endpoint en libre-service est strictement
+        # réservé aux techniciens, sinon un comptable pouvait gonfler son stock.
+        raise HTTPException(status_code=403, detail="Réservé aux techniciens")
     _stock_rbac_check(user)
+    if not has_perm(user, "stock", "view_own"):
+        raise HTTPException(status_code=403, detail="Accès à votre stock désactivé")
     def mutate(row):
         holders = [dict(h) for h in (row.get("holders") or [])]
         mine = next((h for h in holders if h.get("user_id") == user["id"]), None)
@@ -10767,6 +11052,10 @@ def _project_days(project: dict) -> List[str]:
 
 @api_router.post("/projects/{pid}/complete")
 async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depends(get_current_user)):
+    # Terminer un chantier est une mutation : elle exige projects.edit, même
+    # pour un technicien assigné. Les photos réellement ajoutées exigeront en
+    # plus photos.add (vérifié après comparaison avec l'existant).
+    check_perm(user, "projects", "edit")
     project = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     if not project:
         raise HTTPException(status_code=404, detail="Chantier introuvable")
@@ -10809,6 +11098,8 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
             new_photos.append({**p, "taken_at": p.get("taken_at") or now, "by_completion": True})
     # Pas d'erreur si aucune nouvelle photo : le technicien peut valider avec les
     # photos déjà présentes (le contrôle "au moins 1 photo" reste basé sur la totalité).
+    if new_photos and not has_perm(user, "photos", "add"):
+        raise HTTPException(status_code=403, detail="Vous n'avez pas la permission d'ajouter des photos à ce chantier.")
     all_photos = existing_photos + new_photos
     if not all_photos:
         raise HTTPException(status_code=400, detail="Au moins une photo est requise")
@@ -10931,7 +11222,7 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
                 )
                 await send_email(to=cu["email"], subject=f"Chantier terminé — {client_name}", html=html)
             except Exception as _e:
-                logger.warning(f"complete_project: email failed for {cu.get('email')}: {_e}")
+                logger.warning("complete_project: email notification failed: %s", type(_e).__name__)
 
     return {"ok": True, "project_id": pid, "completion": completion, "notified": len(commercial_users)}
 
@@ -11310,8 +11601,7 @@ async def security_headers_and_request_limits(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.url.path not in ("/docs", "/redoc", "/openapi.json"):
         response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-    environment = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENV") or "development").lower()
-    if environment in ("production", "prod"):
+    if _IS_PRODUCTION:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 

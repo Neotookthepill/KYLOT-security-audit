@@ -16,7 +16,7 @@ os.environ.update({
     "EXPOSE_API_DOCS": "false",
     "COOKIE_SECURE": "true",
     "COOKIE_SAMESITE": "lax",
-    "ADMIN_EMAIL": "admin@example.invalid",
+    "ADMIN_EMAIL": "admin@example.com",
     "ADMIN_PASSWORD": "smoke-test-admin-password",
 })
 

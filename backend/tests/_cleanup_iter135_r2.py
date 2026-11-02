@@ -7,7 +7,7 @@ from _remote_test_guard import require_http_mutation_permission
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or dotenv_values("/app/frontend/.env")["REACT_APP_BACKEND_URL"]).rstrip("/")
 require_http_mutation_permission(BASE_URL)
 s = requests.Session()
-r = s.post(f"{BASE_URL}/api/auth/login", json={"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=30)
+r = s.post(f"{BASE_URL}/api/auth/login", json={"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}, timeout=30)
 r.raise_for_status()
 s.headers.update({"Authorization": f"Bearer {r.json().get('access_token') or r.json().get('token')}"})
 members = s.get(f"{BASE_URL}/api/team?type=sous_traitant", timeout=30).json()

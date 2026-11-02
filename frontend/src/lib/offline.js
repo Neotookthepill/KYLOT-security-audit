@@ -18,7 +18,12 @@ const emit = (patch) => { state = { ...state, ...patch }; listeners.forEach((l) 
 export const subscribeOffline = (fn) => { listeners.add(fn); fn(state); return () => listeners.delete(fn); };
 
 export const isSkipped = (url) => SKIP.some((r) => r.test(url || ""));
-export const setOfflineIdentity = (userId) => { identity = userId ? String(userId) : null; };
+let identityEpoch = 0;
+export const setOfflineIdentity = (userId) => {
+  const next = userId ? String(userId) : null;
+  if (next !== identity) identityEpoch += 1;
+  identity = next;
+};
 const pathOf = (url) => (url || "").split("?")[0].replace(/\/+$/, "");
 const collectionOf = (path, method) => {
   const segs = path.split("/");
@@ -160,12 +165,18 @@ let running = false;
 export const syncNow = async (send) => {
   if (running || !identity || !navigator.onLine) return;
   running = true;
+  const syncIdentity = identity;
+  const syncEpoch = identityEpoch;
   emit({ syncing: true, lastError: null });
   let done = 0;
   try {
     let q = await getQueue();
     const map = (await get(MAP_KEY, queueStore)) || {};
     while (q.length) {
+      // Un logout, un changement d'utilisateur ou une purge 401 pendant le
+      // replay doit arrêter immédiatement la file : sinon les opérations de A
+      // pourraient être envoyées avec le cookie de B.
+      if (identity !== syncIdentity || identityEpoch !== syncEpoch) break;
       const op = q[0];
       const url = swapIds(op.url, map);
       const data = swapIds(op.data, map);
@@ -195,8 +206,16 @@ export const syncNow = async (send) => {
           const r = await send({ method: op.method, url, data: sendData, params: op.params });
           if (op.tempId && r?.data?.id) { map[op.tempId] = r.data.id; await set(MAP_KEY, map, queueStore); }
         } catch (e) {
-          if (!e.response || e.response.status === 401) break;
-          emit({ lastError: `${op.method.toUpperCase()} ${op.url} : ${e.response?.data?.detail || e.response.status}` });
+          const status = e?.response?.status;
+          const permanent = status != null && status !== 401 && status !== 409 && status !== 429 && status < 500;
+          emit({ lastError: `${op.method.toUpperCase()} ${op.url} : ${e.response?.data?.detail || status || "réseau indisponible"}` });
+          if (permanent) {
+            // 403/422 : l'opération ne réussira jamais telle quelle. On la
+            // retire avec une erreur visible ; les 5xx, 401, 409 et 429 sont
+            // conservés pour un nouvel essai.
+          } else {
+            break;
+          }
         }
       }
       q = q.slice(1);

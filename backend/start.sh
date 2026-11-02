@@ -11,9 +11,17 @@ fi
 APP_VERSION=${APP_VERSION:-${RENDER_GIT_COMMIT:-}}
 export APP_VERSION
 
-if [ "${ENVIRONMENT:-development}" = "production" ]; then
-  python /app/backend/preflight.py
-fi
+case "${ENVIRONMENT:-}" in
+  production|prod|staging|development|dev|test)
+    # Toujours valider la configuration, y compris en développement : un
+    # ENVIRONMENT absent ou mal orthographié ne doit jamais démarrer l'app.
+    python /app/backend/preflight.py
+    ;;
+  *)
+    echo "ENVIRONMENT must be explicitly set to production, staging, development or test" >&2
+    exit 1
+    ;;
+esac
 
 PORT=${PORT:-8000}
 exec python -m uvicorn backend.server:app \

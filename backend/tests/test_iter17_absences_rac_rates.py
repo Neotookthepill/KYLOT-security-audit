@@ -20,7 +20,7 @@ if not _b:
 BASE = _b.rstrip("/") + "/api"
 
 SUPER = ("super@keylot.app", "Super@2026")
-ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
+ADMIN = ("admin@example.com", "CHANGE_ME_TEST_PASSWORD")
 TECH = ("test-tech@keylot.app", "Tech@2026", "TEST_Tech_QA")
 TODAY = date.today().isoformat()
 TOMORROW = (date.today() + timedelta(days=2)).isoformat()

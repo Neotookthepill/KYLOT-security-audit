@@ -136,6 +136,5 @@ export const RESOURCES = [
 export const SCOPE_OPTIONS = [
   { value: "none", label: "Aucun" },
   { value: "own", label: "Ses données" },
-  { value: "team", label: "Son équipe" },
   { value: "all", label: "Tout" },
 ];

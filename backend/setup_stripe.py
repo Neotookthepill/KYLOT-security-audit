@@ -9,22 +9,22 @@ stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 CATALOG = [
     {
-        "emergent_product_id": "keylot_small",
-        "name": "QYLOT — Démarrage",
+        "emergent_product_id": "keylot_essentiel",
+        "name": "KYLOT — Essentiel",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_small_monthly", "amount": 1900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_essentiel_monthly", "amount": 3900, "currency": "eur", "interval": "month"}],
     },
     {
-        "emergent_product_id": "keylot_medium",
-        "name": "QYLOT — Active",
+        "emergent_product_id": "keylot_equipe",
+        "name": "KYLOT — Équipe",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_medium_monthly", "amount": 3900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_equipe_monthly", "amount": 6900, "currency": "eur", "interval": "month"}],
     },
     {
-        "emergent_product_id": "keylot_large",
-        "name": "QYLOT — Entreprise",
+        "emergent_product_id": "keylot_entreprise",
+        "name": "KYLOT — Entreprise",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_large_monthly", "amount": 6900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_entreprise_monthly", "amount": 9900, "currency": "eur", "interval": "month"}],
     },
 ]
 
@@ -35,7 +35,7 @@ def get_or_create_product(entry):
             return p
     return stripe.Product.create(
         name=entry["name"], tax_code=entry.get("tax_code"),
-        metadata={"managed_by": "emergent", "emergent_product_id": entry["emergent_product_id"]},
+        metadata={"managed_by": "kylot", "emergent_product_id": entry["emergent_product_id"]},
     )
 
 

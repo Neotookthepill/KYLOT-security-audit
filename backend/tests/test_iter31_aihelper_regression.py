@@ -22,7 +22,7 @@ if not base_url:
 BASE_URL = base_url.rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@example.invalid"
+ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "CHANGE_ME_TEST_PASSWORD"
 
 

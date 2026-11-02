@@ -1,5 +1,7 @@
 # KYLOT — rapport final des corrections de sécurité
 
+> **Note de contre-audit (2 novembre 2026).** Ce document est un rapport historique. Les compteurs de tests et les résultats d’audit de dépendances cités ci-dessous ne reflètent plus l’état courant du dépôt ; voir `README.md` et les corrections de la branche `fix/counter-audit-p1`.
+
 Date : 18 octobre 2026 — validation étendue le 19 octobre 2026  
 Périmètre : copie locale issue de `KYLOT-main (2).zip`  
 Objectif : corriger les constats des trois campagnes adversariales sans modifier le design ni retirer de fonctionnalité métier.

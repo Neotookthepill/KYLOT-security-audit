@@ -24,7 +24,7 @@ if not _base:
     raise RuntimeError("REACT_APP_BACKEND_URL missing")
 BASE_URL = _base.rstrip("/")
 
-ADMIN = {"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}
+ADMIN = {"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}
 SUPER = {"email": "super@keylot.app", "password": "Super@2026"}
 COM = {"email": "com1@keylot.example.com", "password": "Com@2026", "name": "TEST_Com1", "role": "commercial"}
 

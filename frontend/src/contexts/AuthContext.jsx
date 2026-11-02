@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import api, { syncOffline } from "@/lib/api";
 import { clearOfflineData, clearSensitiveClientState, clearSensitiveSessionStorage, setOfflineIdentity } from "@/lib/offline";
 import { canPerm, permScope } from "@/lib/permissions";
+import { toast } from "sonner";
 
 const AuthContext = createContext(null);
 
@@ -83,9 +84,20 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch (e) { /* ignore */ }
+    let serverConfirmed = true;
+    try {
+      await api.post("/auth/logout");
+    } catch (e) {
+      // Le cookie est HttpOnly : si l'appel échoue, le navigateur ne peut pas
+      // l'effacer lui-même. On purge quand même l'état local, mais on prévient
+      // l'utilisateur que la session serveur peut rester active.
+      serverConfirmed = false;
+    }
     await clearSensitiveClientState(); // clears IndexedDB and kylot_ai_draft_v1 / kylot_prefill_sale
     setUser(null);
+    if (!serverConfirmed) {
+      toast.warning("Déconnexion locale effectuée, mais le serveur n'a pas confirmé. Fermez le navigateur sur un appareil partagé.");
+    }
   };
 
   const can = useCallback((resource, action, minScope = "own") => canPerm(user, resource, action, minScope), [user]);

@@ -7,7 +7,7 @@ from dotenv import dotenv_values
 
 frontend_env = dotenv_values("/app/frontend/.env")
 BASE = (os.environ.get("REACT_APP_BACKEND_URL") or frontend_env["REACT_APP_BACKEND_URL"]).rstrip("/") + "/api"
-ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
+ADMIN = ("admin@example.com", "CHANGE_ME_TEST_PASSWORD")
 SUPER = ("super@keylot.app", "Super@2026")
 
 

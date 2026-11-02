@@ -31,7 +31,7 @@ def _load_be_url():
 BASE_URL = _load_be_url()
 API = f"{BASE_URL}/api"
 
-ADMIN = {"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}
+ADMIN = {"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}
 PROSP = {"email": "test.prospecteur@qylot.fr", "password": "Prospect@2026"}
 
 

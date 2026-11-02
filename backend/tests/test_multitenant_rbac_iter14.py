@@ -23,7 +23,7 @@ if not base_url:
 BASE = base_url.rstrip("/") + "/api"
 
 SUPER = ("super@keylot.app", "Super@2026")
-ADMIN = ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD")
+ADMIN = ("admin@example.com", "CHANGE_ME_TEST_PASSWORD")
 COMM = ("test-comm@keylot.app", "Comm@2026")
 COMM_NAME = "Thomas"
 TECH_EMAIL = "test-tech@keylot.app"
@@ -109,7 +109,7 @@ class TestAuth:
              "from dotenv import dotenv_values;e=dotenv_values('/app/backend/.env');"
              "c=AsyncIOMotorClient(e['MONGO_URL']);"
              "print(asyncio.get_event_loop().run_until_complete("
-             "c[e['DB_NAME']].users.find_one({'email':'admin@example.invalid'}))['password_hash'][:4])"],
+             "c[e['DB_NAME']].users.find_one({'email':'admin@example.com'}))['password_hash'][:4])"],
             capture_output=True, text=True, timeout=60)
         assert "$2b$" in out.stdout, f"bcrypt prefix not found: {out.stdout} {out.stderr[-300:]}"
 

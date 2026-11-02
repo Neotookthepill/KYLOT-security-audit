@@ -20,7 +20,7 @@ if not _base:
     raise RuntimeError("REACT_APP_BACKEND_URL missing")
 BASE = _base.rstrip("/")
 API = f"{BASE}/api"
-ADMIN_EMAIL = "admin@example.invalid"
+ADMIN_EMAIL = "admin@example.com"
 
 
 class TestAuthPlaybook:

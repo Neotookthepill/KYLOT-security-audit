@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from pymongo.errors import DuplicateKeyError
 
@@ -15,13 +15,35 @@ MIGRATION_ID = "ship-readiness-2026-10"
 
 
 async def run_migrations(force: bool = False) -> int:
-    existing = await server.db.migration_runs.find_one({"_id": MIGRATION_ID}, {"status": 1})
+    existing = await server.db.migration_runs.find_one({"_id": MIGRATION_ID}, {"status": 1, "started_at": 1})
     if existing and existing.get("status") == "completed" and not force:
         print(f"Migration {MIGRATION_ID} already completed; nothing to do.")
         return 0
     if existing and existing.get("status") == "running":
-        print(f"Migration {MIGRATION_ID} is already running; refusing concurrent execution.")
-        return 2
+        started_at = existing.get("started_at")
+        if isinstance(started_at, datetime):
+            if started_at.tzinfo is None:
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            stale = started_at < datetime.now(timezone.utc) - timedelta(minutes=30)
+        else:
+            stale = True
+        if not (force and stale):
+            print(
+                f"Migration {MIGRATION_ID} is already running; refusing concurrent execution. "
+                "If the previous process crashed, wait 30 minutes then rerun with --force."
+            )
+            return 2
+        # Un processus tué (SIGKILL, redéploiement) laisse le statut "running"
+        # pour toujours. --force ne casse le verrou qu'après 30 minutes.
+        await server.db.migration_runs.update_one(
+            {"_id": MIGRATION_ID, "status": "running"},
+            {"$set": {
+                "status": "failed",
+                "failed_at": datetime.now(timezone.utc),
+                "error_type": "StaleMigrationLock",
+            }},
+        )
+        existing = await server.db.migration_runs.find_one({"_id": MIGRATION_ID}, {"status": 1})
 
     run_record = {
         "_id": MIGRATION_ID,

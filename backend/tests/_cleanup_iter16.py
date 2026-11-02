@@ -7,7 +7,7 @@ from _remote_test_guard import require_http_mutation_permission
 
 BASE = dotenv_values("/app/frontend/.env")["REACT_APP_BACKEND_URL"].rstrip("/")
 require_http_mutation_permission(BASE)
-ADMIN = {"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}
+ADMIN = {"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}
 CATS = ["new_sales", "objectives", "planning", "overtime", "project_alerts"]
 PREFIXES = ("TEST_UI Notif", "TEST_Notif", "TEST_Isolation Notif", "TEST_Audit Delete", "TEST Thomas sale")
 

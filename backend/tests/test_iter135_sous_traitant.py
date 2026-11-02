@@ -12,7 +12,7 @@ if not base_url:
     raise RuntimeError("REACT_APP_BACKEND_URL missing")
 BASE_URL = base_url.rstrip("/")
 
-ADMIN = {"email": "admin@example.invalid", "password": "CHANGE_ME_TEST_PASSWORD"}
+ADMIN = {"email": "admin@example.com", "password": "CHANGE_ME_TEST_PASSWORD"}
 
 
 @pytest.fixture(scope="module")

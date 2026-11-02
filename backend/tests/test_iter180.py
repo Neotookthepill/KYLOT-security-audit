@@ -15,7 +15,7 @@ BASE_URL = base_url.rstrip("/")
 API = f"{BASE_URL}/api"
 
 CREDS = {
-    "admin": ("admin@example.invalid", "CHANGE_ME_TEST_PASSWORD"),
+    "admin": ("admin@example.com", "CHANGE_ME_TEST_PASSWORD"),
     "commercial": ("test-comm@keylot.app", "Comm@2026"),
 }
 

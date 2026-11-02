@@ -1,5 +1,7 @@
 # KYLOT — validation étendue du 19 octobre 2026
 
+> **Note de contre-audit (2 novembre 2026).** Ce document est un rapport historique. Les compteurs de tests et les résultats d’audit de dépendances cités ci-dessous ne reflètent plus l’état courant du dépôt ; voir `README.md` et les corrections de la branche `fix/counter-audit-p1`.
+
 ## Ce qui a été fait
 
 Cette passe complète les trois audits adversariaux précédents sans toucher au design :

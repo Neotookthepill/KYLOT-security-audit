@@ -560,7 +560,7 @@ class AuthorizationAndPaymentRegressionChecks(unittest.IsolatedAsyncioTestCase):
         stored_user = await self.db.users.find_one({"id": user["id"]})
         self.assertEqual(stored_user["subscription_status"], "suspended")
 
-    async def test_full_refund_and_dispute_suspend_only_matching_payment_owner(self):
+    async def test_full_refund_and_dispute_suspend_the_matching_company(self):
         owner = {"id": "owner", "role": "admin", "company_id": self.company, "subscription_status": "active"}
         other = {"id": "other", "role": "admin", "company_id": self.company, "subscription_status": "active"}
         await self.db.users.insert_many([owner.copy(), other.copy()])
@@ -576,7 +576,9 @@ class AuthorizationAndPaymentRegressionChecks(unittest.IsolatedAsyncioTestCase):
         stored_other = await self.db.users.find_one({"id": other["id"]})
         transaction = await self.db.payment_transactions.find_one({"session_id": "cs-refund"})
         self.assertEqual(stored_owner["subscription_status"], "suspended")
-        self.assertEqual(stored_other["subscription_status"], "active")
+        # Un abonnement couvre la société : les autres admins de la même
+        # entreprise sont suspendus eux aussi.
+        self.assertEqual(stored_other["subscription_status"], "suspended")
         self.assertEqual(transaction["payment_status"], "refunded")
         await self.db.users.update_one({"id": owner["id"]}, {"$set": {"subscription_status": "active"}})
         await server._process_stripe_event({

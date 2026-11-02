@@ -19,7 +19,8 @@ et avant toute refactorisation d'un domaine.
 | IA | limites, opt-in et actions bornées | suites hostiles et modèles | fournisseur simulé | fournisseur réel, injection, coûts et délais |
 | Migrations | verrou, reprise et journalisation | tests d'intégration | Mongo simulée | copie réaliste, interruption et retour arrière |
 | Sauvegarde | procédure documentée | `DEPLOYMENT.md` | non exécuté | restauration complète chronométrée |
-| Frontend | auth, API, permissions et hors ligne | 23 tests Jest documentés | jsdom | navigateur réel, mobile et accessibilité |
+| Frontend | auth, API, permissions et hors ligne | 26 tests Jest documentés | jsdom | navigateur réel, mobile et accessibilité |
+| Contre-audit P1 | import client, stock, primes, homonymes, offline, Stripe société, migration | `backend/test_counter_audit_fixes.py` (18 tests) | Mongo simulée | MongoDB réelle, navigateur, Stripe sandbox |
 
 ## Règle de modification
 

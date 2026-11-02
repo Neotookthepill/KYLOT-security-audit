@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Mapping
 from urllib.parse import urlparse
 
+from email_validator import EmailNotValidError, validate_email
+
 
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off", ""}
@@ -42,7 +44,16 @@ def _is_placeholder(value: str) -> bool:
 
 
 def _strong_secret(value: str, minimum: int) -> bool:
-    return len(value) >= minimum and not _is_placeholder(value)
+    if len(value) < minimum or _is_placeholder(value):
+        return False
+    if len(set(value)) < 8:
+        return False
+    lowered = value.lower()
+    # Refuse les mots de passe/secrets manifestement faibles même s'ils sont
+    # assez longs. Ce n'est pas un test d'entropie complet, mais cela bloque
+    # les valeurs du type "passwordpassword..." ou "adminadmin...".
+    weak_markers = ("password", "motdepasse", "admin", "changeme", "qwerty", "123456", "secret")
+    return not any(marker in lowered for marker in weak_markers)
 
 
 def _parse_bool(value: str) -> bool | None:
@@ -59,8 +70,13 @@ def validate_config(env: Mapping[str, str]) -> ValidationResult:
 
     errors: list[str] = []
     warnings: list[str] = []
-    environment = (_value(env, "ENVIRONMENT") or _value(env, "APP_ENV") or "development").lower()
-    production = environment in {"production", "prod"}
+    raw_environment = _value(env, "ENVIRONMENT") or _value(env, "APP_ENV")
+    if not raw_environment:
+        errors.append("ENVIRONMENT is required (production, staging, development or test)")
+    environment = (raw_environment or "development").lower()
+    if environment not in {"production", "prod", "staging", "development", "dev", "test"}:
+        errors.append("ENVIRONMENT must be one of production, staging, development or test")
+    production = environment in {"production", "prod", "staging"}
 
     for name in ("MONGO_URL", "DB_NAME", "JWT_SECRET", "FRONTEND_URL", "ADMIN_EMAIL", "ADMIN_PASSWORD"):
         if not _value(env, name):
@@ -191,11 +207,17 @@ def validate_config(env: Mapping[str, str]) -> ValidationResult:
     if cron_secret and not _strong_secret(cron_secret, 24):
         errors.append("WEBHOOK_CRON_SECRET must be a non-placeholder secret of at least 24 characters")
 
-    email_pattern = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     for name in ("ADMIN_EMAIL", "SUPER_ADMIN_EMAIL"):
         email = _value(env, name)
-        if email and not email_pattern.match(email):
-            errors.append(f"{name} must be a valid email address")
+        if not email:
+            continue
+        try:
+            # Même validation que LoginIn/UserCreateIn : un domaine spécial
+            # (.invalid, .test, .example) ne doit pas produire un compte que
+            # l'application refusera ensuite de connecter.
+            validate_email(email, check_deliverability=False)
+        except EmailNotValidError:
+            errors.append(f"{name} must be a valid, non-special-use email address")
 
     if production and external_ai and not _value(env, "EMERGENT_LLM_KEY"):
         warnings.append("EMERGENT_LLM_KEY is missing; AI features will fail")
