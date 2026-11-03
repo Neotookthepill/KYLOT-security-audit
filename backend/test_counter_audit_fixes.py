@@ -86,6 +86,43 @@ class CounterAuditRegressionTests(unittest.TestCase):
     def _headers(user):
         return {"Authorization": f"Bearer {server.create_access_token(user['id'], user['email'])}"}
 
+    def test_clients_pagination_is_bounded_and_reports_total(self):
+        run(self.db.clients.insert_many([
+            {"id": f"c-{i}", "company_id": self.company, "name": f"Client {i}",
+             "created_by": self.admin["id"], "created_at": f"2026-10-0{i+1}T00:00:00Z"}
+            for i in range(3)
+        ]))
+        first = self.client.get(
+            "/api/clients?limit=2&offset=0", headers=self.headers["admin"]
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(len(first.json()), 2)
+        self.assertEqual(first.headers.get("x-total-count"), "3")
+        second = self.client.get(
+            "/api/clients?limit=2&offset=2", headers=self.headers["admin"]
+        )
+        self.assertEqual(second.status_code, 200, second.text)
+        self.assertEqual(len(second.json()), 1)
+
+    def test_audit_pagination_applies_offset_and_reports_total(self):
+        run(self.db.audit_log.insert_many([
+            {"id": f"a-{i}", "company_id": self.company, "user_id": self.admin["id"],
+             "user_name": "Admin", "user_role": "admin", "action": "update",
+             "resource": "client", "resource_id": f"c-{i}", "at": f"2026-10-0{i+1}T00:00:00Z"}
+            for i in range(3)
+        ]))
+        first = self.client.get(
+            "/api/audit?limit=2&offset=0", headers=self.headers["admin"]
+        )
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(len(first.json()), 2)
+        self.assertEqual(first.headers.get("x-total-count"), "3")
+        second = self.client.get(
+            "/api/audit?limit=2&offset=2", headers=self.headers["admin"]
+        )
+        self.assertEqual(second.status_code, 200, second.text)
+        self.assertEqual(len(second.json()), 1)
+
     def test_login_rejects_special_use_email_instead_of_creating_unreachable_account(self):
         response = self.client.post("/api/auth/login", json={
             "email": "admin@example.invalid", "password": "fictitious-password",

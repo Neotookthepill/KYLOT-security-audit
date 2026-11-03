@@ -1842,7 +1842,12 @@ async def assign_client_category(cid: str, data: ClientCategoryAssign, user: dic
 
 
 @api_router.get("/clients")
-async def list_clients(user: dict = Depends(get_current_user)):
+async def list_clients(
+    response: Response,
+    limit: int = Query(0, ge=0, le=5000),
+    offset: int = Query(0, ge=0),
+    user: dict = Depends(get_current_user),
+):
     """iter180 — Restauration après régression iter169 (Cmd+K global search) : cet endpoint
     avait été retiré par erreur. Retourne la liste des clients de la société avec scope
     RBAC (`own` pour un commercial = uniquement clients rattachés à ses propres ventes)."""
@@ -1853,7 +1858,12 @@ async def list_clients(user: dict = Depends(get_current_user)):
         q["$or"] = [{"id": {"$in": ids}}, {"created_by": user["id"]}]
     if _is_prospect_role(user):
         q["id"] = {"$in": (await _prospect_ids(user))[1]}
-    docs = await db.clients.find(q, {"_id": 0}).sort("created_at", -1).to_list(20000)
+    if limit > 0:
+        response.headers["X-Total-Count"] = str(await db.clients.count_documents(q))
+    cursor = db.clients.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+    if limit > 0:
+        cursor = cursor.limit(limit)
+    docs = await cursor.to_list(limit if limit > 0 else 20000)
     return docs
 
 
@@ -2753,7 +2763,12 @@ async def _resolve_commercial_user_id(user: dict, commercial_name: str) -> Optio
 
 
 @api_router.get("/sales")
-async def list_sales(user: dict = Depends(get_current_user)):
+async def list_sales(
+    response: Response,
+    limit: int = Query(0, ge=0, le=5000),
+    offset: int = Query(0, ge=0),
+    user: dict = Depends(get_current_user),
+):
     check_perm(user, "sales", "view", "own")
     scope = perm_scope(user, "sales", "view")
     q = cq(user)
@@ -2761,7 +2776,12 @@ async def list_sales(user: dict = Depends(get_current_user)):
         q.update(_own_sales_filter(user))
     if _is_prospect_role(user):
         q.update(_prospect_sales_filter(user))
-    sales = await db.sales.find(q, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    if limit > 0:
+        response.headers["X-Total-Count"] = str(await db.sales.count_documents(q))
+    cursor = db.sales.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+    if limit > 0:
+        cursor = cursor.limit(limit)
+    sales = await cursor.to_list(limit if limit > 0 else 5000)
     # enrich with client name
     ids = list({s["client_id"] for s in sales})
     clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
@@ -3343,11 +3363,21 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
 
 @api_router.get("/projects")
 async def list_projects(
+    response: Response,
     user: dict = Depends(get_current_user),
     include_deleted: str = Query(default="", pattern=r"^(only|1)?$"),
+    limit: int = Query(0, ge=0, le=5000),
+    offset: int = Query(0, ge=0),
 ):
     check_perm(user, "projects", "view", "own")
-    return await _fetch_projects_list(user, include_deleted, perm_resource="projects")
+    rows = await _fetch_projects_list(user, include_deleted, perm_resource="projects")
+    total = len(rows)
+    if limit > 0:
+        response.headers["X-Total-Count"] = str(total)
+        rows = rows[offset:offset + limit]
+    elif offset:
+        rows = rows[offset:]
+    return rows
 
 
 @api_router.get("/planning/projects")
@@ -9244,12 +9274,14 @@ async def log_audit(user: dict, action: str, resource: str, resource_id: str, *,
 
 @api_router.get("/audit")
 async def list_audit(
+    response: Response,
     user: dict = Depends(require_admin),
     user_id: Optional[str] = Query(None, max_length=128),
     resource: Optional[str] = Query(None, max_length=80),
     action: Optional[str] = Query(None, max_length=80),
     from_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     to_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    offset: int = Query(0, ge=0),
     limit: int = Query(500, ge=1, le=2000),
 ):
     if from_date:
@@ -9269,7 +9301,9 @@ async def list_audit(
             q["at"]["$gte"] = from_date
         if to_date:
             q["at"]["$lte"] = to_date + "T23:59:59Z" if len(to_date) == 10 else to_date
-    docs = await db.audit_log.find(q, {"_id": 0}).sort("at", -1).to_list(limit)
+    total = await db.audit_log.count_documents(q)
+    response.headers["X-Total-Count"] = str(total)
+    docs = await db.audit_log.find(q, {"_id": 0}).sort("at", -1).skip(offset).limit(limit).to_list(limit)
     return docs
 
 

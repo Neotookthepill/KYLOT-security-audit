@@ -12,6 +12,7 @@ const RESOURCE_LABELS = {
   overtime: "Heures sup", commission: "Commission", permissions: "Permissions",
 };
 const ACTION_LABELS = { create: "Création", update: "Modification", delete: "Suppression" };
+const PAGE_SIZE = 100;
 const ACTION_CLS = {
   create: "bg-emerald-100 text-emerald-800",
   update: "bg-amber-100 text-amber-800",
@@ -38,25 +39,32 @@ function shorten(v) {
 export default function Journal() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [total, setTotal] = useState(0);
   const [expanded, setExpanded] = useState({});
   const [filters, setFilters] = useState({ user_id: "", action: "", resource: "", from_date: "", to_date: "" });
   const [usersMap, setUsersMap] = useState({});
 
-  const load = async (override) => {
-    const f = override || filters;
-    setLoading(true);
+  const load = async (override, options = {}) => {
+    const append = Boolean(options.append);
+    const f = override && !override.nativeEvent ? override : filters;
+    if (append) setLoadingMore(true); else setLoading(true);
     try {
       const params = new URLSearchParams();
       Object.entries(f).forEach(([k, v]) => { if (v) params.append(k, v); });
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(append ? items.length : 0));
       const [audit, users] = await Promise.all([
         api.get(`/audit?${params.toString()}`),
         api.get("/users").catch(() => ({ data: [] })),
       ]);
-      setItems(audit.data || []);
+      const rows = audit.data || [];
+      setItems(append ? [...items, ...rows] : rows);
+      setTotal(Number(audit.headers?.["x-total-count"] || rows.length));
       const m = {}; (users.data || []).forEach((u) => { m[u.id] = u.name || u.email; });
       setUsersMap(m);
     } catch (err) { toast.error(formatApiError(err)); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setLoadingMore(false); }
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,7 +83,7 @@ export default function Journal() {
           </h1>
           <p className="text-sm text-slate-500 mt-2">Chaque action sensible (ventes, chantiers, clients, utilisateurs, heures sup, permissions) est enregistrée avec son auteur, la date et les valeurs modifiées.</p>
         </div>
-        <Button variant="outline" onClick={load} disabled={loading} data-testid="journal-refresh">
+        <Button variant="outline" onClick={() => load(filters)} disabled={loading} data-testid="journal-refresh">
           <RefreshCw size={14} className={`mr-1.5 ${loading ? "animate-spin" : ""}`} /> Actualiser
         </Button>
       </div>
@@ -123,7 +131,7 @@ export default function Journal() {
         </div>
         <div className="sm:col-span-2 lg:col-span-5 flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={() => { const empty = { user_id: "", action: "", resource: "", from_date: "", to_date: "" }; setFilters(empty); load(empty); }} data-testid="journal-clear-filters">Réinitialiser</Button>
-          <Button size="sm" onClick={load} data-testid="journal-apply-filters">Appliquer</Button>
+          <Button size="sm" onClick={() => load(filters)} data-testid="journal-apply-filters">Appliquer</Button>
         </div>
       </Card>
 
@@ -185,6 +193,18 @@ export default function Journal() {
             </tbody>
           </table>
         </div>
+        {items.length < total && (
+          <div className="p-4 text-center border-t border-slate-100">
+            <Button
+              variant="outline"
+              onClick={() => load(filters, { append: true })}
+              disabled={loadingMore || loading}
+              data-testid="journal-load-more"
+            >
+              {loadingMore ? "Chargement…" : `Charger plus (${items.length}/${total})`}
+            </Button>
+          </div>
+        )}
       </Card>
     </div>
   );
