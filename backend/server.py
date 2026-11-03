@@ -6485,14 +6485,23 @@ async def _check_and_award_bonuses(user: dict, commercial_names):
             ca = await _ca_for_commercial(user, name, period)
             if ca >= threshold and threshold > 0:
                 award_uid = await _resolve_commercial_user_id(user, name)
-                await db.bonus_awards.insert_one({
-                    **key_q, "id": str(uuid.uuid4()),
-                    "commercial_user_id": award_uid,
-                    "bonus_name": b.get("name", ""),
-                    "ca_reached": round(ca, 2),
-                    "amount": amount,
-                    "reached_at": now_iso(),
-                })
+                deterministic_id = "ba:" + hashlib.sha256(
+                    f"{company}:{b['id']}:{name}:{pkey}".encode("utf-8")
+                ).hexdigest()[:32]
+                try:
+                    await db.bonus_awards.insert_one({
+                        "_id": deterministic_id,
+                        **key_q, "id": str(uuid.uuid4()),
+                        "commercial_user_id": award_uid,
+                        "bonus_name": b.get("name", ""),
+                        "ca_reached": round(ca, 2),
+                        "amount": amount,
+                        "reached_at": now_iso(),
+                    })
+                except DuplicateKeyError:
+                    # Une autre requête a déjà créé la prime ; ne pas notifier
+                    # deux fois.
+                    continue
                 if b.get("notify_reached", True):
                     u = await db.users.find_one(
                         cq(user, {"id": award_uid} if award_uid else {"role": "commercial", "name": name}),
@@ -6727,7 +6736,13 @@ async def create_project_bonus(pid: str, data: ProjectBonusIn, user: dict = Depe
                       "project_date": _project_date_snapshot(proj), "updated_at": now, "updated_by": user["id"]}},
         )
         return await db.project_bonuses.find_one(cq(user, {"id": existing["id"]}), {"_id": 0})
+    company = company_id_of(user)
+    # Identifiant déterministe : deux créations concurrentes du même couple
+    # (chantier, technicien) entrent en collision sur _id au lieu de créer
+    # deux primes. L'ancien index non unique ne protégeait pas cette course.
+    deterministic_id = "pb:" + hashlib.sha256(f"{company}:{pid}:{tname_lc}".encode("utf-8")).hexdigest()[:32]
     doc = with_company({
+        "_id": deterministic_id,
         "id": str(uuid.uuid4()),
         "project_id": pid,
         "project_name": proj.get("client_name") or "",
@@ -6740,7 +6755,20 @@ async def create_project_bonus(pid: str, data: ProjectBonusIn, user: dict = Depe
         "created_at": now,
         "updated_at": now,
     }, user)
-    await db.project_bonuses.insert_one(doc.copy())
+    try:
+        await db.project_bonuses.insert_one(doc.copy())
+    except DuplicateKeyError:
+        existing = await db.project_bonuses.find_one(
+            cq(user, {"project_id": pid, "technician_name_lc": tname_lc}), {"_id": 0}
+        )
+        if not existing:
+            raise
+        await db.project_bonuses.update_one(
+            cq(user, {"id": existing["id"]}),
+            {"$set": {"amount": float(data.amount), "note": data.note or "",
+                      "project_date": _project_date_snapshot(proj), "updated_at": now, "updated_by": user["id"]}},
+        )
+        return await db.project_bonuses.find_one(cq(user, {"id": existing["id"]}), {"_id": 0})
     return doc
 
 
@@ -10589,8 +10617,12 @@ async def upsert_stock(data: StockUpsert, user: dict = Depends(get_current_user)
     if getattr(data, "low_stock_threshold", None) is not None:
         updates["low_stock_threshold"] = max(0, int(data.low_stock_threshold))
     if existing:
-        await db.stock.update_one(cq(user, {"id": existing["id"]}), {"$set": updates, "$inc": {"_rev": 1}})
-        return await db.stock.find_one(cq(user, {"id": existing["id"]}), {"_id": 0})
+        # Mise à jour optimiste : deux managers qui modifient le même produit
+        # ne doivent pas écraser silencieusement la quantité de l'autre.
+        def _mutate(_row):
+            return updates, None
+        updated, _, _ = await _stock_compare_and_set(existing["id"], user, _mutate)
+        return updated
     doc = with_company({
         "id": str(uuid.uuid4()),
         "product_name": name,
