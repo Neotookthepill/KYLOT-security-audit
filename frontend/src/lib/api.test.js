@@ -7,7 +7,7 @@ jest.mock("@/lib/offline", () => ({
   syncNow: jest.fn(),
   setOnline: jest.fn(),
   refreshPending: jest.fn(),
-  clearSensitiveClientState: jest.fn(),
+  clearExpiredSessionState: jest.fn(),
 }));
 
 import { formatApiError } from "./api";

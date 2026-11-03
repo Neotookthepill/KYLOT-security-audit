@@ -13,9 +13,11 @@ jest.mock("idb-keyval", () => ({
 
 import {
   cacheKey,
+  clearExpiredSessionState,
   clearSensitiveClientState,
   clearSensitiveSessionStorage,
   enqueue,
+  prepareOfflineSession,
   isSkipped,
   setOfflineIdentity,
   syncNow,
@@ -70,6 +72,29 @@ describe("offline security boundaries", () => {
     const retry = jest.fn().mockResolvedValue({ data: { ok: true } });
     await syncNow(retry);
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test("preserves the queue through a 401 and replays for the same user", async () => {
+    setOfflineIdentity("user-a");
+    await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Lyon" } });
+    await clearExpiredSessionState();
+    const beforeLogin = jest.fn();
+    await syncNow(beforeLogin);
+    expect(beforeLogin).not.toHaveBeenCalled();
+    await prepareOfflineSession("user-a");
+    const retry = jest.fn().mockResolvedValue({ data: { ok: true } });
+    await syncNow(retry);
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test("drops the queue when another account logs in after expiry", async () => {
+    setOfflineIdentity("user-a");
+    await enqueue({ method: "patch", url: "/clients/12345678-1234-1234-1234-123456789012", data: { city: "Lyon" } });
+    await clearExpiredSessionState();
+    await prepareOfflineSession("user-b");
+    const send = jest.fn();
+    await syncNow(send);
+    expect(send).not.toHaveBeenCalled();
   });
 
   test("keeps the operation on transient server errors (500/429/409)", async () => {

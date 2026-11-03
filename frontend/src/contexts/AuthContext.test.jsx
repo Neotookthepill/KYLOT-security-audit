@@ -10,17 +10,15 @@ jest.mock("@/lib/api", () => ({
 }));
 
 jest.mock("@/lib/offline", () => ({
-  clearOfflineData: jest.fn(async () => {}),
+  prepareOfflineSession: jest.fn(async () => {}),
   clearSensitiveClientState: jest.fn(async () => {}),
-  clearSensitiveSessionStorage: jest.fn(),
   setOfflineIdentity: jest.fn(),
 }));
 
 import mockApi, { syncOffline as mockSyncOffline } from "@/lib/api";
 import {
-  clearOfflineData as mockClearOfflineData,
+  prepareOfflineSession as mockPrepareOfflineSession,
   clearSensitiveClientState as mockClearSensitiveClientState,
-  clearSensitiveSessionStorage as mockClearSensitiveSessionStorage,
   setOfflineIdentity as mockSetOfflineIdentity,
 } from "@/lib/offline";
 import { AuthProvider, useAuth } from "./AuthContext";
@@ -76,9 +74,7 @@ describe("AuthContext session lifecycle", () => {
     await mountWithInitial({ id: "user-a", role: "admin", permissions: {} });
     mockApi.post.mockResolvedValueOnce({ data: { user: { id: "user-b", role: "commercial" } } });
     await act(async () => currentAuth.login("b@example.com", "long-password"));
-    expect(mockClearOfflineData).toHaveBeenCalledTimes(1);
-    expect(mockClearSensitiveSessionStorage).toHaveBeenCalledTimes(1);
-    expect(mockSetOfflineIdentity).toHaveBeenLastCalledWith("user-b");
+    expect(mockPrepareOfflineSession).toHaveBeenCalledWith("user-b");
     expect(currentAuth.user.id).toBe("user-b");
   });
 
@@ -88,7 +84,7 @@ describe("AuthContext session lifecycle", () => {
     let result;
     await act(async () => { result = await currentAuth.login("admin@example.com", "long-password"); });
     expect(result).toEqual({ mfa_required: true, challenge: "signed-challenge" });
-    expect(mockClearOfflineData).not.toHaveBeenCalled();
+    expect(mockPrepareOfflineSession).not.toHaveBeenCalled();
     expect(currentAuth.user.id).toBe("user-a");
   });
 
@@ -97,8 +93,7 @@ describe("AuthContext session lifecycle", () => {
     mockApi.post.mockResolvedValueOnce({ data: { user: { id: "user-a", role: "admin", mfa_enabled: true } } });
     await act(async () => currentAuth.verifyMfa("signed-challenge", "123456"));
     expect(mockApi.post).toHaveBeenCalledWith("/auth/mfa/verify", { challenge: "signed-challenge", code: "123456" });
-    expect(mockClearOfflineData).toHaveBeenCalledTimes(1);
-    expect(mockSetOfflineIdentity).toHaveBeenLastCalledWith("user-a");
+    expect(mockPrepareOfflineSession).toHaveBeenCalledWith("user-a");
     expect(currentAuth.user.mfa_enabled).toBe(true);
   });
 

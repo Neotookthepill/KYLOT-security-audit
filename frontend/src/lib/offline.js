@@ -5,6 +5,7 @@ const cacheStore = createStore("qylot-offline", "cache");
 const queueStore = createStore("qylot-outbox", "queue");
 const QUEUE_KEY = "ops";
 const MAP_KEY = "idmap";
+const OWNER_KEY = "owner";
 
 const SKIP = [/\/auth\//, /\/kiks\//, /\/ai\//, /\/export\//, /\/check-attente-14j/];
 const ID_RE = /^([0-9a-f]{8}-[0-9a-f-]{27,}|offline-[\w-]+)$/i;
@@ -36,10 +37,18 @@ export const cacheKey = (config) => {
   return `${identity || "unauthenticated"} GET ${pathOf(config.url)}${params ? `?${params}` : ""}`;
 };
 
-export const clearOfflineData = async () => {
+const clearCacheOnly = async () => {
   for (const key of await keys(cacheStore)) await del(key, cacheStore);
+};
+
+const clearQueueOnly = async () => {
   for (const key of await keys(queueStore)) await del(key, queueStore);
   emit({ pending: 0, conflict: null, lastError: null });
+};
+
+export const clearOfflineData = async () => {
+  await clearCacheOnly();
+  await clearQueueOnly();
 };
 
 export const clearSensitiveSessionStorage = () => {
@@ -54,10 +63,39 @@ export const clearSensitiveSessionStorage = () => {
   } catch (_) {}
 };
 
+// Purge volontaire (logout) : la file est perdue, comme avant.
 export const clearSensitiveClientState = async () => {
   await clearOfflineData();
   clearSensitiveSessionStorage();
   setOfflineIdentity(null);
+};
+
+// Expiration de session (401) : on efface le cache et les brouillons, mais
+// jamais la file. Elle sera rejouée après reconnexion du même utilisateur.
+export const clearExpiredSessionState = async () => {
+  await clearCacheOnly();
+  clearSensitiveSessionStorage();
+  setOfflineIdentity(null);
+  await refreshPending();
+};
+
+export const prepareOfflineSession = async (userId) => {
+  const next = userId ? String(userId) : null;
+  await clearCacheOnly();
+  clearSensitiveSessionStorage();
+  const q = await getQueue();
+  const owner = await get(OWNER_KEY, queueStore);
+  if (q.length && owner && next && String(owner) !== next) {
+    // Compte différent : ne jamais rejouer les opérations de l'ancien compte.
+    await clearQueueOnly();
+  } else if (next) {
+    // File vide, même compte, ou file legacy sans propriétaire : on rattache
+    // la file au compte qui vient de s'authentifier.
+    await set(OWNER_KEY, next, queueStore);
+  }
+  if (!q.length) emit({ pending: 0, conflict: null, lastError: null });
+  setOfflineIdentity(next);
+  await refreshPending();
 };
 
 // L'adaptateur reçoit le corps brut (chaîne JSON) avant transformResponse : on stocke toujours l'objet parsé
@@ -128,7 +166,9 @@ export const enqueue = async (config) => {
   const id = tempId || idOf(path);
   const baseItem = method === "post" || !id ? null : await findBase(coll, id);
   const base = baseItem && body && typeof body === "object" ? Object.fromEntries(Object.keys(body).map((k) => [k, baseItem[k]])) : null;
-  const op = { qid: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, method, url: config.url, params: config.params || null, data: body, tempId, coll, id, base, at: new Date().toISOString() };
+  const owner = identity || (await get(OWNER_KEY, queueStore)) || null;
+  const op = { qid: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ownerId: owner, method, url: config.url, params: config.params || null, data: body, tempId, coll, id, base, at: new Date().toISOString() };
+  if (owner) await set(OWNER_KEY, owner, queueStore);
   const q = await getQueue();
   q.push(op);
   await saveQueue(q);
@@ -171,6 +211,12 @@ export const syncNow = async (send) => {
   let done = 0;
   try {
     let q = await getQueue();
+    const before = q.length;
+    q = q.filter((op) => {
+      if (!op.ownerId) op.ownerId = syncIdentity;
+      return op.ownerId === syncIdentity;
+    });
+    if (q.length !== before) await saveQueue(q);
     const map = (await get(MAP_KEY, queueStore)) || {};
     while (q.length) {
       // Un logout, un changement d'utilisateur ou une purge 401 pendant le

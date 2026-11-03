@@ -1,6 +1,6 @@
 import axios from "axios";
 import { toast } from "sonner";
-import { cacheKey, readCache, writeCache, enqueue, isSkipped, syncNow, setOnline, refreshPending, clearSensitiveClientState } from "@/lib/offline";
+import { cacheKey, readCache, writeCache, enqueue, isSkipped, syncNow, setOnline, refreshPending, clearExpiredSessionState } from "@/lib/offline";
 
 // An empty value deliberately uses the current origin. This is the safest
 // production topology: the public reverse proxy serves the SPA and forwards
@@ -78,7 +78,7 @@ api.interceptors.response.use(
     const status = err?.response?.status;
     const url = err?.config?.url || "";
     if (status === 401 && !/\/auth\/(login|register)/.test(url)) {
-      await clearSensitiveClientState();
+      await clearExpiredSessionState();
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         // Preserve the current route to redirect after re-login (optional)
         try { sessionStorage.setItem("post_login_redirect", window.location.pathname); } catch (_) {}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import api, { syncOffline } from "@/lib/api";
-import { clearOfflineData, clearSensitiveClientState, clearSensitiveSessionStorage, setOfflineIdentity } from "@/lib/offline";
+import { prepareOfflineSession, clearSensitiveClientState, setOfflineIdentity } from "@/lib/offline";
 import { canPerm, permScope } from "@/lib/permissions";
 import { toast } from "sonner";
 
@@ -66,10 +66,9 @@ export function AuthProvider({ children }) {
   }, [user?.id, refreshUser]);
 
   const establishSession = async (data) => {
-    await clearOfflineData();
-    clearSensitiveSessionStorage();
-    setOfflineIdentity(data.user?.id);
+    await prepareOfflineSession(data.user?.id);
     setUser(data.user);
+    syncOffline();
     return data.user;
   };
 

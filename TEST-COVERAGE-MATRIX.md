@@ -12,7 +12,7 @@ et avant toute refactorisation d'un domaine.
 | Chantiers | accès direct, modification, suppression et confirmation bornés | tests d'intégration sécurité | Mongo simulée | parcours mobile et concurrence réelle |
 | Ventes | suppression hors périmètre refusée | tests d'intégration sécurité | Mongo simulée | transitions de statut et cas historiques |
 | Stock | utilisateurs tenantés et opérations bornées | intégration et fuzzing métier | Mongo simulée | transferts simultanés sur MongoDB réelle |
-| Hors ligne | cache cloisonné, purge d'identité, replay limité | tests Jest `offline.test.js` | navigateur simulé | téléphone réel, coupures et conflits |
+| Hors ligne | cache cloisonné, file conservée sur 401, propriétaire de file, replay limité | tests Jest `offline.test.js` | navigateur simulé | téléphone réel, coupures et conflits |
 | Imports | limites de taille et entrées hostiles | modèles, fuzzing et tests historiques | local/simulé | PDF, CSV, Excel réels et volumes représentatifs |
 | Stripe | signature, idempotence et états applicatifs | tests unitaires et invariants | simulé | sandbox, remboursement, litige et résiliation |
 | Email et cron | secret et déduplication applicative | invariants et tests ciblés | simulé | fournisseur réel, délivrabilité et concurrence |
@@ -21,7 +21,7 @@ et avant toute refactorisation d'un domaine.
 | Sauvegarde | procédure documentée | `DEPLOYMENT.md` | non exécuté | restauration complète chronométrée |
 | Frontend | auth, API, permissions et hors ligne | 28 tests Jest documentés | jsdom | navigateur réel, mobile et accessibilité |
 | Contre-audit P1 | import client, stock, primes, homonymes, offline, Stripe société, migration | `backend/test_counter_audit_fixes.py` (18 tests) | Mongo simulée | MongoDB réelle, navigateur, Stripe sandbox |
-| MFA admin | TOTP, QR code, codes de secours, challenge, reset super-admin, révocation | `backend/test_mfa.py` (9 tests) + 2 tests AuthContext | Mongo simulée | application d’authentification réelle, navigateur |
+| MFA admin | TOTP, QR code, codes de secours, challenge, reset super-admin, révocation | `backend/test_mfa.py` (9 tests) + tests AuthContext | Mongo simulée | application d’authentification réelle, navigateur |
 | Pagination | limite, offset, total, journal "Charger plus", agrégats Ventes | `backend/test_counter_audit_fixes.py` (5 tests) | Mongo simulée | volumes et index sur MongoDB réelle |
 | Performance | page clients/ventes/chantiers, recherche, compteurs, audit | `audit/performance_checks.py` | mongomock + TestClient | MongoDB réel, réseau, concurrence |
 
