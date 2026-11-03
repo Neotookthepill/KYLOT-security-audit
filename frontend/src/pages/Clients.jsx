@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api, { formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import ImportClientsFileDialog from "@/components/ImportClientsFileDialog";
 import ClientCategoryManagerDialog from "@/components/ClientCategoryManagerDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
+const PAGE_SIZE = 100;
 const empty = { name: "", phone: "", email: "", address: "", postal_code: "", city: "", notes: "" };
 
 const CAT_COLORS = {
@@ -34,6 +35,11 @@ export default function Clients() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [counts, setCounts] = useState({ all: 0, categories: {} });
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const requestRef = useRef(0);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -45,27 +51,59 @@ export default function Clients() {
   const [activeCat, setActiveCat] = useState("all"); // "all" | category_key
   const [activeSub, setActiveSub] = useState("all"); // "all" | sub_status_key
 
-  const load = async () => {
-    const [c, cats] = await Promise.all([api.get("/clients"), api.get("/client-categories").catch(() => ({ data: [] }))]);
-    setClients(c.data);
-    setCategories(cats.data || []);
+  const loadPage = async (nextOffset = 0) => {
+    const seq = ++requestRef.current;
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        offset: String(Math.max(0, nextOffset)),
+      });
+      if (q.trim()) params.set("q", q.trim());
+      if (activeCat !== "all") params.set("category_key", activeCat);
+      if (activeCat !== "all" && activeSub !== "all") params.set("sub_status_key", activeSub);
+      const [c, cats, countData] = await Promise.all([
+        api.get(`/clients?${params.toString()}`),
+        api.get("/client-categories").catch(() => ({ data: [] })),
+        api.get("/clients/category-counts").catch(() => ({ data: { all: 0, categories: {} } })),
+      ]);
+      if (seq !== requestRef.current) return;
+      setClients(c.data || []);
+      setTotal(Number(c.headers?.["x-total-count"] || (c.data || []).length));
+      setOffset(Math.max(0, nextOffset));
+      setCategories(cats.data || []);
+      setCounts(countData.data || { all: 0, categories: {} });
+    } catch (err) {
+      toast.error(formatApiError(err));
+    } finally {
+      if (seq === requestRef.current) setLoading(false);
+    }
   };
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const id = setTimeout(() => { loadPage(0); }, q.trim() ? 300 : 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, activeCat, activeSub]);
 
   // iter190 — Ouverture directe de la fiche client via ?open=<client_id>.
   // Utilisé par la recherche globale mobile pour que taper un client → ouvrir la fiche
   // se fasse en un seul geste (pas seulement naviguer vers /clients).
   useEffect(() => {
     const openId = searchParams.get("open");
-    if (!openId || !clients.length) return;
-    const c = clients.find((x) => x.id === openId);
-    if (c) {
-      setSelected(c);
-      // On retire le param de l'URL pour que le back-button ne reboucle pas dessus.
-      const next = new URLSearchParams(searchParams);
-      next.delete("open");
-      setSearchParams(next, { replace: true });
+    if (!openId) return;
+    const found = clients.find((x) => x.id === openId);
+    if (found) {
+      setSelected(found);
+    } else {
+      // Le client peut être sur une autre page : on le demande explicitement.
+      api.get(`/clients?client_id=${encodeURIComponent(openId)}&limit=1`)
+        .then((r) => { if (r.data?.[0]) setSelected(r.data[0]); })
+        .catch(() => {});
     }
+    const next = new URLSearchParams(searchParams);
+    next.delete("open");
+    setSearchParams(next, { replace: true });
   }, [searchParams, clients, setSearchParams]);
 
   const create = async () => {
@@ -75,7 +113,7 @@ export default function Clients() {
     try {
       await api.post("/clients", form);
       toast.success("Client ajouté");
-      setForm(empty); setOpen(false); load();
+      setForm(empty); setOpen(false); loadPage(0);
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setSaving(false); }
   };
@@ -84,7 +122,7 @@ export default function Clients() {
     if (!window.confirm("Supprimer ce client ?")) return;
     try {
       await api.delete(`/clients/${id}`);
-      toast.success("Client supprimé"); load();
+      toast.success("Client supprimé"); loadPage(0);
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -93,32 +131,12 @@ export default function Clients() {
       const { data } = await api.put(`/clients/${client.id}/category`, { category_key, sub_status_key, action });
       setClients((prev) => prev.map((c) => (c.id === client.id ? data : c)));
       toast.success(action === "remove" ? "Catégorie retirée" : "Catégorie mise à jour");
+      loadPage(offset);
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
-  // Compute counts per category from all clients (regardless of current filter)
-  const counts = useMemo(() => {
-    const m = { all: clients.length };
-    for (const cat of categories) m[cat.key] = 0;
-    for (const c of clients) for (const cc of (c.categories || [])) if (m[cc.category_key] !== undefined) m[cc.category_key]++;
-    return m;
-  }, [clients, categories]);
-
   const activeCategory = categories.find((c) => c.key === activeCat);
-
-  // Filter clients by search + active cat/sub
-  const filtered = useMemo(() => {
-    const s = q.toLowerCase();
-    return clients.filter((c) => {
-      const matchQ = `${c.name} ${c.phone} ${c.address} ${c.email} ${c.city} ${c.postal_code}`.toLowerCase().includes(s);
-      if (!matchQ) return false;
-      if (activeCat === "all") return true;
-      const hit = (c.categories || []).find((cc) => cc.category_key === activeCat);
-      if (!hit) return false;
-      if (activeSub === "all") return true;
-      return hit.sub_status_key === activeSub;
-    });
-  }, [clients, q, activeCat, activeSub]);
+  const filteredClients = clients;
 
   return (
     <div className="p-4 md:p-8 max-w-[1400px]">
@@ -162,9 +180,9 @@ export default function Clients() {
         </div>
       </div>
 
-      <BulkImportClientsDialog open={bulkOpen} onOpenChange={setBulkOpen} onImported={load} />
-      <ImportClientsFileDialog open={fileImportOpen} onOpenChange={setFileImportOpen} onImported={load} />
-      <ClientCategoryManagerDialog open={catManagerOpen} onOpenChange={setCatManagerOpen} onSaved={load} />
+      <BulkImportClientsDialog open={bulkOpen} onOpenChange={setBulkOpen} onImported={() => loadPage(0)} />
+      <ImportClientsFileDialog open={fileImportOpen} onOpenChange={setFileImportOpen} onImported={() => loadPage(0)} />
+      <ClientCategoryManagerDialog open={catManagerOpen} onOpenChange={setCatManagerOpen} onSaved={() => loadPage(0)} />
 
       {/* iter133 : catégories principales */}
       <div className="mb-3 flex flex-wrap items-center gap-2" data-testid="client-categories-bar">
@@ -174,7 +192,7 @@ export default function Clients() {
           className={`h-9 px-4 rounded-full text-sm font-medium border transition ${activeCat === "all" ? clsFor("slate", true) : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
           data-testid="client-cat-all"
         >
-          Tous <span className="ml-1.5 text-xs opacity-70">({counts.all})</span>
+          Tous <span className="ml-1.5 text-xs opacity-70">({counts.all || 0})</span>
         </button>
         {categories.map((c) => (
           <button
@@ -184,7 +202,7 @@ export default function Clients() {
             className={`h-9 px-4 rounded-full text-sm font-medium border transition ${activeCat === c.key ? clsFor(c.color, true) : `${clsFor(c.color, false)} hover:brightness-95`}`}
             data-testid={`client-cat-${c.key}`}
           >
-            {c.label} <span className="ml-1.5 text-xs opacity-70">({counts[c.key] || 0})</span>
+            {c.label} <span className="ml-1.5 text-xs opacity-70">({counts.categories?.[c.key] || 0})</span>
           </button>
         ))}
         {can("settings", "modify") && (
@@ -245,8 +263,8 @@ export default function Clients() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">Aucun client.</td></tr>}
-              {filtered.map((c) => (
+              {filteredClients.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">{loading ? "Chargement…" : "Aucun client."}</td></tr>}
+              {filteredClients.map((c) => (
                 <tr key={c.id} className="data-row border-b border-slate-100 cursor-pointer" onClick={() => setSelected(c)} data-testid={`client-row-${c.id}`}>
                   <td className="px-5 py-3 font-semibold text-slate-900">{c.name}</td>
                   <td className="px-5 py-3">{c.phone}</td>
@@ -308,6 +326,27 @@ export default function Clients() {
         </div>
       </Card>
 
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+        <span>
+          {total === 0 ? "0 client" : `${offset + 1}–${Math.min(offset + clients.length, total)} sur ${total}`}
+        </span>
+        <div className="flex gap-2">
+          <Button
+            variant="outline" size="sm" disabled={offset === 0 || loading}
+            onClick={() => loadPage(Math.max(0, offset - PAGE_SIZE))}
+            data-testid="clients-prev"
+          >
+            Précédent
+          </Button>
+          <Button
+            variant="outline" size="sm" disabled={offset + clients.length >= total || loading}
+            onClick={() => loadPage(offset + PAGE_SIZE)}
+            data-testid="clients-next"
+          >
+            Suivant
+          </Button>
+        </div>
+      </div>
       <ClientDetailDialog client={selected} open={!!selected} onOpenChange={(v) => !v && setSelected(null)} />
     </div>
   );

@@ -1841,30 +1841,70 @@ async def assign_client_category(cid: str, data: ClientCategoryAssign, user: dic
     return await db.clients.find_one(client_q, {"_id": 0})
 
 
-@api_router.get("/clients")
-async def list_clients(
-    response: Response,
-    limit: int = Query(0, ge=0, le=5000),
-    offset: int = Query(0, ge=0),
-    user: dict = Depends(get_current_user),
-):
-    """iter180 — Restauration après régression iter169 (Cmd+K global search) : cet endpoint
-    avait été retiré par erreur. Retourne la liste des clients de la société avec scope
-    RBAC (`own` pour un commercial = uniquement clients rattachés à ses propres ventes)."""
-    check_perm(user, "clients", "view", "own")
+async def _client_scope_query(user: dict) -> dict:
     q = cq(user)
     if perm_scope(user, "clients", "view") == "own":
         ids = await _commercial_client_ids(user)
         q["$or"] = [{"id": {"$in": ids}}, {"created_by": user["id"]}]
     if _is_prospect_role(user):
         q["id"] = {"$in": (await _prospect_ids(user))[1]}
+    return q
+
+
+@api_router.get("/clients")
+async def list_clients(
+    response: Response,
+    limit: int = Query(0, ge=0, le=5000),
+    offset: int = Query(0, ge=0),
+    q: str = Query("", max_length=100),
+    client_id: Optional[str] = Query(None, max_length=128),
+    category_key: Optional[str] = Query(None, max_length=80),
+    sub_status_key: Optional[str] = Query(None, max_length=80),
+    user: dict = Depends(get_current_user),
+):
+    """Liste paginée et filtrable des clients, avec scope RBAC."""
+    check_perm(user, "clients", "view", "own")
+    query = await _client_scope_query(user)
+    if client_id:
+        query["id"] = client_id
+    search = (q or "").strip()
+    if search:
+        pattern = {"$regex": re.escape(search), "$options": "i"}
+        search_or = [
+            {"name": pattern}, {"phone": pattern}, {"email": pattern},
+            {"address": pattern}, {"city": pattern}, {"postal_code": pattern},
+        ]
+        scope_or = query.pop("$or", None)
+        if scope_or:
+            query["$and"] = [{"$or": scope_or}, {"$or": search_or}]
+        else:
+            query["$or"] = search_or
+    if category_key:
+        elem = {"category_key": category_key}
+        if sub_status_key:
+            elem["sub_status_key"] = sub_status_key
+        query["categories"] = {"$elemMatch": elem}
     if limit > 0:
-        response.headers["X-Total-Count"] = str(await db.clients.count_documents(q))
-    cursor = db.clients.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+        response.headers["X-Total-Count"] = str(await db.clients.count_documents(query))
+    cursor = db.clients.find(query, {"_id": 0}).sort("created_at", -1).skip(offset)
     if limit > 0:
         cursor = cursor.limit(limit)
     docs = await cursor.to_list(limit if limit > 0 else 20000)
     return docs
+
+
+@api_router.get("/clients/category-counts")
+async def client_category_counts(user: dict = Depends(get_current_user)):
+    check_perm(user, "clients", "view", "own")
+    query = await _client_scope_query(user)
+    rows = await db.clients.find(query, {"_id": 0, "categories": 1}).to_list(20000)
+    counts = {"all": len(rows), "categories": {}}
+    for row in rows:
+        for cat in row.get("categories") or []:
+            key = cat.get("category_key")
+            if key:
+                counts["categories"][key] = counts["categories"].get(key, 0) + 1
+    return counts
 
 
 _GEO_SEM = asyncio.Semaphore(8)

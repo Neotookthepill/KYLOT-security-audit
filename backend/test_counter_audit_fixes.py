@@ -104,6 +104,36 @@ class CounterAuditRegressionTests(unittest.TestCase):
         self.assertEqual(second.status_code, 200, second.text)
         self.assertEqual(len(second.json()), 1)
 
+    def test_client_search_category_filter_and_counts(self):
+        run(self.db.clients.insert_many([
+            {"id": "c-a", "company_id": self.company, "name": "Alice Lyon",
+             "city": "Lyon", "created_by": self.admin["id"],
+             "categories": [{"category_key": "vip", "sub_status_key": "gold"}]},
+            {"id": "c-b", "company_id": self.company, "name": "Bob Paris",
+             "city": "Paris", "created_by": self.admin["id"],
+             "categories": [{"category_key": "vip"}]},
+            {"id": "c-c", "company_id": self.company, "name": "Alice Nice",
+             "city": "Nice", "created_by": self.admin["id"], "categories": []},
+        ]))
+        search = self.client.get(
+            "/api/clients?q=Alice&limit=10", headers=self.headers["admin"]
+        )
+        self.assertEqual(search.status_code, 200, search.text)
+        self.assertEqual({c["id"] for c in search.json()}, {"c-a", "c-c"})
+        self.assertEqual(search.headers.get("x-total-count"), "2")
+        filtered = self.client.get(
+            "/api/clients?category_key=vip&sub_status_key=gold&limit=10",
+            headers=self.headers["admin"],
+        )
+        self.assertEqual(filtered.status_code, 200, filtered.text)
+        self.assertEqual([c["id"] for c in filtered.json()], ["c-a"])
+        counts = self.client.get(
+            "/api/clients/category-counts", headers=self.headers["admin"]
+        )
+        self.assertEqual(counts.status_code, 200, counts.text)
+        self.assertEqual(counts.json()["all"], 3)
+        self.assertEqual(counts.json()["categories"]["vip"], 2)
+
     def test_audit_pagination_applies_offset_and_reports_total(self):
         run(self.db.audit_log.insert_many([
             {"id": f"a-{i}", "company_id": self.company, "user_id": self.admin["id"],
