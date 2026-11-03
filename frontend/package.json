@@ -79,7 +79,7 @@
     ]
   },
   "devDependencies": {
-    "ajv": "8.18.0",
+    "ajv": "8.20.0",
     "@babel/plugin-proposal-private-property-in-object": "7.21.11",
     "@craco/craco": "7.1.0",
     "cra-template": "1.2.0",
