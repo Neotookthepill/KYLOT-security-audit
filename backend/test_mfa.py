@@ -176,6 +176,18 @@ class MfaTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401, response.text)
 
+    def test_mfa_secrets_are_not_exposed_in_user_list(self):
+        setup = self._setup()
+        code = server._totp_code(setup["secret"])
+        self.client.post("/api/auth/mfa/confirm", headers=self.admin_headers, json={"code": code})
+        response = self.client.get("/api/users", headers=self.admin_headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        for user in response.json():
+            self.assertNotIn("mfa_secret", user)
+            self.assertNotIn("mfa_pending_secret", user)
+            self.assertNotIn("mfa_recovery_codes", user)
+            self.assertNotIn("password_hash", user)
+
     def test_confirm_without_pending_setup_is_rejected(self):
         response = self.client.post(
             "/api/auth/mfa/confirm", headers=self.admin_headers, json={"code": "123456"}

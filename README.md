@@ -62,7 +62,7 @@ yarn audit --groups dependencies
 
 Résultat de référence du 19 octobre 2026 : 109 contrôles de sécurité et de robustesse, 40 tests serveur et 23 tests interface réussis, soit 172 tests automatisés ; build production réussi.
 
-Après les corrections du contre-audit indépendant du 2 novembre 2026, la suite locale compte **66 tests serveur**, **109 contrôles adversariaux** et **28 tests interface**, soit **203 tests**. Couverture backend remesurée : **27 %** des instructions de `backend/server.py` ; couverture frontend : **3,13 %**. Ces chiffres restent faibles et ne constituent pas une preuve de couverture exhaustive.
+Après les corrections du contre-audit indépendant du 2 novembre 2026, la suite locale compte **67 tests serveur**, **109 contrôles adversariaux** et **28 tests interface**, soit **204 tests**. Couverture backend remesurée : **27 %** des instructions de `backend/server.py` ; couverture frontend : **3,13 %**. Ces chiffres restent faibles et ne constituent pas une preuve de couverture exhaustive.
 
 ## Production
 

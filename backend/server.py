@@ -286,6 +286,11 @@ MFA_STEP_SECONDS = 30
 MFA_DIGITS = 6
 MFA_CHALLENGE_MINUTES = 5
 MFA_RECOVERY_CODE_COUNT = 10
+# Ne jamais laisser fuir le secret TOTP ou les codes de secours dans une
+# réponse utilisateur, un journal d'audit ou une projection de liste.
+_USER_SENSITIVE_FIELDS = ("password_hash", "mfa_secret", "mfa_pending_secret",
+                          "mfa_recovery_codes", "mfa_pending_created_at")
+_USER_SAFE_PROJECTION = {"_id": 0, **{field: 0 for field in _USER_SENSITIVE_FIELDS}}
 
 
 def _totp_secret() -> str:
@@ -507,7 +512,7 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Type de token invalide")
         # B105 exclusion: zero means "omit this field" in a MongoDB projection.
-        u = await db.users.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})  # nosec B105
+        u = await db.users.find_one({"id": payload["sub"]}, _USER_SAFE_PROJECTION)  # nosec B105
         if not u:
             raise HTTPException(status_code=401, detail="Utilisateur introuvable")
         if u.get("is_active", True) is False:
@@ -7138,7 +7143,7 @@ class UserUpdateIn(BaseModel):
 
 @api_router.get("/users")
 async def list_users(user: dict = Depends(require_admin)):
-    users = await db.users.find(cq(user), {"_id": 0, "password_hash": 0}).to_list(1000)  # nosec B105
+    users = await db.users.find(cq(user), _USER_SAFE_PROJECTION).to_list(1000)  # nosec B105
     for u in users:
         if not u.get("permissions"):
             u["permissions"] = get_default_permissions(u.get("role", ""))
@@ -7214,7 +7219,7 @@ async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
 
 @api_router.put("/users/{uid}")
 async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require_admin)):
-    before = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "password_hash": 0})  # nosec B105
+    before = await db.users.find_one(cq(user, {"id": uid}), _USER_SAFE_PROJECTION)  # nosec B105
     if not before:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     updates = {}
@@ -7241,7 +7246,7 @@ async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require
     r = await db.users.update_one(cq(user, {"id": uid}), {"$set": updates})
     if r.matched_count == 0:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
-    u = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "password_hash": 0})  # nosec B105
+    u = await db.users.find_one(cq(user, {"id": uid}), _USER_SAFE_PROJECTION)  # nosec B105
     # iter102 : synchro team_members à chaque changement de rôle/nom (dédoublonne + résidu ancien type supprimé)
     if ("name" in updates) or ("role" in updates):
         try:
@@ -7264,7 +7269,7 @@ async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require
 async def delete_user(uid: str, user: dict = Depends(require_admin)):
     if uid == user["id"]:
         raise HTTPException(status_code=400, detail="Vous ne pouvez pas supprimer votre propre compte")
-    before = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "password_hash": 0})  # nosec B105
+    before = await db.users.find_one(cq(user, {"id": uid}), _USER_SAFE_PROJECTION)  # nosec B105
     r = await db.users.delete_one(cq(user, {"id": uid}))
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
