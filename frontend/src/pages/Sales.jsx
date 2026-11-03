@@ -305,6 +305,7 @@ export default function Sales() {
       });
       const tags = [...queries, q].map((t) => t.trim()).filter(Boolean);
       if (tags.length) params.set("tags", tags.join("|"));
+      if (statuses.length) params.set("status_order", statuses.map((s) => s.value).join("|"));
       const [rows, aggregates] = await Promise.all([
         api.get(`/sales?${params.toString()}`),
         api.get(`/sales/summary?from_date=${encodeURIComponent(bounds.from)}&to_date=${encodeURIComponent(bounds.to)}`),
@@ -381,7 +382,7 @@ export default function Sales() {
     const id = setTimeout(() => { load(0); }, 250);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bounds.from, bounds.to, q, queries]);
+  }, [bounds.from, bounds.to, q, queries, statuses]);
 
   const loadUnmatched = async () => {
     if (!can("sales", "view", "all")) { setUnmatchedCount(0); return; }

@@ -2866,6 +2866,7 @@ async def list_sales(
     from_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     to_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tags: Optional[str] = Query(None, max_length=500),
+    status_order: Optional[str] = Query(None, max_length=500),
     user: dict = Depends(get_current_user),
 ):
     check_perm(user, "sales", "view", "own")
@@ -2906,16 +2907,38 @@ async def list_sales(
             q["$or"] = tag_conditions
     if limit > 0:
         response.headers["X-Total-Count"] = str(await db.sales.count_documents(q))
-    cursor = db.sales.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
-    if limit > 0:
-        cursor = cursor.limit(limit)
-    sales = await cursor.to_list(limit if limit > 0 else 5000)
+    order = [v for v in (status_order or "").split("|") if v][:50]
+    if order:
+        rank_expr = {
+            "$switch": {
+                "branches": [
+                    {"case": {"$eq": ["$status", value]}, "then": index}
+                    for index, value in enumerate(order)
+                ],
+                "default": len(order),
+            }
+        }
+        pipeline = [
+            {"$match": q},
+            {"$addFields": {"_status_rank": rank_expr}},
+            {"$sort": {"_status_rank": 1, "sale_date": -1, "created_at": -1}},
+            {"$skip": offset},
+        ]
+        if limit > 0:
+            pipeline.append({"$limit": limit})
+        pipeline.append({"$project": {"_id": 0, "_status_rank": 0}})
+        sales = await db.sales.aggregate(pipeline).to_list(limit if limit > 0 else 5000)
+    else:
+        cursor = db.sales.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+        if limit > 0:
+            cursor = cursor.limit(limit)
+        sales = await cursor.to_list(limit if limit > 0 else 5000)
     # enrich with client name
-    ids = list({s["client_id"] for s in sales})
+    ids = list({s.get("client_id") for s in sales if s.get("client_id")})
     clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
     cmap = {c["id"]: c for c in clients}
     for s in sales:
-        c = cmap.get(s["client_id"], {})
+        c = cmap.get(s.get("client_id"), {})
         s["client_name"] = c.get("name", "")
         s["client_phone"] = c.get("phone", "")
         s["client_address"] = c.get("address", "")

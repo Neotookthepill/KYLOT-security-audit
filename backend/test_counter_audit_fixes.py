@@ -104,6 +104,22 @@ class CounterAuditRegressionTests(unittest.TestCase):
         self.assertEqual(second.status_code, 200, second.text)
         self.assertEqual(len(second.json()), 1)
 
+    def test_sales_status_order_is_applied_before_pagination(self):
+        run(self.db.sales.insert_many([
+            {"id": "s-1", "company_id": self.company, "sale_date": "2026-10-01",
+             "amount": 100, "status": "annule", "commercial": "Alice"},
+            {"id": "s-2", "company_id": self.company, "sale_date": "2026-10-02",
+             "amount": 200, "status": "en_cours", "commercial": "Alice"},
+            {"id": "s-3", "company_id": self.company, "sale_date": "2026-10-03",
+             "amount": 300, "status": "termine", "commercial": "Alice"},
+        ]))
+        response = self.client.get(
+            "/api/sales?status_order=termine%7Cen_cours%7Cannule&limit=10",
+            headers=self.headers["admin"],
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual([s["id"] for s in response.json()], ["s-3", "s-2", "s-1"])
+
     def test_sales_summary_aggregates_deals_and_excludes_cancelled(self):
         run(self.db.sales.insert_many([
             {"id": "s-de", "company_id": self.company, "sale_date": "2026-10-01",
