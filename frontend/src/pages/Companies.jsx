@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import CompanyUsersDialog from "@/components/CompanyUsersDialog";
 import { toast } from "sonner";
-import { Trash2, Building2, Plus } from "lucide-react";
+import { Trash2, Building2, Plus, Users } from "lucide-react";
 
 export default function Companies() {
   const [companies, setCompanies] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", admin_email: "", admin_password: "", admin_name: "" });
   const [saving, setSaving] = useState(false);
+  const [usersCompany, setUsersCompany] = useState(null);
 
   const load = async () => {
     try { setCompanies((await api.get("/superadmin/companies")).data); }
@@ -96,6 +98,9 @@ export default function Companies() {
                   <td className="px-5 py-3 text-right">{c.user_count ?? 0}</td>
                   <td className="px-5 py-3 text-right">{c.sales_count ?? 0}</td>
                   <td className="px-5 py-3 text-right">
+                    <Button variant="ghost" size="sm" onClick={() => setUsersCompany(c)} data-testid={`company-users-${c.id}`} aria-label="Utilisateurs et MFA">
+                      <Users size={14} />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => remove(c)} data-testid={`company-delete-${c.id}`} aria-label="Supprimer">
                       <Trash2 size={14} />
                     </Button>
@@ -106,6 +111,11 @@ export default function Companies() {
           </table>
         </div>
       </Card>
+      <CompanyUsersDialog
+        company={usersCompany}
+        open={Boolean(usersCompany)}
+        onOpenChange={(v) => { if (!v) setUsersCompany(null); }}
+      />
     </div>
   );
 }

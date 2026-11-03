@@ -33,10 +33,17 @@ un code de secours à usage unique.
 - Les réponses contenant un secret ou des codes sont marquées `Cache-Control:
   no-store`.
 - La désactivation exige le mot de passe **et** un code TOTP ou de secours.
+- Le QR code est généré localement avec `segno` ; le secret TOTP n'est jamais
+  envoyé à un service de QR code externe.
+- L'activation révoque les sessions ouvertes avant elle et renouvelle le cookie
+  courant ; les autres appareils doivent se reconnecter.
+- Le super-admin peut réinitialiser une MFA perdue depuis la fiche entreprise,
+  avec un motif obligatoire, un journal d'audit et la révocation de toutes les
+  sessions de la cible. La MFA d'un super-admin ne peut pas être réinitialisée
+  par cette route.
 
-Limites : pas encore de QR code intégré, pas de clé matérielle, pas de
-réinitialisation centralisée par le super-admin, et aucun test avec une
-application d'authentification réelle n'a été exécuté.
+Limites : pas encore de clé matérielle, et aucun test avec une application
+d'authentification réelle ou un navigateur réel n'a été exécuté.
 
 ## Limites actuelles
 

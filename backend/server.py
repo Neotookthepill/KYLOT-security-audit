@@ -20,6 +20,7 @@ import hmac as _hmac
 import hashlib
 import httpx
 import stripe
+import segno
 import re
 import ipaddress
 from html import escape
@@ -326,6 +327,14 @@ def _mfa_otpauth_uri(email: str, secret: str) -> str:
         f"otpauth://totp/{label}?secret={secret}&issuer=KYLOT"
         f"&algorithm=SHA1&digits={MFA_DIGITS}&period={MFA_STEP_SECONDS}"
     )
+
+
+def _mfa_qr_data_uri(uri: str) -> str:
+    buf = io.BytesIO()
+    segno.make(uri, error="m").save(
+        buf, kind="svg", scale=4, border=2, dark="#0f172a", light="#ffffff",
+    )
+    return "data:image/svg+xml;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def _mfa_recovery_codes() -> list[str]:
@@ -932,6 +941,10 @@ class MfaDisableIn(BaseModel):
     code: str = Field(min_length=6, max_length=32)
 
 
+class MfaResetIn(BaseModel):
+    reason: str = Field(min_length=5, max_length=500)
+
+
 class ClientIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     phone: Optional[str] = Field(default="", max_length=40)
@@ -1320,9 +1333,11 @@ async def mfa_setup(data: MfaSetupIn, response: Response, user: dict = Depends(g
             "mfa_enabled": False,
         }},
     )
+    otpauth_uri = _mfa_otpauth_uri(user.get("email") or "", secret)
     return {
         "secret": secret,
-        "otpauth_uri": _mfa_otpauth_uri(user.get("email") or "", secret),
+        "otpauth_uri": otpauth_uri,
+        "qr_code": _mfa_qr_data_uri(otpauth_uri),
         "issuer": "KYLOT",
         "account": user.get("email") or "",
         "digits": MFA_DIGITS,
@@ -1342,6 +1357,7 @@ async def mfa_confirm(data: MfaCodeIn, response: Response, user: dict = Depends(
         raise HTTPException(status_code=400, detail="Code d'authentification invalide")
     _no_store(response)
     recovery_codes = _mfa_recovery_codes()
+    now_ms = int(time.time() * 1000)
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {
@@ -1349,10 +1365,17 @@ async def mfa_confirm(data: MfaCodeIn, response: Response, user: dict = Depends(
             "mfa_secret": secret,
             "mfa_recovery_codes": [hash_password(code) for code in recovery_codes],
             "mfa_enrolled_at": now_iso(),
+            # Invalide toutes les sessions ouvertes avant l'activation. Le
+            # cookie courant est remplace par un jeton postérieur a l'epoch.
+            "token_epoch_ms": now_ms,
         }, "$unset": {"mfa_pending_secret": "", "mfa_pending_created_at": ""}},
     )
-    await log_audit(user, "update", "user", user["id"], extra={"mfa": "enabled"})
-    return {"enabled": True, "recovery_codes": recovery_codes}
+    full["mfa_enabled"] = True
+    full["token_epoch_ms"] = now_ms
+    fresh_token = create_access_token(user["id"], user["email"])
+    set_auth_cookie(response, fresh_token)
+    await log_audit(user, "update", "user", user["id"], extra={"mfa": "enabled", "sessions_revoked": True})
+    return {"enabled": True, "recovery_codes": recovery_codes, "user": public_user(full)}
 
 
 @api_router.post("/auth/mfa/disable")
@@ -8898,6 +8921,63 @@ async def delete_company(cid: str, user: dict = Depends(require_super_admin)):
         "deleted_at": datetime.now(timezone.utc),
     })
     return {"ok": True, "company_id": cid, "deleted_counts": deleted_counts}
+
+
+@api_router.get("/superadmin/companies/{cid}/users")
+async def superadmin_company_users(cid: str, user: dict = Depends(require_super_admin)):
+    company = await db.companies.find_one({"id": cid}, {"_id": 0, "id": 1, "name": 1})
+    if not company:
+        raise HTTPException(status_code=404, detail="Entreprise introuvable")
+    rows = await db.users.find(
+        {"company_id": cid},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "role": 1,
+         "is_active": 1, "mfa_enabled": 1},
+    ).sort("name", 1).to_list(2000)
+    return {"company": company, "users": rows}
+
+
+@api_router.post("/superadmin/users/{uid}/mfa/reset")
+async def superadmin_reset_user_mfa(uid: str, data: MfaResetIn, user: dict = Depends(require_super_admin)):
+    """Procédure de secours : le super-admin réinitialise une MFA perdue.
+
+    Le motif est obligatoire et journalisé. Toutes les sessions de la cible
+    sont révoquées ; son mot de passe reste inchangé.
+    """
+    target = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "email": 1,
+                                                   "name": 1, "role": 1,
+                                                   "company_id": 1, "mfa_enabled": 1})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if target.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="La MFA d'un super-admin ne peut pas être réinitialisée ici")
+    if not target.get("mfa_enabled"):
+        raise HTTPException(status_code=400, detail="MFA n'est pas activée pour cet utilisateur")
+    now_ms = int(time.time() * 1000)
+    await db.users.update_one(
+        {"id": uid},
+        {"$set": {
+            "mfa_enabled": False,
+            "mfa_reset_at": now_iso(),
+            "mfa_reset_by": user["id"],
+            "token_epoch_ms": now_ms + 1,
+        }, "$unset": {
+            "mfa_secret": "", "mfa_recovery_codes": "",
+            "mfa_pending_secret": "", "mfa_pending_created_at": "",
+        }},
+    )
+    await db.audit_log.insert_one({
+        "id": str(uuid.uuid4()),
+        "company_id": target.get("company_id"),
+        "user_id": user["id"],
+        "user_name": user.get("name") or user.get("email") or "?",
+        "user_role": user.get("role") or "",
+        "action": "mfa_reset",
+        "resource": "user",
+        "resource_id": uid,
+        "extra": {"reason": data.reason, "target_email": target.get("email")},
+        "at": now_iso(),
+    })
+    return {"ok": True, "user_id": uid, "mfa_enabled": False, "sessions_revoked": True}
 
 
 @api_router.get("/company/me")

@@ -128,9 +128,14 @@ export default function MfaSettingsCard() {
       {setup && (
         <div className="space-y-4" data-testid="mfa-setup-panel">
           <p className="text-sm text-slate-600">
-            Dans votre application, ajoutez un compte avec le secret ci-dessous (saisie manuelle),
-            puis validez avec le code à 6 chiffres.
+            Scannez ce QR code avec votre application d'authentification, ou saisissez le secret
+            ci-dessous, puis validez avec le code à 6 chiffres.
           </p>
+          {setup.qr_code && (
+            <div className="flex justify-center rounded-lg border border-slate-200 bg-white p-3">
+              <img src={setup.qr_code} alt="QR code de configuration MFA" className="h-48 w-48" data-testid="mfa-qr-code" />
+            </div>
+          )}
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Secret</p>
             <p className="mt-1 font-mono text-lg break-all" data-testid="mfa-secret">{formatSecret(setup.secret)}</p>

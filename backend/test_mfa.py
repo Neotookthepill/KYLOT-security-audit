@@ -61,9 +61,21 @@ class MfaTests(unittest.TestCase):
             "password_hash": server.hash_password(PASSWORD),
             "is_active": True,
         }
-        self._run(self.db.users.insert_many([self.admin, self.commercial]))
+        self.superadmin = {
+            "id": "super-mfa",
+            "email": "super@example.com",
+            "name": "Super MFA",
+            "role": "super_admin",
+            "company_id": None,
+            "permissions": {},
+            "password_hash": server.hash_password(PASSWORD),
+            "is_active": True,
+        }
+        self._run(self.db.users.insert_many([self.admin, self.commercial, self.superadmin]))
+        self._run(self.db.companies.insert_one({"id": "company-a", "name": "Company A"}))
         self.admin_headers = {"Authorization": f"Bearer {server.create_access_token(self.admin['id'], self.admin['email'])}"}
         self.commercial_headers = {"Authorization": f"Bearer {server.create_access_token(self.commercial['id'], self.commercial['email'])}"}
+        self.super_headers = {"Authorization": f"Bearer {server.create_access_token(self.superadmin['id'], self.superadmin['email'])}"}
 
     def tearDown(self):
         self.client.close()
@@ -98,6 +110,7 @@ class MfaTests(unittest.TestCase):
         setup = self._setup()
         self.assertIn("secret", setup)
         self.assertTrue(setup["otpauth_uri"].startswith("otpauth://totp/"))
+        self.assertTrue(setup["qr_code"].startswith("data:image/svg+xml;base64,"))
 
         bad = self.client.post(
             "/api/auth/mfa/confirm", headers=self.admin_headers, json={"code": "000000"}
@@ -141,6 +154,26 @@ class MfaTests(unittest.TestCase):
         self.assertEqual(login_after.status_code, 200, login_after.text)
         self.assertIn("user", login_after.json())
 
+    def test_activation_revokes_older_sessions(self):
+        old_token = server.create_access_token(self.admin["id"], self.admin["email"])
+        setup = self._setup()
+        code = server._totp_code(setup["secret"])
+        confirm = self.client.post(
+            "/api/auth/mfa/confirm", headers=self.admin_headers, json={"code": code}
+        )
+        self.assertEqual(confirm.status_code, 200, confirm.text)
+        old_client = TestClient(server.app, base_url="https://testserver")
+        try:
+            old_me = old_client.get(
+                "/api/auth/me", headers={"Authorization": f"Bearer {old_token}"}
+            )
+            self.assertEqual(old_me.status_code, 401, old_me.text)
+        finally:
+            old_client.close()
+        # Le cookie renvoye par la confirmation reste valide.
+        current = self.client.get("/api/auth/me")
+        self.assertEqual(current.status_code, 200, current.text)
+
     def test_recovery_code_is_single_use(self):
         setup = self._setup()
         code = server._totp_code(setup["secret"])
@@ -175,6 +208,56 @@ class MfaTests(unittest.TestCase):
             "/api/auth/mfa/verify", json={"challenge": access, "code": "123456"}
         )
         self.assertEqual(response.status_code, 401, response.text)
+
+    def test_superadmin_can_list_users_without_mfa_secrets_and_reset_mfa(self):
+        setup = self._setup()
+        code = server._totp_code(setup["secret"])
+        confirm = self.client.post(
+            "/api/auth/mfa/confirm", headers=self.admin_headers, json={"code": code}
+        )
+        self.assertEqual(confirm.status_code, 200, confirm.text)
+        old_token = server.create_access_token(self.admin["id"], self.admin["email"])
+
+        # Le client principal porte le cookie admin depuis la confirmation ;
+        # un client séparé évite de mélanger cookie et Bearer super-admin.
+        super_client = TestClient(server.app, base_url="https://testserver")
+        try:
+            listing = super_client.get(
+                "/api/superadmin/companies/company-a/users", headers=self.super_headers
+            )
+            self.assertEqual(listing.status_code, 200, listing.text)
+            rows = {row["id"]: row for row in listing.json()["users"]}
+            self.assertTrue(rows["admin-mfa"]["mfa_enabled"])
+            self.assertNotIn("mfa_secret", rows["admin-mfa"])
+
+            fresh_admin_headers = {
+                "Authorization": f"Bearer {server.create_access_token(self.admin['id'], self.admin['email'])}"
+            }
+            forbidden = super_client.post(
+                "/api/superadmin/users/admin-mfa/mfa/reset",
+                headers=fresh_admin_headers, json={"reason": "tentative non autorisee"},
+            )
+            self.assertEqual(forbidden.status_code, 403, forbidden.text)
+
+            reset = super_client.post(
+                "/api/superadmin/users/admin-mfa/mfa/reset",
+                headers=self.super_headers, json={"reason": "telephone perdu et codes de secours perdus"},
+            )
+            self.assertEqual(reset.status_code, 200, reset.text)
+        finally:
+            super_client.close()
+        target = self._run(self.db.users.find_one({"id": "admin-mfa"}))
+        self.assertFalse(target.get("mfa_enabled"))
+        self.assertNotIn("mfa_secret", target)
+
+        old_client = TestClient(server.app, base_url="https://testserver")
+        try:
+            old_me = old_client.get(
+                "/api/auth/me", headers={"Authorization": f"Bearer {old_token}"}
+            )
+            self.assertEqual(old_me.status_code, 401, old_me.text)
+        finally:
+            old_client.close()
 
     def test_mfa_secrets_are_not_exposed_in_user_list(self):
         setup = self._setup()

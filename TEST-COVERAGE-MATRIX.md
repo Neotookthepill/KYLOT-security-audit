@@ -21,7 +21,7 @@ et avant toute refactorisation d'un domaine.
 | Sauvegarde | procédure documentée | `DEPLOYMENT.md` | non exécuté | restauration complète chronométrée |
 | Frontend | auth, API, permissions et hors ligne | 28 tests Jest documentés | jsdom | navigateur réel, mobile et accessibilité |
 | Contre-audit P1 | import client, stock, primes, homonymes, offline, Stripe société, migration | `backend/test_counter_audit_fixes.py` (18 tests) | Mongo simulée | MongoDB réelle, navigateur, Stripe sandbox |
-| MFA admin | TOTP, codes de secours, challenge de connexion, désactivation | `backend/test_mfa.py` (7 tests) + 2 tests AuthContext | Mongo simulée | application d’authentification réelle, QR code, navigateur |
+| MFA admin | TOTP, codes de secours, challenge de connexion, désactivation | `backend/test_mfa.py` (9 tests) + 2 tests AuthContext | Mongo simulée | application d’authentification réelle, QR code, navigateur |
 
 ## Règle de modification
 
