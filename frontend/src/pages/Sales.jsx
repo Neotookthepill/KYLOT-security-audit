@@ -241,6 +241,10 @@ export default function Sales() {
     return () => { cancelled = true; window.removeEventListener("kylot:settings-updated", onUpdate); };
   }, []);
   const [sales, setSales] = useState([]);
+  const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [] });
+  const [pageTotal, setPageTotal] = useState(0);
+  const [pageOffset, setPageOffset] = useState(0);
+  const [salesLoading, setSalesLoading] = useState(false);
   const [q, setQ] = useState("");
   // iter141 : tokens de recherche multi-tags (OR entre les tags).
   const [queries, setQueries] = useState([]); // ex: ["Lyon", "69003", "Dupont"]
@@ -290,14 +294,27 @@ export default function Sales() {
     return { from: iso(first), to: iso(last), label: "Ce mois" };
   }, [period, customFrom, customTo]);
 
-  const salesInPeriod = useMemo(() => sales.filter((s) => {
-    if (!s.sale_date) return false;
-    return s.sale_date >= bounds.from && s.sale_date <= bounds.to;
-  }), [sales, bounds]);
-
-  const load = async () => {
-    try { setSales((await api.get("/sales")).data); }
-    catch (_) { /* keep previous */ }
+  const load = async (nextOffset = 0) => {
+    setSalesLoading(true);
+    try {
+      const params = new URLSearchParams({
+        limit: "100",
+        offset: String(Math.max(0, nextOffset)),
+        from_date: bounds.from,
+        to_date: bounds.to,
+      });
+      const tags = [...queries, q].map((t) => t.trim()).filter(Boolean);
+      if (tags.length) params.set("tags", tags.join("|"));
+      const [rows, aggregates] = await Promise.all([
+        api.get(`/sales?${params.toString()}`),
+        api.get(`/sales/summary?from_date=${encodeURIComponent(bounds.from)}&to_date=${encodeURIComponent(bounds.to)}`),
+      ]);
+      setSales(rows.data || []);
+      setPageTotal(Number(rows.headers?.["x-total-count"] || (rows.data || []).length));
+      setPageOffset(Math.max(0, nextOffset));
+      setSummary(aggregates.data || { count: 0, total: 0, by_commercial: [] });
+    } catch (_) { /* keep previous */ }
+    finally { setSalesLoading(false); }
   };
   // Optimistic PATCH helper for inline edits. Rolls back on error.
   const patchSale = async (id, patch) => {
@@ -308,6 +325,7 @@ export default function Sales() {
       // Merge server response so downstream fields (e.g. client_name renames) stay in sync
       setSales((cur) => cur.map((x) => (x.id === id ? { ...x, ...(data || patch) } : x)));
       toast.success("Modifié");
+      await load(pageOffset);
       // iter101 : broadcast à CHAQUE patch (montant, date, commercial, taux, statut…) — plus
       // seulement au changement de statut. Toutes les pages restent cohérentes en temps réel.
       window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id, patch } }));
@@ -323,6 +341,7 @@ export default function Sales() {
     try {
       await api.put(`/sales/${id}`, { status });
       toast.success(`Statut mis à jour → ${statusMap[status]?.label || STATUS_MAP[status]?.label || status}`);
+      await load(pageOffset);
       // iter52: broadcast pour que Kanban / Planning / Stock rafraîchissent sans reconnexion
       window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id, status } }));
     } catch (err) {
@@ -337,15 +356,15 @@ export default function Sales() {
   };
   useEffect(() => {
     if (authLoading || !user?.id) return;
-    load(); loadObjectif(); loadUnmatched();
+    loadObjectif(); loadUnmatched();
     // iter162 : trigger idempotent server-side pour émettre les notifs "Jour J" (14 jours écoulés)
     try { api.post("/sales/check-attente-14j").catch(() => {}); } catch (_) {}
-    const onFocus = () => { load(); loadUnmatched(); };
-    const onVis = () => { if (document.visibilityState === "visible") load(); };
+    const onFocus = () => { load(0); loadUnmatched(); };
+    const onVis = () => { if (document.visibilityState === "visible") load(0); };
     // iter101 : refresh live quand une vente est modifiée/supprimée/créée depuis n'importe où
     //   (Kanban, Dashboard, autre onglet) → tous les blocs (CA, objectif, %, reste, graphique,
     //   liste, rapport) se recalculent en même temps depuis la même source /sales.
-    const onSalesUpdated = () => { load(); loadUnmatched(); };
+    const onSalesUpdated = () => { load(0); loadUnmatched(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("kylot:sales-updated", onSalesUpdated);
@@ -356,6 +375,13 @@ export default function Sales() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user?.id]);
+
+  useEffect(() => {
+    if (authLoading || !user?.id) return;
+    const id = setTimeout(() => { load(0); }, 250);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bounds.from, bounds.to, q, queries]);
 
   const loadUnmatched = async () => {
     if (!can("sales", "view", "all")) { setUnmatchedCount(0); return; }
@@ -382,42 +408,6 @@ export default function Sales() {
   };
 
   const filtered = useMemo(() => {
-    // iter141 : recherche multi-tags. Chaque tag est OR ; le texte en cours de frappe (`q`)
-    // agit comme tag additionnel. Recherche accent-insensible sur nom, tél, adresse, CP,
-    // ville, BDC, produit, commercial et statut.
-    const norm = (s) => (s || "").toString().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    const tokens = [...queries, q].map((t) => norm(t).trim()).filter(Boolean);
-    const srcKey = (t) => {
-      const tt = t.replace(/[\s-]+/g, "");
-      if (tt === "st" || (tt.length >= 4 && "soustraitance".startsWith(tt)) || tt.startsWith("soustrait")) return "sous-traitance";
-      const hit = SOURCES.find((so) => norm(so.value).replace(/[\s-]+/g, "") === tt);
-      return hit ? norm(hit.value) : null;
-    };
-    const arr = salesInPeriod.filter((s) => {
-      if (tokens.length === 0) return true;
-      const hay = norm(`${s.client_name} ${s.client_phone || ""} ${s.client_address || ""} ${s.client_postal_code || ""} ${s.client_city || ""} ${s.service} ${s.status} ${s.bdc || ""} ${s.commercial || ""} ${s.commercial_2 || ""}`);
-      return tokens.some((t) => {
-        const sk = srcKey(t);
-        return sk ? norm(s.source) === sk : hay.includes(t);
-      });
-    });
-    // Group order requested by user (top → bottom). Values must match SALE_STATUSES keys.
-    // Any status not listed lands just before "annule" (kept at the very bottom).
-    // (STATUS_ORDER historique conservé dans le fallback ci-dessous — iter160)
-    const _UNUSED_ORDER = [
-      "attente_prog",       // 1. En attente prog
-      "attente_fi",         // 2. En attente FI
-      "en_cours",           // 3. En cours
-      "chantier_fini",      // 4. Chantier fini
-      "commercial_cheque",  // 5. Commercial à chèque
-      "argent_recupere",    // 6. Chèque récupéré
-      "litige",             // 7. Litige
-      "annule",             // 8. Annulée (always last)
-    ];
-    void _UNUSED_ORDER;
-    // iter160 : l'ordre des ventes suit désormais l'ordre CONFIGURÉ par l'utilisateur
-    // dans "Gérer les statuts de vente" (drag&drop du dialog). Fallback sur l'ordre
-    // historique en dur si les statuts ne sont pas encore chargés.
     const STATUS_ORDER_FALLBACK = [
       "attente_prog", "attente_fi", "en_cours", "chantier_fini",
       "commercial_cheque", "argent_recupere", "litige", "annule",
@@ -426,27 +416,21 @@ export default function Sales() {
     const STATUS_ORDER = configuredOrder.length ? configuredOrder : STATUS_ORDER_FALLBACK;
     const rank = (st) => {
       const i = STATUS_ORDER.indexOf(st);
-      if (i >= 0) return i;
-      return STATUS_ORDER.length; // inconnus tout en bas
+      return i >= 0 ? i : STATUS_ORDER.length;
     };
-    // iter160 : critère secondaire = date de la vente (sale_date desc), au lieu de created_at.
     const dateKey = (s) => s.sale_date || (s.created_at || "").slice(0, 10) || "";
-    return arr.slice().sort((a, b) => {
+    return sales.slice().sort((a, b) => {
       const ra = rank(a.status);
       const rb = rank(b.status);
       if (ra !== rb) return ra - rb;
       return dateKey(b).localeCompare(dateKey(a));
     });
-  }, [salesInPeriod, q, queries, statuses]);
+  }, [sales, statuses]);
 
   const stats = useMemo(() => {
-    const active = salesInPeriod.filter((s) => s.status !== "annule" && s.status !== "litige");
-    const total = active.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0);
     const ownScope = user?.permissions?.sales?.view === "own";
-    // iter199 — match accent-insensible + fallback prénom (aligné avec le Classement du dashboard)
     const norm = (s) => (s || "").toString().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     const firstOf = (s) => norm(s).split(/\s+/)[0] || "";
-    // Dédup par user_id (quand un team_member est lié à un compte) : évite les doublons Théo/Théo Dudal
     const seenUid = new Set();
     const commercialsUnique = commerciaux.filter((c) => {
       if (!c.user_id) return true;
@@ -457,45 +441,39 @@ export default function Sales() {
     const commercialsToShow = ownScope
       ? commercialsUnique.filter((c) => norm(c.name) === norm(user?.name || ""))
       : commercialsUnique;
+    const grouped = {};
+    const ensure = (c) => {
+      const key = c.id || c.name;
+      if (!grouped[key]) {
+        grouped[key] = {
+          id: c.id, name: c.name, count: 0, ca: 0,
+          sources: SOURCES.reduce((acc, src) => { acc[src.value] = 0; return acc; }, {}),
+          comptant: 0, financement: 0,
+        };
+      }
+      return grouped[key];
+    };
+    for (const row of summary.by_commercial || []) {
+      const rowKey = norm(row.name);
+      const exact = commercialsToShow.find((c) => norm(c.name) === rowKey);
+      const firstMatches = commercialsToShow.filter((c) => firstOf(c.name) === firstOf(row.name));
+      const target = exact || (firstMatches.length === 1 ? firstMatches[0] : null);
+      if (!target) continue;
+      const bucket = ensure(target);
+      bucket.count += Number(row.count || 0);
+      bucket.ca += Number(row.ca || 0);
+      for (const src of SOURCES) {
+        bucket.sources[src.value] += Number(row.sources?.[src.value] || 0);
+      }
+      bucket.comptant += Number(row.comptant || 0);
+      bucket.financement += Number(row.financement || 0);
+    }
     const byCommercial = commercialsToShow.map((c) => {
-      const cKey = norm(c.name);
-      const cFirst = firstOf(c.name);
-      // iter219 : matche sur les 2 slots (commercial + commercial_2). Une vente DE
-      // apparaît donc pour chacun des 2 commerciaux liés, mais son CA est divisé
-      // par 2 (comme les commissions). Fix demandé : « quand une vente est à deux,
-      // il faut que dans le CA du commercial, la vente soit sur quoi il est
-      // commissionné » — plus jamais le montant total attribué à chaque vendeur.
-      const matchesSlot = (rawName) => {
-        const sKey = norm(rawName || "");
-        if (!sKey) return false;
-        if (sKey === cKey) return true;
-        // Fallback prénom unique (« Théo » ↔ « Théo Dudal »)
-        const sFirst = firstOf(rawName || "");
-        const others = commercialsUnique.filter((x) => firstOf(x.name) === sFirst);
-        return others.length === 1 && others[0].id === c.id && cFirst === sFirst;
-      };
-      const rows = active.filter((s) => {
-        const de = !!s.is_de && !!(s.commercial_2 || "").trim();
-        return matchesSlot(s.commercial) || (de && matchesSlot(s.commercial_2));
-      });
-      const ca = rows.reduce((a, s) => {
-        const amt = parseFloat(s.amount) || 0;
-        const de = !!s.is_de && !!(s.commercial_2 || "").trim();
-        if (de) {
-          // Compte 0.5×amount par slot correspondant (1 ou 2 selon si le commercial est présent sur les 2 slots)
-          const s1 = matchesSlot(s.commercial) ? 1 : 0;
-          const s2 = matchesSlot(s.commercial_2) ? 1 : 0;
-          return a + amt * 0.5 * (s1 + s2);
-        }
-        return a + (matchesSlot(s.commercial) ? amt : 0);
-      }, 0);
-      const sources = SOURCES.reduce((acc, src) => { acc[src.value] = rows.filter((r) => r.source === src.value).length; return acc; }, {});
-      const financement = rows.filter((r) => r.payment_method === "financement").length;
-      const comptant = rows.filter((r) => r.payment_method && r.payment_method !== "financement").length;
-      return { id: c.id, name: c.name, count: rows.length, ca, objectif: c.objectif || 0, sources, comptant, financement };
+      const bucket = grouped[c.id || c.name] || ensure(c);
+      return { ...bucket, objectif: c.objectif || 0 };
     }).sort((a, b) => b.ca - a.ca);
-    return { total, byCommercial };
-  }, [salesInPeriod, commerciaux, user]);
+    return { total: Number(summary.total || 0), byCommercial };
+  }, [summary, commerciaux, user]);
 
   const exportCsv = async () => {
     await downloadApiFile("/export/sales.csv", "ventes.csv");
@@ -561,8 +539,8 @@ export default function Sales() {
     setDeleting(true);
     try {
       await api.delete(`/sales/${confirmDelete.id}`);
-      setSales((prev) => prev.filter((x) => x.id !== confirmDelete.id));
       toast.success("Vente supprimée");
+      await load(Math.max(0, pageOffset));
       setConfirmDelete(null);
       // iter99 : notifier toutes les pages (Dashboard, Commissions, Rapport, Progression) pour refresh sans reload
       window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id: confirmDelete.id, deleted: true } }));
@@ -661,7 +639,7 @@ export default function Sales() {
             <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-36" data-testid="sales-period-to" />
           </div>
         )}
-        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {salesInPeriod.length} vente{salesInPeriod.length > 1 ? "s" : ""}</span>
+        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {summary.count} vente{summary.count > 1 ? "s" : ""}</span>
       </div>
 
       {/* Synthèse en haut : CA total / Objectif / % atteint (suit le filtre période) */}
@@ -771,9 +749,9 @@ export default function Sales() {
           const act = filtered.filter((s) => s.status !== "annule" && s.status !== "litige");
           return (
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-baseline gap-x-6 gap-y-1" data-testid="sales-search-summary">
-              <span className="text-sm text-slate-600">Résultat de la recherche : <b className="text-slate-900" data-testid="sales-search-count">{filtered.length} vente{filtered.length > 1 ? "s" : ""}</b></span>
-              <span className="text-sm text-slate-600">CA HT : <b className="font-display text-lg text-slate-900" data-testid="sales-search-ca">{fmtEur(act.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0))}</b></span>
-              <span className="text-[11px] text-slate-400">hors annulés / litiges · sur la période sélectionnée</span>
+              <span className="text-sm text-slate-600">Résultat de la recherche : <b className="text-slate-900" data-testid="sales-search-count">{pageTotal} vente{pageTotal > 1 ? "s" : ""}</b></span>
+              <span className="text-sm text-slate-600">CA de la page : <b className="font-display text-lg text-slate-900" data-testid="sales-search-ca">{fmtEur(act.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0))}</b></span>
+              <span className="text-[11px] text-slate-400">hors annulés / litiges · page courante</span>
             </div>
           );
         })()}
@@ -992,6 +970,14 @@ export default function Sales() {
           </table>
         </div>
       </Card>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+        <span>{pageTotal === 0 ? "0 vente" : `${pageOffset + 1}–${Math.min(pageOffset + sales.length, pageTotal)} sur ${pageTotal}`}</span>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled={pageOffset === 0 || salesLoading} onClick={() => load(Math.max(0, pageOffset - 100))} data-testid="sales-prev">Précédent</Button>
+          <Button variant="outline" size="sm" disabled={pageOffset + sales.length >= pageTotal || salesLoading} onClick={() => load(pageOffset + 100)} data-testid="sales-next">Suivant</Button>
+        </div>
+      </div>
 
       {/* 2. CA total & Objectif — with gauge.
           iter81 : pour un commercial, le bloc affiche la performance SOCIÉTÉ (companyCmp) ;

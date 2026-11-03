@@ -2802,11 +2802,70 @@ async def _resolve_commercial_user_id(user: dict, commercial_name: str) -> Optio
     return None
 
 
+@api_router.get("/sales/summary")
+async def sales_summary(
+    from_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    to_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    user: dict = Depends(get_current_user),
+):
+    """Agrégats de la période pour la page Ventes (CA, commerciaux, sources)."""
+    check_perm(user, "sales", "view", "own")
+    query = cq(user)
+    if perm_scope(user, "sales", "view") == "own":
+        query.update(_own_sales_filter(user))
+    if _is_prospect_role(user):
+        query.update(_prospect_sales_filter(user))
+    if from_date or to_date:
+        query["sale_date"] = {}
+        if from_date:
+            query["sale_date"]["$gte"] = from_date
+        if to_date:
+            query["sale_date"]["$lte"] = to_date
+    projection = {
+        "_id": 0, "amount": 1, "status": 1, "commercial": 1,
+        "commercial_2": 1, "is_de": 1, "source": 1, "payment_method": 1,
+    }
+    rows = await db.sales.find(query, projection).to_list(20000)
+    active = [r for r in rows if r.get("status") not in ("annule", "litige")]
+    total = sum(float(r.get("amount") or 0) for r in active)
+    grouped = {}
+    for row in active:
+        amount = float(row.get("amount") or 0)
+        source = row.get("source") or ""
+        payment = row.get("payment_method") or ""
+        is_de = bool(row.get("is_de")) and bool((row.get("commercial_2") or "").strip())
+        slots = []
+        if row.get("commercial"):
+            slots.append(row["commercial"])
+        if is_de and row.get("commercial_2"):
+            slots.append(row["commercial_2"])
+        for name in slots:
+            key = _norm_name(name)
+            if not key:
+                continue
+            bucket = grouped.setdefault(key, {
+                "name": name, "count": 0, "ca": 0.0, "sources": {},
+                "comptant": 0, "financement": 0,
+            })
+            bucket["count"] += 1
+            bucket["ca"] += amount * (0.5 if is_de else 1.0)
+            bucket["sources"][source] = bucket["sources"].get(source, 0) + 1
+            if payment == "financement":
+                bucket["financement"] += 1
+            elif payment:
+                bucket["comptant"] += 1
+    by_commercial = sorted(grouped.values(), key=lambda x: x["ca"], reverse=True)
+    return {"count": len(rows), "total": round(total, 2), "by_commercial": by_commercial}
+
+
 @api_router.get("/sales")
 async def list_sales(
     response: Response,
     limit: int = Query(0, ge=0, le=5000),
     offset: int = Query(0, ge=0),
+    from_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    to_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tags: Optional[str] = Query(None, max_length=500),
     user: dict = Depends(get_current_user),
 ):
     check_perm(user, "sales", "view", "own")
@@ -2816,6 +2875,35 @@ async def list_sales(
         q.update(_own_sales_filter(user))
     if _is_prospect_role(user):
         q.update(_prospect_sales_filter(user))
+    if from_date or to_date:
+        q["sale_date"] = {}
+        if from_date:
+            q["sale_date"]["$gte"] = from_date
+        if to_date:
+            q["sale_date"]["$lte"] = to_date
+    tokens = [t.strip() for t in (tags or "").split("|") if t.strip()][:10]
+    if tokens:
+        tag_conditions = []
+        for token in tokens:
+            pattern = {"$regex": re.escape(token), "$options": "i"}
+            client_ids = await db.clients.find(
+                cq(user, {"$or": [
+                    {"name": pattern}, {"phone": pattern}, {"email": pattern},
+                    {"address": pattern}, {"city": pattern}, {"postal_code": pattern},
+                ]}),
+                {"_id": 0, "id": 1},
+            ).to_list(1000)
+            tag_conditions.extend([
+                {"service": pattern}, {"status": pattern}, {"bdc": pattern},
+                {"commercial": pattern}, {"commercial_2": pattern}, {"source": pattern},
+            ])
+            if client_ids:
+                tag_conditions.append({"client_id": {"$in": [c["id"] for c in client_ids]}})
+        scope_or = q.pop("$or", None)
+        if scope_or:
+            q["$and"] = [{"$or": scope_or}, {"$or": tag_conditions}]
+        else:
+            q["$or"] = tag_conditions
     if limit > 0:
         response.headers["X-Total-Count"] = str(await db.sales.count_documents(q))
     cursor = db.sales.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)

@@ -31,4 +31,4 @@ cd frontend
 CI=true ./node_modules/.bin/craco test --watchAll=false --runInBand
 ./node_modules/.bin/craco build
 
-printf '%s\n' 'Validation locale réussie : 109 contrôles sécurité/robustesse, 72 tests serveur, 28 tests interface et build de production.'
+printf '%s\n' 'Validation locale réussie : 109 contrôles sécurité/robustesse, 73 tests serveur, 28 tests interface et build de production.'

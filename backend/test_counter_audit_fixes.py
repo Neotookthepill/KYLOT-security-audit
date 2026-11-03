@@ -104,6 +104,31 @@ class CounterAuditRegressionTests(unittest.TestCase):
         self.assertEqual(second.status_code, 200, second.text)
         self.assertEqual(len(second.json()), 1)
 
+    def test_sales_summary_aggregates_deals_and_excludes_cancelled(self):
+        run(self.db.sales.insert_many([
+            {"id": "s-de", "company_id": self.company, "sale_date": "2026-10-01",
+             "amount": 1000, "status": "en_cours", "commercial": "Alice",
+             "commercial_2": "Bob", "is_de": True, "source": "R1",
+             "payment_method": "financement"},
+            {"id": "s-cash", "company_id": self.company, "sale_date": "2026-10-02",
+             "amount": 500, "status": "argent_recupere", "commercial": "Alice",
+             "source": "CQ", "payment_method": "cheque"},
+            {"id": "s-cancel", "company_id": self.company, "sale_date": "2026-10-03",
+             "amount": 999, "status": "annule", "commercial": "Alice"},
+        ]))
+        response = self.client.get(
+            "/api/sales/summary?from_date=2026-10-01&to_date=2026-10-31",
+            headers=self.headers["admin"],
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        data = response.json()
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["total"], 1500)
+        by_name = {row["name"]: row for row in data["by_commercial"]}
+        self.assertEqual(by_name["Alice"]["ca"], 1000)
+        self.assertEqual(by_name["Alice"]["count"], 2)
+        self.assertEqual(by_name["Bob"]["ca"], 500)
+
     def test_client_search_category_filter_and_counts(self):
         run(self.db.clients.insert_many([
             {"id": "c-a", "company_id": self.company, "name": "Alice Lyon",
