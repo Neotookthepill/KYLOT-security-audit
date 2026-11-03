@@ -156,9 +156,10 @@ class CounterAuditStaticChecks(unittest.TestCase):
             or "kylot_prefill_sale" in logout_block
         )
 
-    def test_automatic_session_expiry_clears_offline_and_draft_data(self):
+    def test_automatic_session_expiry_preserves_the_offline_queue(self):
         interceptor = API_SOURCE.split("api.interceptors.response.use", 1)[1]
-        self.assertIn("clearSensitiveClientState", interceptor)
+        self.assertIn("clearExpiredSessionState", interceptor)
+        self.assertNotIn("clearSensitiveClientState", interceptor)
 
     def test_import_preview_does_not_echo_the_entire_uploaded_dataset(self):
         parse_block = SERVER_SOURCE.split("async def parse_import_file", 1)[1].split(
