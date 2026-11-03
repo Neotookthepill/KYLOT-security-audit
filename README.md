@@ -58,6 +58,9 @@ cd frontend
 CI=true yarn test --watchAll=false --runInBand
 yarn build
 yarn audit --groups dependencies
+
+# Mesure locale (5 000 clients / 5 000 ventes / 20 000 chantiers)
+PYTHONPATH=. ./.venv/bin/python audit/performance_checks.py
 ```
 
 Résultat de référence du 19 octobre 2026 : 109 contrôles de sécurité et de robustesse, 40 tests serveur et 23 tests interface réussis, soit 172 tests automatisés ; build production réussi.

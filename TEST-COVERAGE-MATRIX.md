@@ -22,7 +22,8 @@ et avant toute refactorisation d'un domaine.
 | Frontend | auth, API, permissions et hors ligne | 28 tests Jest documentés | jsdom | navigateur réel, mobile et accessibilité |
 | Contre-audit P1 | import client, stock, primes, homonymes, offline, Stripe société, migration | `backend/test_counter_audit_fixes.py` (18 tests) | Mongo simulée | MongoDB réelle, navigateur, Stripe sandbox |
 | MFA admin | TOTP, QR code, codes de secours, challenge, reset super-admin, révocation | `backend/test_mfa.py` (9 tests) + 2 tests AuthContext | Mongo simulée | application d’authentification réelle, navigateur |
-| Pagination | limite, offset, total, journal "Charger plus" | `backend/test_counter_audit_fixes.py` (4 tests) | Mongo simulée | volumes et index sur MongoDB réelle |
+| Pagination | limite, offset, total, journal "Charger plus", agrégats Ventes | `backend/test_counter_audit_fixes.py` (4 tests) | Mongo simulée | volumes et index sur MongoDB réelle |
+| Performance | page clients/ventes/chantiers, recherche, compteurs, audit | `audit/performance_checks.py` | mongomock + TestClient | MongoDB réel, réseau, concurrence |
 
 ## Règle de modification
 

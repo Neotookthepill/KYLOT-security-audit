@@ -3331,7 +3331,7 @@ async def delete_sale(sid: str, user: dict = Depends(get_current_user)):
 
 # ---------------- Projects (Chantiers) ----------------
 
-async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resource: str = "projects", keep_closed: bool = False) -> list:
+async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resource: str = "projects", keep_closed: bool = False, limit: int = 0, offset: int = 0) -> list:
     """iter209 — logique partagée entre `/api/projects` (Chantiers, gated par
     `projects.view`) et `/api/planning/projects` (Planning, gated par
     `planning.view`). Le `perm_resource` détermine UNIQUEMENT le scope
@@ -3438,7 +3438,10 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
                 {"client_id": {"$in": client_ids}},
                 {"sale_id": {"$in": sale_ids}},
             ]
-        projects = await db.projects.find(q, {"_id": 0}).sort("created_at", -1).to_list(5000)
+        cursor = db.projects.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+        if limit > 0:
+            cursor = cursor.limit(limit)
+        projects = await cursor.to_list(limit if limit > 0 else 5000)
 
     ids = list({p["client_id"] for p in projects})
     clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
@@ -3498,13 +3501,9 @@ async def list_projects(
     offset: int = Query(0, ge=0),
 ):
     check_perm(user, "projects", "view", "own")
-    rows = await _fetch_projects_list(user, include_deleted, perm_resource="projects")
-    total = len(rows)
-    if limit > 0:
-        response.headers["X-Total-Count"] = str(total)
-        rows = rows[offset:offset + limit]
-    elif offset:
-        rows = rows[offset:]
+    rows = await _fetch_projects_list(
+        user, include_deleted, perm_resource="projects", limit=limit, offset=offset
+    )
     return rows
 
 
@@ -9854,13 +9853,16 @@ async def on_startup():
     await db.clients.create_index([("company_id", 1), ("name", 1)])
     await db.clients.create_index([("company_id", 1), ("phone", 1)])
     await db.clients.create_index([("company_id", 1), ("created_by", 1)])
+    await db.clients.create_index([("company_id", 1), ("created_at", -1)])
     await db.sales.create_index([("company_id", 1), ("sale_date", -1)])
+    await db.sales.create_index([("company_id", 1), ("created_at", -1)])
     await db.sales.create_index([("company_id", 1), ("commercial_user_id", 1)])
     await db.sales.create_index([("company_id", 1), ("commercial_2_user_id", 1)])
     await db.sales.create_index([("company_id", 1), ("status", 1)])
     await db.projects.create_index([("company_id", 1), ("scheduled_date", 1)])
     await db.projects.create_index([("company_id", 1), ("status", 1)])
     await db.projects.create_index([("company_id", 1), ("assigned_to", 1)])
+    await db.projects.create_index([("company_id", 1), ("created_at", -1)])
     await db.client_notes.create_index([("company_id", 1), ("client_id", 1)])
     await db.prospects.create_index([("company_id", 1), ("assigned_to_id", 1)])
     await db.notifications.create_index([("company_id", 1), ("user_id", 1), ("is_read", 1)])
