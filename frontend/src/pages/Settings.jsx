@@ -14,6 +14,7 @@ import BonusesDialog from "@/components/BonusesDialog";
 import { ProspectMgrBonusesEditor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import PerTechThresholdList from "@/components/PerTechThresholdList";
+import MfaSettingsCard from "@/components/MfaSettingsCard";
 
 const PRESET_PRIMARY = ["#0f172a", "#111827", "#1e293b", "#0369a1", "#1d4ed8", "#7c3aed", "#059669", "#dc2626", "#ea580c", "#d97706"];
 const PRESET_ACCENT = ["#6366f1", "#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#a855f7"];
@@ -449,6 +450,8 @@ export default function Settings() {
             <span className="text-xs text-slate-500">Gestion complète des statuts (crayon + croix)</span>
           </div>
         </Card>
+
+        <MfaSettingsCard />
 
         {/* Primes par palier CA */}
         <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-bonuses">

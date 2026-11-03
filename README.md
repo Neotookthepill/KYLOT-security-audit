@@ -1,6 +1,6 @@
 # KYLOT
 
-Application de gestion commerciale et opérationnelle : clients, ventes, chantiers, planning, équipe, stock, commissions, exports et assistant IA.
+Application de gestion commerciale et opérationnelle : clients, ventes, chantiers, planning, équipe, stock, commissions, exports, assistant IA et double authentification TOTP pour les administrateurs.
 
 ## État de cette copie
 
@@ -41,7 +41,9 @@ PYTHONPATH=. ./.venv/bin/pytest -q \
   backend/test_security_invariants.py \
   backend/test_preflight.py \
   backend/test_app_smoke.py \
-  backend/test_integration_security.py
+  backend/test_integration_security.py \
+  backend/test_counter_audit_fixes.py \
+  backend/test_mfa.py
 
 PYTHONPATH=. ./.venv/bin/python audit/security_adversarial_checks.py
 PYTHONPATH=. ./.venv/bin/python audit/security_adversarial_round2.py
@@ -60,7 +62,7 @@ yarn audit --groups dependencies
 
 Résultat de référence du 19 octobre 2026 : 109 contrôles de sécurité et de robustesse, 40 tests serveur et 23 tests interface réussis, soit 172 tests automatisés ; build production réussi.
 
-Après les corrections du contre-audit indépendant du 2 novembre 2026, la suite locale compte **60 tests serveur**, **109 contrôles adversariaux** et **26 tests interface**, soit **195 tests**. Couverture backend remesurée : **26 %** des instructions de `backend/server.py` ; couverture frontend : **3,12 %**. Ces chiffres restent faibles et ne constituent pas une preuve de couverture exhaustive.
+Après les corrections du contre-audit indépendant du 2 novembre 2026, la suite locale compte **66 tests serveur**, **109 contrôles adversariaux** et **28 tests interface**, soit **203 tests**. Couverture backend remesurée : **27 %** des instructions de `backend/server.py` ; couverture frontend : **3,13 %**. Ces chiffres restent faibles et ne constituent pas une preuve de couverture exhaustive.
 
 ## Production
 

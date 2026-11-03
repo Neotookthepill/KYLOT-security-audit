@@ -82,6 +82,26 @@ describe("AuthContext session lifecycle", () => {
     expect(currentAuth.user.id).toBe("user-b");
   });
 
+  test("login with MFA required keeps the session unconfirmed", async () => {
+    await mountWithInitial({ id: "user-a", role: "admin", permissions: {} });
+    mockApi.post.mockResolvedValueOnce({ data: { mfa_required: true, challenge: "signed-challenge" } });
+    let result;
+    await act(async () => { result = await currentAuth.login("admin@example.com", "long-password"); });
+    expect(result).toEqual({ mfa_required: true, challenge: "signed-challenge" });
+    expect(mockClearOfflineData).not.toHaveBeenCalled();
+    expect(currentAuth.user.id).toBe("user-a");
+  });
+
+  test("verifyMfa only establishes the session after the second factor", async () => {
+    await mountWithInitial({ id: "user-a", role: "admin", permissions: {} });
+    mockApi.post.mockResolvedValueOnce({ data: { user: { id: "user-a", role: "admin", mfa_enabled: true } } });
+    await act(async () => currentAuth.verifyMfa("signed-challenge", "123456"));
+    expect(mockApi.post).toHaveBeenCalledWith("/auth/mfa/verify", { challenge: "signed-challenge", code: "123456" });
+    expect(mockClearOfflineData).toHaveBeenCalledTimes(1);
+    expect(mockSetOfflineIdentity).toHaveBeenLastCalledWith("user-a");
+    expect(currentAuth.user.mfa_enabled).toBe(true);
+  });
+
   test("logout purges browser state even if the server request fails", async () => {
     await mountWithInitial({ id: "user-a", role: "admin", permissions: {} });
     mockApi.post.mockRejectedValueOnce(new Error("offline"));

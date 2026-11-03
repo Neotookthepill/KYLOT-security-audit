@@ -169,6 +169,7 @@ class InputAndTransportChecks(unittest.TestCase):
                 public.add((decorator.func.attr.upper(), path))
         expected = {
             ("POST", "/auth/register"), ("POST", "/auth/login"), ("POST", "/auth/logout"),
+            ("POST", "/auth/mfa/verify"),
             ("POST", "/cron/rappel-chantiers-j1"), ("POST", "/cron/bilan-mensuel"),
             ("POST", "/stripe/webhook"),
             ("GET", "/health"), ("GET", "/healthz"), ("GET", "/api/health"), ("GET", "/api/healthz"),

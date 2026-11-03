@@ -9,6 +9,8 @@ import csv
 import uuid
 import logging
 import secrets
+import struct
+import time
 import asyncio
 from datetime import datetime, timezone, timedelta, date
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
@@ -22,7 +24,7 @@ import re
 import ipaddress
 from html import escape
 from html.parser import HTMLParser
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 import jwt
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query, BackgroundTasks, Header, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -280,6 +282,80 @@ def verify_password(p: str, h: str) -> bool:
 # bcrypt verification and does not expose account existence through timing.
 _DUMMY_PASSWORD_HASH = hash_password("kylot-dummy-password-never-used-for-login")
 
+MFA_STEP_SECONDS = 30
+MFA_DIGITS = 6
+MFA_CHALLENGE_MINUTES = 5
+MFA_RECOVERY_CODE_COUNT = 10
+
+
+def _totp_secret() -> str:
+    return base64.b32encode(os.urandom(20)).decode("ascii").rstrip("=")
+
+
+def _totp_code(secret: str, at_time: Optional[float] = None) -> str:
+    """RFC 6238 TOTP, SHA-1, 6 digits, 30-second step."""
+    padded = secret.strip().upper()
+    padded += "=" * ((8 - len(padded) % 8) % 8)
+    key = base64.b32decode(padded, casefold=True)
+    counter = int((time.time() if at_time is None else at_time) // MFA_STEP_SECONDS)
+    digest = _hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    offset = digest[-1] & 0x0F
+    value = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+    return f"{value % (10 ** MFA_DIGITS):0{MFA_DIGITS}d}"
+
+
+def _verify_totp(secret: str, code: str, at_time: Optional[float] = None) -> bool:
+    code = (code or "").strip().replace(" ", "")
+    if not re.fullmatch(r"\d{6}", code):
+        return False
+    now = time.time() if at_time is None else at_time
+    for delta in (-1, 0, 1):
+        if _hmac.compare_digest(_totp_code(secret, now + delta * MFA_STEP_SECONDS), code):
+            return True
+    return False
+
+
+def _mfa_otpauth_uri(email: str, secret: str) -> str:
+    label = quote(f"KYLOT:{email}")
+    return (
+        f"otpauth://totp/{label}?secret={secret}&issuer=KYLOT"
+        f"&algorithm=SHA1&digits={MFA_DIGITS}&period={MFA_STEP_SECONDS}"
+    )
+
+
+def _mfa_recovery_codes() -> list[str]:
+    return [secrets.token_hex(4).upper() for _ in range(MFA_RECOVERY_CODE_COUNT)]
+
+
+def create_mfa_challenge(user: dict) -> str:
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": user["id"], "email": user["email"], "type": "mfa",
+        "iat": int(now.timestamp()), "iat_ms": int(now.timestamp() * 1000),
+        "exp": now + timedelta(minutes=MFA_CHALLENGE_MINUTES),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+async def _mfa_code_matches(user: dict, code: str) -> tuple[bool, bool]:
+    """Return (valid, used_recovery_code). Recovery codes are single-use."""
+    code = (code or "").strip().replace(" ", "")
+    secret = user.get("mfa_secret") or ""
+    if secret and _verify_totp(secret, code):
+        return True, False
+    remaining = []
+    used = False
+    for hashed in user.get("mfa_recovery_codes") or []:
+        if not used and verify_password(code.upper(), hashed):
+            used = True
+            continue
+        remaining.append(hashed)
+    if used:
+        await db.users.update_one({"id": user["id"]}, {"$set": {"mfa_recovery_codes": remaining}})
+        return True, True
+    return False, False
+
+
 def create_access_token(user_id: str, email: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
@@ -302,6 +378,11 @@ def set_auth_cookie(response: Response, access: str):
     if _IS_PRODUCTION and samesite == "none":
         raise RuntimeError("COOKIE_SAMESITE=none est interdit sans protection CSRF dédiée")
     response.set_cookie("access_token", access, httponly=True, secure=secure, samesite=samesite, max_age=60*60*12, path="/")
+
+
+def _no_store(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
 
 
 def _auth_response(user: dict, token: str) -> dict:
@@ -398,6 +479,7 @@ def public_user(u: dict) -> dict:
         # iter183 — Onboarding « première utilisation » persisté server-side.
         # Empêche la boîte de dialogue de se rouvrir à chaque reconnexion / autre navigateur.
         "onboarding_done": bool(u.get("onboarding_done")),
+        "mfa_enabled": bool(u.get("mfa_enabled")),
     }
 
 
@@ -826,6 +908,25 @@ class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=256)
 
+
+class MfaSetupIn(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+
+
+class MfaCodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=32)
+
+
+class MfaLoginIn(BaseModel):
+    challenge: str = Field(min_length=20, max_length=4096)
+    code: str = Field(min_length=6, max_length=32)
+
+
+class MfaDisableIn(BaseModel):
+    password: str = Field(min_length=1, max_length=256)
+    code: str = Field(min_length=6, max_length=32)
+
+
 class ClientIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     phone: Optional[str] = Field(default="", max_length=40)
@@ -1180,6 +1281,11 @@ async def login(data: LoginIn, response: Response, request: Request):
         # Migration silencieuse des anciens hash bcrypt directs : le mot de
         # passe en clair est encore disponible uniquement à cet instant.
         await db.users.update_one({"id": u["id"]}, {"$set": {"password_hash": hash_password(data.password)}})
+    _no_store(response)
+    if u.get("mfa_enabled"):
+        # Le mot de passe seul ne suffit plus : aucun cookie de session n'est
+        # posé tant que le second facteur n'a pas été vérifié.
+        return {"mfa_required": True, "challenge": create_mfa_challenge(u)}
     token = create_access_token(u["id"], email)
     # iter94 : appliquer le verrou éligibilité heures sup avant sérialisation
     u.setdefault("company_id", DEFAULT_COMPANY_ID)
@@ -1188,6 +1294,116 @@ async def login(data: LoginIn, response: Response, request: Request):
     await _apply_overtime_eligibility_gate(u)
     set_auth_cookie(response, token)
     return _auth_response(u, token)
+
+@api_router.post("/auth/mfa/setup")
+async def mfa_setup(data: MfaSetupIn, response: Response, user: dict = Depends(get_current_user)):
+    """Prepare un secret TOTP ; l'activation n'a lieu qu'apres confirmation d'un code."""
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="MFA réservée aux administrateurs")
+    full = await db.users.find_one({"id": user["id"]})
+    if not full or not verify_password(data.password, full.get("password_hash") or ""):
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    if full.get("mfa_enabled"):
+        raise HTTPException(status_code=409, detail="MFA déjà activée ; désactivez-la avant de la reconfigurer")
+    _no_store(response)
+    secret = _totp_secret()
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "mfa_pending_secret": secret,
+            "mfa_pending_created_at": now_iso(),
+            "mfa_enabled": False,
+        }},
+    )
+    return {
+        "secret": secret,
+        "otpauth_uri": _mfa_otpauth_uri(user.get("email") or "", secret),
+        "issuer": "KYLOT",
+        "account": user.get("email") or "",
+        "digits": MFA_DIGITS,
+        "period": MFA_STEP_SECONDS,
+    }
+
+
+@api_router.post("/auth/mfa/confirm")
+async def mfa_confirm(data: MfaCodeIn, response: Response, user: dict = Depends(get_current_user)):
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="MFA réservée aux administrateurs")
+    full = await db.users.find_one({"id": user["id"]})
+    secret = (full or {}).get("mfa_pending_secret") or ""
+    if not full or not secret:
+        raise HTTPException(status_code=400, detail="Aucune configuration MFA en attente")
+    if not _verify_totp(secret, data.code):
+        raise HTTPException(status_code=400, detail="Code d'authentification invalide")
+    _no_store(response)
+    recovery_codes = _mfa_recovery_codes()
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "mfa_enabled": True,
+            "mfa_secret": secret,
+            "mfa_recovery_codes": [hash_password(code) for code in recovery_codes],
+            "mfa_enrolled_at": now_iso(),
+        }, "$unset": {"mfa_pending_secret": "", "mfa_pending_created_at": ""}},
+    )
+    await log_audit(user, "update", "user", user["id"], extra={"mfa": "enabled"})
+    return {"enabled": True, "recovery_codes": recovery_codes}
+
+
+@api_router.post("/auth/mfa/disable")
+async def mfa_disable(data: MfaDisableIn, response: Response, user: dict = Depends(get_current_user)):
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="MFA réservée aux administrateurs")
+    full = await db.users.find_one({"id": user["id"]})
+    if not full or not verify_password(data.password, full.get("password_hash") or ""):
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    if not full.get("mfa_enabled") or not full.get("mfa_secret"):
+        raise HTTPException(status_code=400, detail="MFA n'est pas activée")
+    valid, _ = await _mfa_code_matches(full, data.code)
+    if not valid:
+        raise HTTPException(status_code=400, detail="Code d'authentification invalide")
+    _no_store(response)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"mfa_enabled": False}, "$unset": {
+            "mfa_secret": "", "mfa_recovery_codes": "",
+            "mfa_pending_secret": "", "mfa_pending_created_at": "",
+        }},
+    )
+    await log_audit(user, "update", "user", user["id"], extra={"mfa": "disabled"})
+    return {"enabled": False}
+
+
+@api_router.post("/auth/mfa/verify")
+async def mfa_verify(data: MfaLoginIn, response: Response, request: Request):
+    """Verifie le second facteur et pose le cookie de session uniquement ensuite."""
+    _no_store(response)
+    await _check_login_source(request)
+    try:
+        payload = jwt.decode(data.challenge, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Défi MFA invalide ou expiré")
+    if payload.get("type") != "mfa":
+        raise HTTPException(status_code=401, detail="Défi MFA invalide")
+    full = await db.users.find_one({"id": payload.get("sub")})
+    if not full or full.get("is_active", True) is False:
+        raise HTTPException(status_code=401, detail="Compte indisponible")
+    await _check_login_lock(f"mfa:{full.get('email') or ''}")
+    valid, used_recovery = await _mfa_code_matches(full, data.code)
+    if not valid:
+        await _register_login_failure(f"mfa:{full.get('email') or ''}")
+        await _register_login_source_failure(request)
+        raise HTTPException(status_code=401, detail="Code d'authentification invalide")
+    await _reset_login_attempts(f"mfa:{full.get('email') or ''}")
+    await _reset_login_source(request)
+    token = create_access_token(full["id"], full["email"])
+    full.setdefault("company_id", DEFAULT_COMPANY_ID)
+    if not full.get("permissions"):
+        full["permissions"] = get_default_permissions(full.get("role", ""))
+    await _apply_overtime_eligibility_gate(full)
+    set_auth_cookie(response, token)
+    return {**_auth_response(full, token), "used_recovery_code": used_recovery}
+
 
 @api_router.post("/auth/logout")
 async def logout(response: Response, request: Request):

@@ -65,8 +65,7 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, refreshUser]);
 
-  const login = async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
+  const establishSession = async (data) => {
     await clearOfflineData();
     clearSensitiveSessionStorage();
     setOfflineIdentity(data.user?.id);
@@ -74,13 +73,24 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const login = async (email, password) => {
+    const { data } = await api.post("/auth/login", { email, password });
+    if (data?.mfa_required) {
+      // Le cookie de session n'est pas encore posé : on garde uniquement le
+      // défi signé, à court terme, le temps de saisir le code TOTP.
+      return { mfa_required: true, challenge: data.challenge };
+    }
+    return establishSession(data);
+  };
+
+  const verifyMfa = async (challenge, code) => {
+    const { data } = await api.post("/auth/mfa/verify", { challenge, code });
+    return establishSession(data);
+  };
+
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", { name, email, password });
-    await clearOfflineData();
-    clearSensitiveSessionStorage();
-    setOfflineIdentity(data.user?.id);
-    setUser(data.user);
-    return data.user;
+    return establishSession(data);
   };
 
   const logout = async () => {
@@ -104,7 +114,7 @@ export function AuthProvider({ children }) {
   const scope = useCallback((resource, action) => permScope(user, resource, action), [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, can, scope, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyMfa, register, logout, can, scope, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

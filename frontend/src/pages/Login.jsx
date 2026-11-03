@@ -37,11 +37,13 @@ function QylotLogo({ size = 88 }) {
 }
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, verifyMfa } = useAuth();
   const { settings } = useSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState(() => {
     try {
       const p = new URLSearchParams(window.location.search);
@@ -55,7 +57,27 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      const result = await login(email, password);
+      if (result?.mfa_required) {
+        setMfaChallenge(result.challenge);
+        setMfaCode("");
+        toast.info("Saisissez le code de votre application d'authentification.");
+        return;
+      }
+      toast.success("Bienvenue !");
+    } catch (err) {
+      setError(formatApiError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitMfa = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      await verifyMfa(mfaChallenge, mfaCode);
       toast.success("Bienvenue !");
     } catch (err) {
       setError(formatApiError(err));
@@ -99,6 +121,51 @@ export default function Login() {
           </p>
         </div>
 
+        {mfaChallenge ? (
+          <form onSubmit={submitMfa} className="space-y-5" data-testid="login-mfa-form">
+            <div className="space-y-1 text-center">
+              <p className="overline text-slate-300/70">Double authentification</p>
+              <h1 className="font-display text-xl font-semibold tracking-tight text-white">Vérification en deux étapes</h1>
+              <p className="text-sm text-slate-300/80 mt-2">
+                Ouvrez votre application d'authentification et saisissez le code à 6 chiffres.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="mfa-code">Code d'authentification</Label>
+              <Input
+                id="mfa-code"
+                inputMode="text"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+                minLength={6}
+                maxLength={32}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                data-testid="login-mfa-code-input"
+                placeholder="123456 ou code de secours"
+              />
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-100 bg-red-500/20 border border-red-400/40 rounded-md px-3 py-2" data-testid="login-error">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full h-11 bg-white text-slate-900 hover:bg-slate-100 shadow-lg" data-testid="login-mfa-submit-btn">
+              {loading ? "Vérification…" : "Valider le code"}
+            </Button>
+            <button
+              type="button"
+              className="w-full text-xs text-slate-300/80 hover:text-white underline"
+              onClick={() => { setMfaChallenge(""); setMfaCode(""); setError(""); }}
+            >
+              Revenir à la connexion
+            </button>
+          </form>
+        ) : (
         <form onSubmit={submit} className="space-y-5" data-testid="login-form">
           <div className="space-y-1 text-center">
             <p className="overline text-slate-300/70">Connexion</p>
@@ -126,6 +193,7 @@ export default function Login() {
             {loading ? "Connexion…" : "Se connecter"}
           </Button>
         </form>
+        )}
       </div>
     </div>
   );
