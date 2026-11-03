@@ -110,5 +110,5 @@ jobs:
           STRIPE_SECRET_KEY: configured-ci-placeholder
           STRIPE_WEBHOOK_SECRET: configured-ci-placeholder
           STRIPE_RETURN_ORIGINS: https://app.example.invalid
-          WEBHOOK_CRON_SECRET: H4$kP9!mR2@vT7#xL6&nQ1
+          WEBHOOK_CRON_SECRET: H4$kP9!mR2@vT7#xL6&nQ1Z8
         run: python backend/preflight.py --strict
