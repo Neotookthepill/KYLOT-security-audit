@@ -65,3 +65,14 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/mfa_flow.js
 Teste la configuration TOTP, le blocage du login par mot de passe seul, la
 connexion avec code, la connexion avec code de secours, la désactivation et le
 retour au login mot de passe seul. Le compte de test doit être administrateur.
+
+
+## Offline
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/offline_flow.js
+```
+
+Crée une vente, passe le navigateur hors ligne, modifie les notes, vérifie que
+le serveur n'est pas touché, rétablit le réseau, puis contrôle le rejeu et la
+vidange de la file IndexedDB.
