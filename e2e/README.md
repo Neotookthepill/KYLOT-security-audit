@@ -107,3 +107,13 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/phone_flow.js
 
 Vérifie le découpage d'un champ `0327376451 / 0612569563`, les deux liens `tel:`
 et leur présence dans la fiche client.
+
+
+## Événements planning
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/event_flow.js
+```
+
+Vérifie qu'un admin et un commercial ouvrent le détail d'un événement, que le
+lieu et la description s'affichent, et que seul l'admin voit le bouton Modifier.

@@ -10704,6 +10704,7 @@ class EventIn(BaseModel):
     start_time: Optional[str] = None      # "HH:MM"
     end_time: Optional[str] = None
     description: Optional[str] = Field(default="", max_length=5000)
+    location: Optional[str] = Field(default="", max_length=300)
     all_company: bool = False
     participants: Optional[List[str]] = Field(default=None, max_length=500)      # user ids
     show_on_dashboard: bool = False
@@ -10735,6 +10736,7 @@ class EventUpdate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     description: Optional[str] = Field(default=None, max_length=5000)
+    location: Optional[str] = Field(default=None, max_length=300)
     all_company: Optional[bool] = None
     participants: Optional[List[str]] = Field(default=None, max_length=500)
     show_on_dashboard: Optional[bool] = None
@@ -10813,6 +10815,7 @@ async def create_event(data: EventIn, user: dict = Depends(get_current_user)):
         "start_time": (data.start_time or None),
         "end_time": (data.end_time or None),
         "description": (data.description or "").strip(),
+        "location": (data.location or "").strip(),
         "all_company": bool(data.all_company),
         "participants": recipients,
         "show_on_dashboard": bool(data.show_on_dashboard),

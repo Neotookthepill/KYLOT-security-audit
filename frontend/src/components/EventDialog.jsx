@@ -29,6 +29,7 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
     start_time: "",
     end_time: "",
     description: "",
+    location: "",
     all_company: false,
     participants: [],
     show_on_dashboard: false,
@@ -46,6 +47,7 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
         start_time: event.start_time || "",
         end_time: event.end_time || "",
         description: event.description || "",
+        location: event.location || "",
         all_company: !!event.all_company,
         participants: Array.isArray(event.participants) ? event.participants : [],
         show_on_dashboard: !!event.show_on_dashboard,
@@ -54,7 +56,7 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
     } else {
       setForm({
         title: "", date: defaultDate || today(), start_time: "", end_time: "",
-        description: "", all_company: false, participants: [], show_on_dashboard: false, send_notification: false,
+        description: "", location: "", all_company: false, participants: [], show_on_dashboard: false, send_notification: false,
       });
     }
   }, [open, event, defaultDate]);
@@ -176,6 +178,10 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
           <div className="space-y-1">
             <Label>Description</Label>
             <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Note ou détails…" data-testid="event-desc" />
+            <div className="space-y-1">
+              <Label>Lieu</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Adresse, salle, agence…" data-testid="event-location" maxLength={300} />
+            </div>
           </div>
 
           <div className="rounded-lg border border-slate-200 p-3 space-y-3">

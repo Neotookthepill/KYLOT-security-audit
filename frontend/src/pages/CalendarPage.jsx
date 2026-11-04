@@ -8,6 +8,7 @@ import ProjectDialog from "@/components/ProjectDialog";
 import AbsencesDialog from "@/components/AbsencesDialog";
 import OffDaysDialog from "@/components/OffDaysDialog";
 import EventDialog from "@/components/EventDialog";
+import EventDetailsDialog from "@/components/EventDetailsDialog";
 import ReinterventionDialog from "@/components/ReinterventionDialog";
 import useTeam from "@/lib/useTeam";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +52,7 @@ export default function CalendarPage() {
   const [reinterOpen, setReinterOpen] = useState(false);
   const [reinterClient, setReinterClient] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [viewingEvent, setViewingEvent] = useState(null);
   const [eventDefaultDate, setEventDefaultDate] = useState(null);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState("__all");
@@ -314,8 +316,7 @@ export default function CalendarPage() {
                         {dayEvents.slice(0, 2).map((ev) => (
                           <button
                             key={ev.id}
-                            onClick={() => { setEditingEvent(ev); setEventDefaultDate(null); setEventOpen(true); }}
-                            disabled={!canManageAbs}
+                            onClick={() => setViewingEvent(ev)}
                             className="w-full text-left text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 border border-violet-300 hover:bg-violet-200 font-medium truncate"
                             title={`${ev.title}${ev.start_time ? " · " + ev.start_time : ""}${ev.description ? "\n" + ev.description : ""}`}
                             data-testid={`cal-event-item-${ev.id}`}
@@ -409,6 +410,18 @@ export default function CalendarPage() {
       <ProjectDialog project={editing} onClose={() => setEditing(null)} onSaved={load} contextDate={editing?._contextDate || null} />
       <AbsencesDialog open={absOpen} onOpenChange={setAbsOpen} onChanged={loadAbsences} />
       <OffDaysDialog open={offOpen} onOpenChange={setOffOpen} onChanged={loadOffDays} month={monthStr} />
+      <EventDetailsDialog
+        open={!!viewingEvent}
+        onOpenChange={(v) => { if (!v) setViewingEvent(null); }}
+        event={viewingEvent}
+        canEdit={canManageAbs}
+        onEdit={() => {
+          setEditingEvent(viewingEvent);
+          setViewingEvent(null);
+          setEventDefaultDate(null);
+          setEventOpen(true);
+        }}
+      />
       <EventDialog
         open={eventOpen}
         onOpenChange={(v) => { setEventOpen(v); if (!v) { setEditingEvent(null); setEventDefaultDate(null); } }}
