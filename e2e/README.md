@@ -117,3 +117,13 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/event_flow.js
 
 Vérifie qu'un admin et un commercial ouvrent le détail d'un événement, que le
 lieu et la description s'affichent, et que seul l'admin voit le bouton Modifier.
+
+
+## Stress contrôlé
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/stress_test.js
+```
+
+Test read-only : 300 requêtes `/health` à 50 en parallèle, 200 clients à 20,
+100 ventes à 10 et 100 challenges à 10. Aucun écrit en base.
