@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Phone, MapPin, Calendar as CalIcon, User, CalendarOff } from "lucide-react";
+import { Download, MapPin, Calendar as CalIcon, User, CalendarOff } from "lucide-react";
+import PhoneNumbers from "@/components/PhoneNumbers";
 import { toast } from "sonner";
 import ProjectDialog from "@/components/ProjectDialog";
 import AbsencesDialog from "@/components/AbsencesDialog";
@@ -224,7 +225,7 @@ export default function Kanban() {
                   >
                     <div className="font-semibold text-slate-900 break-words">{p.client_name}</div>
                     <div className="text-[13px] text-slate-700 mt-1 space-y-0.5">
-                      {p.client_phone && <div className="flex items-start gap-1"><Phone size={12} className="mt-0.5 shrink-0" /> <a href={`tel:${p.client_phone}`} className="break-all">{p.client_phone}</a></div>}
+                      {p.client_phone && <PhoneNumbers value={p.client_phone} iconSize={12} className="text-xs" linkClassName="break-all" />}
                       {p.client_address && <div className="flex items-start gap-1"><MapPin size={12} className="mt-0.5 shrink-0" /> <span className="break-words">{p.client_address}{p.client_postal_code || p.client_city ? `, ${p.client_postal_code || ""} ${p.client_city || ""}`.trim() : ""}</span></div>}
                     </div>
                     <div className="text-sm text-slate-600 mt-0.5">{p.service}</div>

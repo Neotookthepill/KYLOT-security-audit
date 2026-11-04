@@ -4,7 +4,8 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaf
 import "leaflet/dist/leaflet.css";
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
-import { MapPin, Phone, Loader2, Search } from "lucide-react";
+import { MapPin, Loader2, Search } from "lucide-react";
+import PhoneNumbers from "@/components/PhoneNumbers";
 import { Input } from "@/components/ui/input";
 
 const HEX = { indigo: "#4f46e5", sky: "#0ea5e9", orange: "#f97316", red: "#dc2626", emerald: "#10b981", slate: "#64748b", yellow: "#eab308", violet: "#8b5cf6" };
@@ -56,7 +57,7 @@ function ClientPopup({ c, catByKey, onOpen }) {
     <div className="min-w-[200px]" data-testid={`map-popup-${c.id}`}>
       <p className="font-semibold text-sm text-slate-900">{c.name}</p>
       <p className="text-xs text-slate-600 mt-1 flex gap-1"><MapPin size={12} className="mt-0.5 shrink-0" />{[c.address, c.postal_code, c.city].filter(Boolean).join(", ")}</p>
-      {c.phone && <a href={`tel:${c.phone}`} className="text-xs text-slate-600 mt-1 flex gap-1 items-center"><Phone size={12} />{c.phone}</a>}
+      {c.phone && <PhoneNumbers value={c.phone} iconSize={12} className="text-xs text-slate-600 mt-1" />}
       <div className="flex flex-wrap gap-1 mt-2">
         {(c.categories || []).map((cc) => {
           const cat = catByKey[cc.category_key];

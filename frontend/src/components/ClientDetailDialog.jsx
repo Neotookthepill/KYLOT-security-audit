@@ -3,7 +3,8 @@ import api from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Phone, Mail, MapPin, FileText, RefreshCw } from "lucide-react";
+import { Mail, MapPin, FileText, RefreshCw } from "lucide-react";
+import PhoneNumbers from "@/components/PhoneNumbers";
 import { STATUS_MAP, formatPayment, formatRate } from "@/lib/saleConstants";
 import ReinterventionDialog from "@/components/ReinterventionDialog";
 import { ClientNotes } from "@/components/ClientNotes";
@@ -42,7 +43,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">{client.name}</DialogTitle>
           <div className="flex flex-wrap gap-4 text-sm text-slate-600 mt-2">
-            {client.phone && <span className="flex items-center gap-1.5"><Phone size={13} /> {client.phone}</span>}
+            {client.phone && <PhoneNumbers value={client.phone} iconSize={13} className="text-sm" />}
             {client.email && <span className="flex items-center gap-1.5"><Mail size={13} /> {client.email}</span>}
             {(client.address || client.city) && (
               <span className="flex items-center gap-1.5"><MapPin size={13} /> {client.address} {client.postal_code} {client.city}</span>

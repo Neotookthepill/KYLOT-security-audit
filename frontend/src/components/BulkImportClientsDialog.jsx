@@ -1,3 +1,4 @@
+import PhoneNumbers from "@/components/PhoneNumbers";
 import React, { useMemo, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -104,7 +105,7 @@ export default function BulkImportClientsDialog({ open, onOpenChange, onImported
                   {preview.slice(0, 50).map((c, i) => (
                     <tr key={i} className="border-t border-slate-100" data-testid={`bulk-preview-row-${i}`}>
                       <td className="px-2.5 py-1.5 font-medium">{c.name}</td>
-                      <td className="px-2.5 py-1.5">{c.phone}</td>
+                      <td className="px-2.5 py-1.5"><PhoneNumbers value={c.phone} iconSize={10} className="text-[11px]" /></td>
                       <td className="px-2.5 py-1.5">{c.email}</td>
                       <td className="px-2.5 py-1.5">{c.address}</td>
                       <td className="px-2.5 py-1.5">{c.postal_code}</td>

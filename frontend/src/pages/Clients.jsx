@@ -1,3 +1,4 @@
+import PhoneNumbers from "@/components/PhoneNumbers";
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api, { formatApiError } from "@/lib/api";
@@ -267,7 +268,7 @@ export default function Clients() {
               {filteredClients.map((c) => (
                 <tr key={c.id} className="data-row border-b border-slate-100 cursor-pointer" onClick={() => setSelected(c)} data-testid={`client-row-${c.id}`}>
                   <td className="px-5 py-3 font-semibold text-slate-900">{c.name}</td>
-                  <td className="px-5 py-3">{c.phone}</td>
+                  <td className="px-5 py-3"><PhoneNumbers value={c.phone} iconSize={11} className="text-xs" /></td>
                   <td className="px-5 py-3 text-slate-600">{c.address}</td>
                   <td className="px-5 py-3">{c.postal_code}</td>
                   <td className="px-5 py-3">{c.city}</td>

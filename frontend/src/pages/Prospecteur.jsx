@@ -1,3 +1,4 @@
+import PhoneNumbers from "@/components/PhoneNumbers";
 import React, { useEffect, useMemo, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -437,7 +438,7 @@ export default function Prospecteur() {
                   <td className="px-4 py-3 whitespace-nowrap text-slate-500">{r.sale_date ? new Date(r.sale_date).toLocaleDateString("fr-FR") : "—"}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold">{r.client_name || "—"}</p>
-                    {r.client_phone && <p className="text-xs text-slate-500">{r.client_phone}</p>}
+                    {r.client_phone && <PhoneNumbers value={r.client_phone} iconSize={11} className="text-xs text-slate-500 mt-0.5" />}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{[r.client_postal_code, r.client_city].filter(Boolean).join(" ") || "—"}</td>
                   {isManager && <td className="px-4 py-3 text-slate-600 max-w-[220px] truncate" title={r.service}>{r.service || "—"}</td>}

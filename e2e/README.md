@@ -97,3 +97,13 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/load_smoke.js
 Mesure 30 requêtes `/health`, 10 `/ready`, 20 clients, 20 ventes, 20 chantiers,
 10 challenges et quatre chargements de pages. Ce n'est pas un test de charge
 industriel ; c'est un contrôle de latence sur le staging Render.
+
+
+## Téléphones
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/phone_flow.js
+```
+
+Vérifie le découpage d'un champ `0327376451 / 0612569563`, les deux liens `tel:`
+et leur présence dans la fiche client.

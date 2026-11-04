@@ -1,3 +1,4 @@
+import PhoneNumbers from "@/components/PhoneNumbers";
 import React, { useEffect, useMemo, useState } from "react";
 import api, { downloadApiFile, formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -887,7 +888,7 @@ export default function Sales() {
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{s.client_name || "—"}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{s.client_phone}</td>
+                    <td className="px-4 py-3 whitespace-nowrap"><PhoneNumbers value={s.client_phone} iconSize={11} className="text-xs" /></td>
                     <td className="px-4 py-3 text-slate-600">{s.client_address}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{s.client_postal_code}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{s.client_city}</td>

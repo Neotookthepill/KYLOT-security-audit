@@ -7,7 +7,7 @@ import {
   TrendingUp, Euro, Users, HardHat, CheckCircle2, Clock, Trophy,
   Bell, ArrowRight, ArrowUp, ArrowDown, Percent, Wallet, ListChecks, Sparkles,
   CalendarClock, GripVertical, EyeOff, Eye, RotateCcw, Settings2, Plus, Check,
-  ChevronLeft, ChevronRight, CalendarDays, X, Phone, User as UserIcon, UserCheck, UserX,
+  ChevronLeft, ChevronRight, CalendarDays, X, User as UserIcon, UserCheck, UserX,
   Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import PhoneNumbers from "@/components/PhoneNumbers";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 
@@ -826,9 +827,7 @@ export default function Dashboard() {
                         </span>
                       )}
                       {p.client_phone && (
-                        <a href={`tel:${p.client_phone}`} className="inline-flex items-center gap-1 hover:text-slate-900" onClick={(e) => e.stopPropagation()}>
-                          <Phone size={10} />{p.client_phone}
-                        </a>
+                        <PhoneNumbers value={p.client_phone} iconSize={10} linkClassName="hover:text-slate-900" />
                       )}
                     </div>
                   </div>

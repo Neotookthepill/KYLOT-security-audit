@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Phone, MapPin, Camera, X, Loader2, MapPin as MapPinIcon, Image as ImageIcon, UserCircle, Users2, CheckCheck, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, RotateCcw, Plus } from "lucide-react";
+import { MapPin, Camera, X, Loader2, MapPin as MapPinIcon, Image as ImageIcon, UserCircle, Users2, CheckCheck, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, RotateCcw, Plus } from "lucide-react";
+import PhoneNumbers from "@/components/PhoneNumbers";
 import { toast } from "sonner";
 import useTeam from "@/lib/useTeam";
 import { useAuth } from "@/contexts/AuthContext";
@@ -462,7 +463,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             })()}
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-slate-500 pt-2">
-            {project.client_phone && <span className="flex items-center gap-1"><Phone size={11}/> {project.client_phone}</span>}
+            {project.client_phone && <PhoneNumbers value={project.client_phone} iconSize={11} className="text-xs" />}
             {project.client_address && <span className="flex items-center gap-1"><MapPin size={11}/> {project.client_address} {project.client_postal_code} {project.client_city}</span>}
           </div>
           {/* Commercial(s) : always visible (comes from the sale) */}
