@@ -12431,7 +12431,11 @@ APP_STARTED_AT = now_iso()
 
 @app.get("/api/version", include_in_schema=False)
 async def _version():
-    return {"version": APP_VERSION, "started_at": APP_STARTED_AT}
+    return {
+        "version": APP_VERSION,
+        "environment": _RUNTIME_ENV,
+        "started_at": APP_STARTED_AT,
+    }
 
 app.add_middleware(
     CORSMiddleware,

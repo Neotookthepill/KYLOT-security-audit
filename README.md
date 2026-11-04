@@ -11,6 +11,8 @@ Lire avant toute livraison :
 - `SECURITY-FIX-REPORT-2026-10-18.md` : correctifs, preuves, résultats et tests restant à effectuer ;
 - `SECURITY-VALIDATION-2026-10-19.md` : dernière matrice multi-entreprises, entrées hostiles, volume et limites de validation ;
 - `DEPLOYMENT.md` : configuration, staging, sauvegarde et retour arrière ;
+- `STAGING-RUNBOOK.md` : procédure de préproduction réelle et smoke test ;
+- `FEATURES-2026-11-03.md` : règles Challenge et commissions prospection ;
 - `AUTHORIZATION-MATRIX-2026-10-16.md` : rôles, permissions et portées attendues ;
 - `ROUTE-INVENTORY-2026-10-16.md` : inventaire des routes à utiliser pour la recette multi-rôles.
 
