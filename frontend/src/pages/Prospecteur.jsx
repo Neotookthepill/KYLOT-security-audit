@@ -273,20 +273,21 @@ export default function Prospecteur() {
 
   const inSale = (r) => r.sale_date && r.sale_date.slice(0, 10) >= bounds.from && r.sale_date.slice(0, 10) <= bounds.to;
   const inCom = (r) => comMonth(r) >= bounds.from.slice(0, 7) && comMonth(r) <= bounds.to.slice(0, 7);
-  const visible = useMemo(() => rows.filter((r) => inSale(r) || inCom(r))
-    .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [rows, q, bounds]); // eslint-disable-line react-hooks/exhaustive-deps
+  const singleMonth = bounds.from.slice(0, 7) === bounds.to.slice(0, 7);
+  const monthKey = bounds.from.slice(0, 7);
+  const isFutureCommission = (r) => singleMonth && comMonth(r) > monthKey;
+  const visible = useMemo(() => rows.filter((r) => inSale(r) || inCom(r) || isFutureCommission(r))
+    .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [rows, q, bounds, singleMonth, monthKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const caRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
   const payRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
   const totalCA = caRows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
   const threshold = parseInt(settings?.prospect_smic_threshold ?? 3, 10) || 3;
   const baseAmt = parseFloat(settings?.prospect_smic_amount ?? 1867) || 0;
-  const singleMonth = bounds.from.slice(0, 7) === bounds.to.slice(0, 7);
   const mgrGoal = parseInt(settings?.prospect_mgr_goal_sales ?? 12, 10) || 12;
   const mgrBelow = parseFloat(settings?.prospect_mgr_rate_below ?? 1) || 0;
   const mgrAbove = parseFloat(settings?.prospect_mgr_rate_above ?? 2) || 0;
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
   const commissionRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
-  const monthKey = bounds.from.slice(0, 7);
   const deferredRows = singleMonth
     ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) > monthKey)
     : [];
