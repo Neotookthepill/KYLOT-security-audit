@@ -8,14 +8,16 @@ Frontend : `3fdfdc9`
 
 | Suite | Résultat |
 |---|---|
-| Backend `pytest backend/test_*.py` | **114 passed** |
+| Backend `pytest backend/test_*.py` | **117 passed** |
 | E2E staging `staging_flow.js` | **22 checks** |
 | E2E MFA `mfa_flow.js` | **9 checks** |
 | E2E offline `offline_flow.js` | **5 checks** |
 | E2E imports `import_flow.js` | **7 checks** |
+| E2E téléphones `phone_flow.js` | **6 checks** |
+| E2E événements `event_flow.js` | **10 checks** |
 | Navigateur (`browser_matrix.js`) | **26 checks** (Chromium desktop + mobile) |
 | Charge légère (`load_smoke.js`) | **110 requêtes, 0 erreur** |
-| Frontend Jest | 30 tests |
+| Frontend Jest | 34 tests |
 | Sauvegarde Atlas | archive + checksum |
 | Restauration Atlas | `kylot_staging_restore` vérifiée |
 
