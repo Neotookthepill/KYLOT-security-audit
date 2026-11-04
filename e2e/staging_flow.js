@@ -116,6 +116,9 @@ async function json(response) { return response.json(); }
     rows = await json(await api.get("/api/prospection"));
     row = rows.find((r) => r.id === saleId);
     ok("manual override wins", row?.commission_month === manualMonth && row?.commission_month_source === "manual", JSON.stringify(row));
+    await page.goto(`${BASE}/prospecteur`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500);
+    ok("far-future deferred detail visible", (await page.locator(`[data-testid="prospect-deferred-month-${saleId}"]`).count()) === 1);
 
     // 7. Challenge
     const challengeResponse = await api.post("/api/challenges", { data: {

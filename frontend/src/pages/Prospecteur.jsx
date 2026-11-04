@@ -287,14 +287,19 @@ export default function Prospecteur() {
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
   const commissionRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
   const monthKey = bounds.from.slice(0, 7);
-  const nextMonthKey = (() => {
-    const [y, m] = monthKey.split("-").map(Number);
-    const d = new Date(y, m, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  })();
   const deferredRows = singleMonth
-    ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) === nextMonthKey)
+    ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) > monthKey)
     : [];
+  const deferredCountByMonth = deferredRows.reduce((acc, r) => {
+    const m = comMonth(r);
+    acc[m] = (acc[m] || 0) + 1;
+    return acc;
+  }, {});
+  const deferredCommission = (r) => {
+    const count = deferredCountByMonth[comMonth(r)] || 0;
+    const rate = count >= mgrGoal ? mgrAbove : mgrBelow;
+    return (parseFloat(r.amount) || 0) * rate / 100;
+  };
   const managerCommission = (list) => {
     const by = {};
     for (const r of list) {
@@ -311,7 +316,6 @@ export default function Prospecteur() {
   };
   const actualMgr = managerCommission(commissionRows);
   const deferredMgr = managerCommission(deferredRows);
-  const deferredRate = deferredRows.length >= mgrGoal ? mgrAbove : mgrBelow;
   const mgrIds = new Set(prospecteurs.filter((p) => p.role === "responsable_prospecteur").map((p) => p.id));
   const monthsCount = (() => {
     const [y1, m1] = bounds.from.slice(0, 7).split("-").map(Number);
@@ -358,7 +362,7 @@ export default function Prospecteur() {
 
       {isManager && singleMonth && deferredRows.length > 0 && (
         <Card className="p-5 border-amber-200 bg-amber-50/30 shadow-sm" data-testid="prospect-deferred-detail">
-          <p className="overline text-amber-800">Détail des commissions reportées sur {monthLabel(nextMonthKey)}</p>
+          <p className="overline text-amber-800">Détail des commissions reportées</p>
           <div className="overflow-x-auto mt-3">
             <table className="w-full text-sm">
               <thead>
@@ -366,6 +370,7 @@ export default function Prospecteur() {
                   <th className="py-2">Date vente</th>
                   <th className="py-2">Client</th>
                   <th className="py-2">Chantier</th>
+                  <th className="py-2">Mois com.</th>
                   <th className="py-2 text-right">Montant</th>
                   <th className="py-2 text-right">Commission resp.</th>
                 </tr>
@@ -376,8 +381,9 @@ export default function Prospecteur() {
                     <td className="py-2">{r.sale_date || "—"}</td>
                     <td className="py-2">{r.client_name || "—"}</td>
                     <td className="py-2">{r.project_date || "—"}</td>
+                    <td className="py-2 whitespace-nowrap font-medium text-amber-800" data-testid={`prospect-deferred-month-${r.id}`}>{monthLabel(comMonth(r))}</td>
                     <td className="py-2 text-right">{fmtEur2(r.amount)}</td>
-                    <td className="py-2 text-right font-semibold text-amber-800">{fmtEur2((parseFloat(r.amount) || 0) * deferredRate / 100)}</td>
+                    <td className="py-2 text-right font-semibold text-amber-800">{fmtEur2(deferredCommission(r))}</td>
                   </tr>
                 ))}
               </tbody>
