@@ -67,6 +67,8 @@ jobs:
       - run: python -m unittest backend.test_integration_security
       - run: python -m unittest backend.test_counter_audit_fixes
       - run: python -m unittest backend.test_mfa
+      - run: python -m unittest backend.test_challenges
+      - run: python -m unittest backend.test_prospection
       - name: Run adversarial, multi-tenant and bounded-scale security suites
         env:
           PYTHONPATH: .

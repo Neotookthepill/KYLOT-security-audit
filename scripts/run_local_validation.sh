@@ -10,7 +10,9 @@ PYTHONPATH=. ./.venv/bin/pytest -q \
   backend/test_app_smoke.py \
   backend/test_integration_security.py \
   backend/test_counter_audit_fixes.py \
-  backend/test_mfa.py
+  backend/test_mfa.py \
+  backend/test_challenges.py \
+  backend/test_prospection.py
 
 for suite in \
   audit/security_adversarial_checks.py \
@@ -31,4 +33,4 @@ cd frontend
 CI=true ./node_modules/.bin/craco test --watchAll=false --runInBand
 ./node_modules/.bin/craco build
 
-printf '%s\n' 'Validation locale réussie : 109 contrôles sécurité/robustesse, 74 tests serveur, 30 tests interface et build de production.'
+printf '%s\n' 'Validation locale réussie : 109 contrôles sécurité/robustesse, 79 tests serveur, 30 tests interface et build de production.'

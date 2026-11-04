@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
 import TodayTodos from "@/components/TodayTodos";
+import ChallengeWidget from "@/components/ChallengeWidget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -101,12 +102,13 @@ const WIDGET_LABELS = {
   commissions: "Commissions du mois",
   overtime: "Heures sup à valider",
   ranking: "Classement commercial",
+  challenge: "Challenge commercial",
   recent_sales: "Ventes récentes",
 };
 // iter182 — Éclatement de `stats` en `sales_count` (Ventes) + `today_todos` (À faire),
 // pour permettre à l'utilisateur de placer Ventes à côté de Heures sup et redimensionner
 // chaque bloc librement (⅓ / ½ / ⅔ / plein).
-const DEFAULT_ORDER = ["ca_hero", "activity", "sales_count", "overtime", "today_todos", "events", "alerts", "commissions", "ranking", "recent_sales"];
+const DEFAULT_ORDER = ["ca_hero", "activity", "sales_count", "overtime", "today_todos", "events", "alerts", "commissions", "ranking", "challenge", "recent_sales"];
 // Tailles par défaut (grille 12-col). 6 = ½, 12 = plein.
 const DEFAULT_SIZES = {
   ca_hero: 12,
@@ -118,6 +120,7 @@ const DEFAULT_SIZES = {
   alerts: 6,
   commissions: 6,
   ranking: 6,
+  challenge: 12,
   recent_sales: 6,
 };
 const ALLOWED_SIZES = [4, 6, 8, 12];
@@ -240,6 +243,10 @@ export default function Dashboard() {
       const migrated = migrateOrder(ord);
       if (migrated.join(",") !== ord.join(",")) {
         ord = migrated;
+        try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
+      }
+      if (!ord.includes("challenge")) {
+        ord = [...ord, "challenge"];
         try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
       }
       setOrder(ord);
@@ -676,6 +683,7 @@ export default function Dashboard() {
       </Card>
       );
     },
+    challenge: () => <ChallengeWidget />,
     recent_sales: () => (
       <Card className="border-slate-200 shadow-sm">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between"><div className="flex items-center gap-2"><Wallet size={16} className="text-slate-500" /><p className="font-display text-base font-semibold">Ventes récentes</p></div><button onClick={() => !editing && nav("/ventes")} className="text-xs text-slate-500 hover:text-slate-900">Voir tout →</button></div>

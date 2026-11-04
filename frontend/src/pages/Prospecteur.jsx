@@ -3,7 +3,7 @@ import api, { formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserSearch, Users as UsersIcon, Euro, Search, Check, Calendar as CalIcon } from "lucide-react";
+import { UserSearch, Users as UsersIcon, Euro, Search, Check, Calendar as CalIcon, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -56,7 +56,7 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
   );
 }
 
-const comMonth = (r) => r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
+const comMonth = (r) => r.commission_month || r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
 const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const monthLabel = (ym) => (ym ? `${MONTHS_FR[parseInt(ym.slice(5, 7), 10) - 1]} ${ym.slice(0, 4)}` : "—");
 const monthOptions = (saleYm) => {
@@ -129,10 +129,10 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase }) {
   );
 }
 
-function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrBase, monthsCount, bonuses }) {
+function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrBase, monthsCount, bonuses, deferred = 0 }) {
   const byMonth = {};
   rows.forEach((r) => {
-    const m = (r.sale_date || "").slice(0, 7);
+    const m = comMonth(r);
     byMonth[m] = byMonth[m] || { count: 0, ca: 0 };
     byMonth[m].count += 1; byMonth[m].ca += parseFloat(r.amount) || 0;
   });
@@ -164,6 +164,7 @@ function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrB
           <p className="text-xs text-slate-500">{singleMonth && cur ? `${String(rate).replace(".", ",")} % de ${fmtEur(ca)}` : `sur ${fmtEur(ca)} de CA`}</p>
           <p className="font-display text-3xl font-semibold text-emerald-700" data-testid="prospect-mgr-commission">{fmtEur(comm)}</p>
           <p className="text-xs text-slate-500 mt-1" data-testid="prospect-mgr-total">Base {fmtEur2(mgrBase * monthsCount)} brut + commission{primes > 0 ? ` + primes ${fmtEur2(primes)}` : ""} = <b className="text-slate-900">{fmtEur2(mgrBase * monthsCount + comm + primes)}</b></p>
+          {deferred > 0 && <p className="text-xs text-amber-700 mt-1" data-testid="prospect-mgr-deferred-total">dont {fmtEur2(deferred)} reporté au mois suivant</p>}
         </div>
       </div>
       {cleanMgrBonuses(bonuses).length > 0 && (
@@ -280,11 +281,37 @@ export default function Prospecteur() {
   const threshold = parseInt(settings?.prospect_smic_threshold ?? 3, 10) || 3;
   const baseAmt = parseFloat(settings?.prospect_smic_amount ?? 1867) || 0;
   const singleMonth = bounds.from.slice(0, 7) === bounds.to.slice(0, 7);
-  const teamRows = rows.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
   const mgrGoal = parseInt(settings?.prospect_mgr_goal_sales ?? 12, 10) || 12;
   const mgrBelow = parseFloat(settings?.prospect_mgr_rate_below ?? 1) || 0;
   const mgrAbove = parseFloat(settings?.prospect_mgr_rate_above ?? 2) || 0;
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
+  const commissionRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
+  const monthKey = bounds.from.slice(0, 7);
+  const nextMonthKey = (() => {
+    const [y, m] = monthKey.split("-").map(Number);
+    const d = new Date(y, m, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+  const deferredRows = singleMonth
+    ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) === nextMonthKey)
+    : [];
+  const managerCommission = (list) => {
+    const by = {};
+    for (const r of list) {
+      const m = comMonth(r);
+      if (!m) continue;
+      by[m] = by[m] || { count: 0, ca: 0 };
+      by[m].count += 1;
+      by[m].ca += parseFloat(r.amount) || 0;
+    }
+    return Object.values(by).reduce((sum, x) => {
+      const rate = x.count >= mgrGoal ? mgrAbove : mgrBelow;
+      return sum + (x.ca * rate) / 100;
+    }, 0);
+  };
+  const actualMgr = managerCommission(commissionRows);
+  const deferredMgr = managerCommission(deferredRows);
+  const deferredRate = deferredRows.length >= mgrGoal ? mgrAbove : mgrBelow;
   const mgrIds = new Set(prospecteurs.filter((p) => p.role === "responsable_prospecteur").map((p) => p.id));
   const monthsCount = (() => {
     const [y1, m1] = bounds.from.slice(0, 7).split("-").map(Number);
@@ -312,6 +339,8 @@ export default function Prospecteur() {
         <Stat label="Clients" value={caRows.length} icon={UsersIcon} testId="prospect-stat-clients" />
         <Stat label="Ventes en commission" value={payRows.length} icon={UserSearch} testId="prospect-stat-active" />
         <Stat label="Rémunération" value={fmtEur(totalPay)} icon={Euro} testId="prospect-stat-commission" />
+        {isManager && singleMonth && <Stat label="Commission resp. réelle" value={fmtEur(actualMgr)} icon={Euro} testId="prospect-mgr-real" />}
+        {isManager && singleMonth && <Stat label="Commission resp. reportée" value={fmtEur(deferredMgr)} icon={Clock} testId="prospect-mgr-deferred" />}
       </div>
 
       {!isManager && singleMonth && (
@@ -325,7 +354,37 @@ export default function Prospecteur() {
         </Card>
       )}
 
-      {isManager && <ManagerCommission rows={teamRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} />}
+      {isManager && <ManagerCommission rows={commissionRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} deferred={deferredMgr} />}
+
+      {isManager && singleMonth && deferredRows.length > 0 && (
+        <Card className="p-5 border-amber-200 bg-amber-50/30 shadow-sm" data-testid="prospect-deferred-detail">
+          <p className="overline text-amber-800">Détail des commissions reportées sur {monthLabel(nextMonthKey)}</p>
+          <div className="overflow-x-auto mt-3">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b border-amber-200">
+                  <th className="py-2">Date vente</th>
+                  <th className="py-2">Client</th>
+                  <th className="py-2">Chantier</th>
+                  <th className="py-2 text-right">Montant</th>
+                  <th className="py-2 text-right">Commission resp.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deferredRows.map((r) => (
+                  <tr key={r.id} className="border-b border-amber-100 last:border-0">
+                    <td className="py-2">{r.sale_date || "—"}</td>
+                    <td className="py-2">{r.client_name || "—"}</td>
+                    <td className="py-2">{r.project_date || "—"}</td>
+                    <td className="py-2 text-right">{fmtEur2(r.amount)}</td>
+                    <td className="py-2 text-right font-semibold text-amber-800">{fmtEur2((parseFloat(r.amount) || 0) * deferredRate / 100)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {isManager && <ByProspecteur caRows={caRows} payRows={payRows} threshold={threshold} base={baseAmt} mgrIds={mgrIds} mgrBase={mgrBase} />}
 

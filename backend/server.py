@@ -945,6 +945,20 @@ class MfaResetIn(BaseModel):
     reason: str = Field(min_length=5, max_length=500)
 
 
+class ChallengeRewardIn(BaseModel):
+    place: int = Field(ge=1, le=10)
+    amount: float = Field(ge=0, le=1_000_000)
+
+
+class ChallengeIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    criterion: Literal["r1", "assist", "sales", "ca"]
+    participant_names: List[str] = Field(default_factory=list, max_length=200)
+    rewards: List[ChallengeRewardIn] = Field(default_factory=list, max_length=10)
+
+
 class ClientIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     phone: Optional[str] = Field(default="", max_length=40)
@@ -9457,6 +9471,220 @@ async def list_audit(
     return docs
 
 
+# ---------------- Challenges commerciaux ----------------
+
+CHALLENGE_CRITERIA = {
+    "r1": "Nombre de R1",
+    "assist": "Nombre d'assistances",
+    "sales": "Nombre de ventes signées",
+    "ca": "Chiffre d'affaires",
+}
+
+
+def _challenge_rewards(values: list[ChallengeRewardIn]) -> list[dict]:
+    seen = set()
+    out = []
+    for reward in values:
+        if reward.place in seen:
+            raise HTTPException(status_code=400, detail="Chaque place ne peut avoir qu'une récompense")
+        seen.add(reward.place)
+        out.append({"place": reward.place, "amount": round(float(reward.amount), 2)})
+    return sorted(out, key=lambda x: x["place"])
+
+
+def _challenge_validate(data: ChallengeIn) -> tuple[str, str, list[str], list[dict]]:
+    try:
+        start = date.fromisoformat(data.start_date)
+        end = date.fromisoformat(data.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates de challenge invalides")
+    if end < start:
+        raise HTTPException(status_code=400, detail="La date de fin doit être après la date de début")
+    if (end - start).days > 366:
+        raise HTTPException(status_code=400, detail="Un challenge ne peut pas dépasser 366 jours")
+    names = []
+    seen = set()
+    for raw in data.participant_names:
+        name = (raw or "").strip()
+        if not name:
+            continue
+        key = _norm_name(name)
+        if key and key not in seen:
+            seen.add(key)
+            names.append(name)
+    return data.start_date, data.end_date, names, _challenge_rewards(data.rewards)
+
+
+def _challenge_public(ch: dict) -> dict:
+    return {
+        "id": ch.get("id"),
+        "name": ch.get("name"),
+        "start_date": ch.get("start_date"),
+        "end_date": ch.get("end_date"),
+        "criterion": ch.get("criterion"),
+        "criterion_label": CHALLENGE_CRITERIA.get(ch.get("criterion"), ch.get("criterion")),
+        "participant_names": ch.get("participant_names") or [],
+        "rewards": ch.get("rewards") or [],
+        "status": ch.get("status") or "active",
+        "created_at": ch.get("created_at"),
+        "closed_at": ch.get("closed_at"),
+        "results_snapshot": ch.get("results_snapshot"),
+    }
+
+
+async def _challenge_ranking(user: dict, challenge: dict) -> list[dict]:
+    q = cq(user, {
+        "sale_date": {"$gte": challenge["start_date"], "$lte": challenge["end_date"]},
+        "status": {"$nin": ["annule", "litige"]},
+    })
+    rows = await db.sales.find(q, {
+        "_id": 0, "id": 1, "commercial": 1, "amount": 1, "source": 1, "status": 1,
+    }).to_list(20000)
+    criterion = challenge.get("criterion") or "assist"
+    if criterion == "r1":
+        rows = [r for r in rows if (r.get("source") or "").strip().lower() == "r1"]
+    elif criterion == "assist":
+        rows = [r for r in rows if (r.get("source") or "").strip().lower() == "assist"]
+    allowed = {_norm_name(n) for n in (challenge.get("participant_names") or []) if n}
+    grouped = {}
+    for row in rows:
+        name = (row.get("commercial") or "").strip()
+        if not name:
+            continue
+        key = _norm_name(name)
+        if allowed and key not in allowed:
+            continue
+        bucket = grouped.setdefault(key, {"name": name, "count": 0, "ca": 0.0})
+        bucket["count"] += 1
+        bucket["ca"] += float(row.get("amount") or 0)
+    for name in challenge.get("participant_names") or []:
+        key = _norm_name(name)
+        if key and key not in grouped:
+            grouped[key] = {"name": name, "count": 0, "ca": 0.0}
+    ranking = []
+    for item in grouped.values():
+        points = item["ca"] if criterion == "ca" else item["count"]
+        ranking.append({**item, "points": round(points, 2)})
+    ranking.sort(key=lambda x: (-x["points"], -x["ca"], _norm_name(x["name"])))
+    previous = None
+    rank = 0
+    for index, item in enumerate(ranking, 1):
+        if previous is None or item["points"] != previous:
+            rank = index
+            previous = item["points"]
+        item["rank"] = rank
+    my_key = _norm_name(user.get("name") or "")
+    for item in ranking:
+        item["is_me"] = bool(my_key and _norm_name(item["name"]) == my_key)
+    return ranking
+
+
+@api_router.get("/challenges/current")
+async def current_challenge(user: dict = Depends(get_current_user)):
+    challenge = await db.challenges.find_one(
+        cq(user, {"status": "active"}), {"_id": 0}
+    )
+    if not challenge:
+        return {"challenge": None, "ranking": [], "me": None, "days_left": 0}
+    ranking = await _challenge_ranking(user, challenge)
+    me = next((row for row in ranking if row["is_me"]), None)
+    try:
+        end = date.fromisoformat(challenge["end_date"])
+        days_left = max(0, (end - date.today()).days)
+    except ValueError:
+        days_left = 0
+    return {
+        "challenge": _challenge_public(challenge),
+        "ranking": ranking,
+        "me": me,
+        "days_left": days_left,
+    }
+
+
+@api_router.get("/challenges")
+async def list_challenges(
+    include_closed: int = Query(0, ge=0, le=1),
+    user: dict = Depends(require_admin),
+):
+    q = cq(user)
+    if not include_closed:
+        q["status"] = "active"
+    docs = await db.challenges.find(q, {"_id": 0}).sort("start_date", -1).to_list(200)
+    return [_challenge_public(doc) for doc in docs]
+
+
+@api_router.post("/challenges")
+async def create_challenge(data: ChallengeIn, user: dict = Depends(require_admin)):
+    start, end, names, rewards = _challenge_validate(data)
+    if await db.challenges.find_one(cq(user, {"status": "active"}), {"_id": 1}):
+        raise HTTPException(status_code=409, detail="Un challenge est déjà actif. Clôturez-le avant d'en créer un autre")
+    doc = with_company({
+        "id": str(uuid.uuid4()),
+        "name": data.name.strip(),
+        "start_date": start,
+        "end_date": end,
+        "criterion": data.criterion,
+        "participant_names": names,
+        "rewards": rewards,
+        "status": "active",
+        "created_by": user["id"],
+        "created_at": now_iso(),
+    }, user)
+    await db.challenges.insert_one(doc)
+    return _challenge_public(doc)
+
+
+@api_router.put("/challenges/{cid}")
+async def update_challenge(cid: str, data: ChallengeIn, user: dict = Depends(require_admin)):
+    existing = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    if existing.get("status") != "active":
+        raise HTTPException(status_code=409, detail="Un challenge clôturé ne peut plus être modifié")
+    start, end, names, rewards = _challenge_validate(data)
+    other = await db.challenges.find_one(
+        cq(user, {"status": "active", "id": {"$ne": cid}}), {"_id": 1}
+    )
+    if other:
+        raise HTTPException(status_code=409, detail="Un autre challenge est déjà actif")
+    await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {
+        "name": data.name.strip(), "start_date": start, "end_date": end,
+        "criterion": data.criterion, "participant_names": names,
+        "rewards": rewards, "updated_at": now_iso(), "updated_by": user["id"],
+    }})
+    updated = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    return _challenge_public(updated)
+
+
+@api_router.post("/challenges/{cid}/close")
+async def close_challenge(cid: str, user: dict = Depends(require_admin)):
+    challenge = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    if challenge.get("status") != "active":
+        raise HTTPException(status_code=409, detail="Challenge déjà clôturé")
+    ranking = await _challenge_ranking(user, challenge)
+    snapshot = {
+        "closed_at": now_iso(),
+        "closed_by": user["id"],
+        "ranking": ranking,
+    }
+    await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {
+        "status": "closed", "closed_at": snapshot["closed_at"],
+        "closed_by": user["id"], "results_snapshot": snapshot,
+    }})
+    return {"ok": True, "challenge": _challenge_public({**challenge, **snapshot, "status": "closed"})}
+
+
+@api_router.post("/challenges/{cid}/archive")
+async def archive_challenge(cid: str, user: dict = Depends(require_admin)):
+    challenge = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 1})
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {"status": "archived", "archived_at": now_iso()}})
+    return {"ok": True}
+
+
 # ---------------- Startup ----------------
 
 async def seed_admin():
@@ -11982,11 +12210,38 @@ async def list_prospection(
                                      "commercial": 1, "prospecteur_id": 1, "prospecteur_name": 1, "prospecteur_commission": 1, "prospect_commission_month": 1}).sort("sale_date", -1).to_list(5000)
     cids = list({s.get("client_id") for s in sales if s.get("client_id")})
     clients = {c["id"]: c async for c in db.clients.find(cq(user, {"id": {"$in": cids}}), {"_id": 0, "id": 1, "name": 1, "phone": 1, "city": 1, "postal_code": 1})}
+    sale_ids = [s["id"] for s in sales if s.get("id")]
+    project_map = {}
+    if sale_ids:
+        projects = await db.projects.find(
+            cq(user, {"sale_id": {"$in": sale_ids}}),
+            {"_id": 0, "sale_id": 1, "scheduled_date": 1, "completion": 1},
+        ).to_list(20000)
+        for project in projects:
+            sid = project.get("sale_id")
+            if sid and sid not in project_map:
+                project_map[sid] = project
     rows = []
     for s in sales:
         c = clients.get(s.get("client_id")) or {}
+        project = project_map.get(s.get("id")) or {}
+        manual_month = (s.get("prospect_commission_month") or "").strip()
+        scheduled = (project.get("scheduled_date") or "").strip()
+        completed = ((project.get("completion") or {}).get("completed_at") or "").strip()
+        project_date = scheduled or (completed[:10] if completed else "")
+        if manual_month:
+            commission_month = manual_month
+            commission_source = "manual"
+        elif project_date:
+            commission_month = project_date[:7]
+            commission_source = "project"
+        else:
+            commission_month = (s.get("sale_date") or "")[:7]
+            commission_source = "sale_date"
         row = {**s, "client_name": c.get("name", ""), "client_phone": c.get("phone", ""), "client_city": c.get("city", ""),
-               "client_postal_code": c.get("postal_code", ""), "prospecteur_commission": float(s.get("prospecteur_commission") or 0)}
+               "client_postal_code": c.get("postal_code", ""), "prospecteur_commission": float(s.get("prospecteur_commission") or 0),
+               "project_date": project_date, "commission_month": commission_month,
+               "commission_month_source": commission_source}
         if role == "prospecteur":
             for k in ("amount", "service", "bdc"):
                 row.pop(k, None)
