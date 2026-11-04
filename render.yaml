@@ -14,7 +14,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DB_NAME
-        value: kylot_preview
+        value: kylot_staging
       - key: MONGO_URL
         sync: false
       - key: JWT_SECRET
@@ -58,7 +58,7 @@ services:
     autoDeployTrigger: checksPass
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: .
-    healthCheckPath: /health
+    healthCheckPath: /
     envVars:
       - key: PORT
         value: "8080"
