@@ -76,3 +76,13 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/offline_flow.js
 Crée une vente, passe le navigateur hors ligne, modifie les notes, vérifie que
 le serveur n'est pas touché, rétablit le réseau, puis contrôle le rejeu et la
 vidange de la file IndexedDB.
+
+
+## Imports
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/import_flow.js
+```
+
+Couvre l'import copier-coller, la détection de doublons et l'import fichier CSV
+avec mapping des colonnes.
