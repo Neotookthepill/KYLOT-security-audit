@@ -78,7 +78,10 @@ if not ACK:
 # Order matters: dependent rows before parents.
 deleted = {}
 if sale_ids:
-    deleted["project_notes"] = db.project_notes.delete_many({"sale_id": {"$in": sale_ids}}).deleted_count
+    project_ids = [p["id"] for p in projects if p.get("id")]
+    deleted["project_notes"] = db.project_notes.delete_many({"$or": [
+        {"sale_id": {"$in": sale_ids}}, {"project_id": {"$in": project_ids}},
+    ]}).deleted_count
     deleted["client_notes"] = db.client_notes.delete_many({"client_id": {"$in": client_ids}}).deleted_count
     deleted["projects"] = db.projects.delete_many({"id": {"$in": [p["id"] for p in projects]}}).deleted_count
     deleted["sales"] = db.sales.delete_many({"id": {"$in": sale_ids}}).deleted_count
@@ -90,7 +93,11 @@ deleted["clients"] = db.clients.delete_many({"id": {"$in": client_ids}}).deleted
 deleted["challenges"] = db.challenges.delete_many({"id": {"$in": [c["id"] for c in challenges]}}).deleted_count
 deleted["events"] = db.events.delete_many({"id": {"$in": [e["id"] for e in events]}}).deleted_count
 if user_ids:
-    deleted["team_members"] = db.team_members.delete_many({"user_id": {"$in": user_ids}}).deleted_count
+    emails = [u.get("email") for u in users if u.get("email")]
+    deleted["team_members"] = db.team_members.delete_many({"$or": [
+        {"user_id": {"$in": user_ids}}, {"email": {"$in": emails}},
+        {"name": {"$in": ["E2E Admin", "E2E Commercial"]}},
+    ]}).deleted_count
     deleted["user_prefs"] = db.user_prefs.delete_many({"user_id": {"$in": user_ids}}).deleted_count
     deleted["users"] = db.users.delete_many({"id": {"$in": user_ids}}).deleted_count
 
