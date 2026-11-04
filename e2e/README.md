@@ -86,3 +86,14 @@ NODE_PATH=/Users/l1l2/node_modules node e2e/import_flow.js
 
 Couvre l'import copier-coller, la détection de doublons et l'import fichier CSV
 avec mapping des colonnes.
+
+
+## Charge légère
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/load_smoke.js
+```
+
+Mesure 30 requêtes `/health`, 10 `/ready`, 20 clients, 20 ventes, 20 chantiers,
+10 challenges et quatre chargements de pages. Ce n'est pas un test de charge
+industriel ; c'est un contrôle de latence sur le staging Render.
