@@ -7,7 +7,7 @@ Required:
   STAGING_PASSWORD=...
 Optional:
   STAGING_MFA_CODE=123456       # if the admin has MFA enabled
-  STAGING_EXPECTED_VERSION=...  # exact git SHA / APP_VERSION
+  STAGING_EXPECTED_VERSION=...  # git SHA prefix or full APP_VERSION
   STAGING_INSECURE=1            # ignore self-signed TLS (local only)
 """
 
@@ -82,7 +82,12 @@ status, version, _ = request("GET", "/api/version")
 version_value = version.get("version") if isinstance(version, dict) else None
 check("version endpoint", status == 200 and bool(version_value), f"HTTP {status}")
 if EXPECTED:
-    check("deployed version matches", version_value == EXPECTED, f"expected {EXPECTED}, got {version_value}")
+    deployed = version_value if isinstance(version_value, str) else ""
+    check(
+        "deployed version matches",
+        deployed == EXPECTED or deployed.startswith(EXPECTED),
+        f"expected {EXPECTED}, got {version_value}",
+    )
 
 status, login, _ = request("POST", "/api/auth/login", {"email": EMAIL, "password": PASSWORD})
 if status == 200 and isinstance(login, dict) and login.get("mfa_required"):
