@@ -8,7 +8,7 @@ Frontend : `3fdfdc9`
 
 | Suite | Résultat |
 |---|---|
-| Backend `pytest backend/test_*.py` | **106 passed** |
+| Backend `pytest backend/test_*.py` | **111 passed** |
 | E2E staging `staging_flow.js` | **22 checks** |
 | E2E MFA `mfa_flow.js` | **9 checks** |
 | E2E offline `offline_flow.js` | **5 checks** |
@@ -28,6 +28,8 @@ Frontend : `3fdfdc9`
 - imports : collage en masse, doublons, fichier CSV avec mapping ;
 - offline : file IndexedDB, absence d'écriture serveur, rejeu, vidange ;
 - planning : multi-jours, jours supplémentaires, exclusions, dates invalides, soft-delete/restore ;
+- rôles : commercial, technicien, comptable, responsable, sous-traitant, prospecteur ;
+- ventes avancées : DE, taux indépendants, anti-double comptage, commission arrondie ;
 - sauvegarde/restauration.
 
 ## Non couvert / à faire
@@ -35,7 +37,7 @@ Frontend : `3fdfdc9`
 ### P0
 
 - MFA **obligatoire** avec période de grâce (aujourd'hui MFA optionnelle) ;
-- rôles technicien/comptable/responsable en E2E ;
+- rôles technicien/comptable/responsable en E2E navigateur ;
 - performance réelle et charge sur staging ;
 - rate limiting login/MFA sous charge ;
 - tests navigateur Safari/Firefox/mobile ;
