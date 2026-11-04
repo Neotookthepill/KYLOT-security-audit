@@ -49,7 +49,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: MFA_ENFORCE_ADMINS
-        value: "true"
+        value: "false"
       - key: MFA_GRACE_DAYS
         value: "7"
 
