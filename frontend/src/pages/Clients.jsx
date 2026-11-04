@@ -295,6 +295,7 @@ export default function Clients() {
                           }}
                           className="h-6 px-1.5 rounded-md text-[10.5px] border border-dashed border-slate-300 bg-white text-slate-500 hover:border-slate-500"
                           data-testid={`client-assign-${c.id}`}
+                          aria-label={`Affecter une catégorie à ${c.name}`}
                           defaultValue=""
                         >
                           <option value="">+ Ajouter</option>
