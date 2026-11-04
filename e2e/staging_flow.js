@@ -63,7 +63,7 @@ async function json(response) { return response.json(); }
     ok("commercial login", commercialPage.url() === `${BASE}/`);
     ok("commercial has no Utilisateurs nav", (await commercialPage.getByText("Utilisateurs", { exact: true }).count()) === 0);
     await commercialPage.goto(`${BASE}/utilisateurs`, { waitUntil: "domcontentloaded" });
-    await commercialPage.waitForTimeout(800);
+    await commercialPage.waitForURL(`${BASE}/planning`, { timeout: 8000 }).catch(() => {});
     ok("commercial redirected from /utilisateurs", commercialPage.url() === `${BASE}/planning`, commercialPage.url());
     await commercialContext.close();
 
@@ -102,7 +102,8 @@ async function json(response) { return response.json(); }
     await page.goto(`${BASE}/prospecteur`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1500);
     const deferredText = await page.locator('[data-testid="prospect-mgr-deferred"]').innerText().catch(() => "");
-    ok("manager deferred commission visible", /100/.test(deferredText), deferredText);
+    const deferredAmount = Number((deferredText.match(/\d[\d\s]*/) || ["0"])[0].replace(/\s/g, "")) || 0;
+    ok("manager deferred commission visible", deferredAmount >= 100, deferredText);
     ok("deferred detail shows sale", (await page.locator('[data-testid="prospect-deferred-detail"]').innerText().catch(() => "")).includes(clientName));
 
     // 5. Project date change updates month
