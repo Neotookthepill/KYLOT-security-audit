@@ -134,15 +134,16 @@ async function json(response) { return response.json(); }
     const current = await json(await api.get("/api/challenges/current"));
     ok("challenge ranking includes E2E Admin", current.challenge?.id === challengeId && current.ranking?.some((r) => r.name === "E2E Admin" && r.count >= 1), JSON.stringify(current).slice(0, 500));
     await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1500);
+    await page.waitForSelector('[data-testid="challenge-widget"]', { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction((name) => document.body.innerText.includes(name), challengeName, { timeout: 15000 }).catch(() => {});
     ok("challenge visible on dashboard", (await page.locator("body").innerText()).includes(challengeName));
 
     // 8. UI smoke on data pages
     await page.goto(`${BASE}/clients`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
+    await page.waitForFunction((name) => document.body.innerText.includes(name), clientName, { timeout: 15000 }).catch(() => {});
     ok("client visible in UI", (await page.locator("body").innerText()).includes(clientName));
     await page.goto(`${BASE}/ventes`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
+    await page.waitForFunction(() => document.body.innerText.includes("E2E Chantier"), null, { timeout: 15000 }).catch(() => {});
     ok("sale visible in UI", (await page.locator("body").innerText()).includes("E2E Chantier"));
   } finally {
     // Best-effort cleanup and role restore.

@@ -8,11 +8,13 @@ Frontend : `3fdfdc9`
 
 | Suite | Résultat |
 |---|---|
-| Backend `pytest backend/test_*.py` | **111 passed** |
+| Backend `pytest backend/test_*.py` | **114 passed** |
 | E2E staging `staging_flow.js` | **22 checks** |
 | E2E MFA `mfa_flow.js` | **9 checks** |
 | E2E offline `offline_flow.js` | **5 checks** |
 | E2E imports `import_flow.js` | **7 checks** |
+| Navigateur (`browser_matrix.js`) | **26 checks** (Chromium desktop + mobile) |
+| Charge légère (`load_smoke.js`) | **110 requêtes, 0 erreur** |
 | Frontend Jest | 30 tests |
 | Sauvegarde Atlas | archive + checksum |
 | Restauration Atlas | `kylot_staging_restore` vérifiée |
@@ -30,18 +32,21 @@ Frontend : `3fdfdc9`
 - planning : multi-jours, jours supplémentaires, exclusions, dates invalides, soft-delete/restore ;
 - rôles : commercial, technicien, comptable, responsable, sous-traitant, prospecteur ;
 - ventes avancées : DE, taux indépendants, anti-double comptage, commission arrondie ;
+- accessibilité de base : images, boutons, champs catégories clients ;
+- responsive mobile sans débordement horizontal ;
+- latence légère sur endpoints et pages ;
 - sauvegarde/restauration.
 
 ## Non couvert / à faire
 
 ### P0
 
-- MFA **obligatoire** avec période de grâce (aujourd'hui MFA optionnelle) ;
-- rôles technicien/comptable/responsable en E2E navigateur ;
+- MFA **obligatoire** : mécanisme disponible mais désactivé par défaut (`MFA_ENFORCE_ADMINS=false`) ;
+- Firefox et WebKit/Safari : installation Playwright bloquée, non testés ;
 - performance réelle et charge sur staging ;
 - rate limiting login/MFA sous charge ;
-- tests navigateur Safari/Firefox/mobile ;
-- accessibilité.
+- tests navigateur Safari/Firefox ;
+- audit d'accessibilité complet (axe).
 
 ### P1
 
