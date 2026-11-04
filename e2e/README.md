@@ -54,3 +54,14 @@ documents `E2E-` depuis Atlas avant une démonstration client.
 
 Le script remet le rôle du commercial test à `commercial` et clôture/archive le
 challenge de test à la fin.
+
+
+## MFA
+
+```bash
+NODE_PATH=/Users/l1l2/node_modules node e2e/mfa_flow.js
+```
+
+Teste la configuration TOTP, le blocage du login par mot de passe seul, la
+connexion avec code, la connexion avec code de secours, la désactivation et le
+retour au login mot de passe seul. Le compte de test doit être administrateur.
