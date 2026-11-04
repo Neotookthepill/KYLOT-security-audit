@@ -287,6 +287,11 @@ MFA_STEP_SECONDS = 30
 MFA_DIGITS = 6
 MFA_CHALLENGE_MINUTES = 5
 MFA_RECOVERY_CODE_COUNT = 10
+MFA_ENFORCE_ADMINS = (os.environ.get("MFA_ENFORCE_ADMINS") or "false").strip().lower() in ("1", "true", "yes")
+try:
+    MFA_GRACE_DAYS = max(1, min(90, int(os.environ.get("MFA_GRACE_DAYS") or "7")))
+except ValueError:
+    MFA_GRACE_DAYS = 7
 # Ne jamais laisser fuir le secret TOTP ou les codes de secours dans une
 # réponse utilisateur, un journal d'audit ou une projection de liste.
 _USER_SENSITIVE_FIELDS = ("password_hash", "mfa_secret", "mfa_pending_secret",
@@ -465,6 +470,45 @@ async def _apply_overtime_eligibility_gate(u: dict) -> None:
 _AUTH_ME_RECONCILE_CACHE: dict = {}
 
 
+def _mfa_enforced_for(user: dict) -> bool:
+    return bool(MFA_ENFORCE_ADMINS and (user or {}).get("role") in ("admin", "super_admin"))
+
+
+def _mfa_grace_until(user: dict):
+    raw = ((user or {}).get("mfa_grace_until") or "").strip()
+    if not raw:
+        return None
+    try:
+        value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value
+    except (TypeError, ValueError):
+        return None
+
+
+def _mfa_public_state(user: dict) -> dict:
+    required = _mfa_enforced_for(user) and not bool((user or {}).get("mfa_enabled"))
+    grace_until = _mfa_grace_until(user)
+    expired = bool(required and grace_until and grace_until <= datetime.now(timezone.utc))
+    return {
+        "mfa_setup_required": required,
+        "mfa_grace_until": grace_until.isoformat() if grace_until else "",
+        "mfa_grace_expired": expired,
+    }
+
+
+async def _ensure_mfa_grace(user: dict) -> dict:
+    """Set the one-time setup deadline for an admin who has not enrolled yet."""
+    if not _mfa_enforced_for(user) or user.get("mfa_enabled"):
+        return _mfa_public_state(user)
+    if not _mfa_grace_until(user):
+        until = (datetime.now(timezone.utc) + timedelta(days=MFA_GRACE_DAYS)).isoformat()
+        await db.users.update_one({"id": user["id"]}, {"$set": {"mfa_grace_until": until}})
+        user["mfa_grace_until"] = until
+    return _mfa_public_state(user)
+
+
 def public_user(u: dict) -> dict:
     # iter48: fusionne les permissions par défaut du rôle avec celles sauvegardées.
     # Cela garantit que les nouvelles ressources (ex: photos) apparaissent
@@ -494,6 +538,7 @@ def public_user(u: dict) -> dict:
         # Empêche la boîte de dialogue de se rouvrir à chaque reconnexion / autre navigateur.
         "onboarding_done": bool(u.get("onboarding_done")),
         "mfa_enabled": bool(u.get("mfa_enabled")),
+        **_mfa_public_state(u),
     }
 
 
@@ -1324,8 +1369,9 @@ async def login(data: LoginIn, response: Response, request: Request):
     if not u.get("permissions"):
         u["permissions"] = get_default_permissions(u.get("role", ""))
     await _apply_overtime_eligibility_gate(u)
+    mfa_state = await _ensure_mfa_grace(u)
     set_auth_cookie(response, token)
-    return _auth_response(u, token)
+    return {**_auth_response(u, token), **mfa_state}
 
 @api_router.post("/auth/mfa/setup")
 async def mfa_setup(data: MfaSetupIn, response: Response, user: dict = Depends(get_current_user)):
@@ -1396,6 +1442,8 @@ async def mfa_confirm(data: MfaCodeIn, response: Response, user: dict = Depends(
 async def mfa_disable(data: MfaDisableIn, response: Response, user: dict = Depends(get_current_user)):
     if user.get("role") not in ("admin", "super_admin"):
         raise HTTPException(status_code=403, detail="MFA réservée aux administrateurs")
+    if _mfa_enforced_for(user):
+        raise HTTPException(status_code=403, detail="La double authentification est obligatoire pour les administrateurs.")
     full = await db.users.find_one({"id": user["id"]})
     if not full or not verify_password(data.password, full.get("password_hash") or ""):
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
@@ -12360,9 +12408,51 @@ async def reassign_sale_status(data: SaleStatusReassignIn, user: dict = Depends(
 app.include_router(api_router)
 
 
+async def _mfa_gate(request: Request):
+    """Block admins whose MFA grace period expired, except auth/setup paths."""
+    if not MFA_ENFORCE_ADMINS:
+        return None
+    path = request.url.path
+    if not path.startswith("/api/"):
+        return None
+    if path.startswith("/api/auth/") or path in (
+        "/api/health", "/api/healthz", "/api/ready", "/api/readyz", "/api/version",
+    ):
+        return None
+    token = request.cookies.get("access_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            return None
+        user = await db.users.find_one({"id": payload.get("sub")}, _USER_SAFE_PROJECTION)
+    except Exception:
+        return None
+    if not user or not _mfa_enforced_for(user) or user.get("mfa_enabled"):
+        return None
+    state = await _ensure_mfa_grace(user)
+    if state.get("mfa_grace_expired"):
+        return JSONResponse(
+            status_code=403,
+            content={
+                "detail": "La double authentification est obligatoire. Configurez-la pour continuer.",
+                "code": "mfa_setup_required",
+            },
+        )
+    return None
+
+
 @app.middleware("http")
 async def security_headers_and_request_limits(request: Request, call_next):
     """Apply a coarse request-size guard and baseline browser security headers."""
+    blocked = await _mfa_gate(request)
+    if blocked is not None:
+        return blocked
     content_length = request.headers.get("content-length", "")
     if content_length.isdigit() and int(content_length) > MAX_REQUEST_BYTES:
         return JSONResponse(

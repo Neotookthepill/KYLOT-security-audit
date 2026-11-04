@@ -11,6 +11,7 @@ import {
 import NotificationBell from "@/components/NotificationBell";
 import GlobalSearchDialog from "@/components/GlobalSearchDialog";
 import OnboardingDialog from "@/components/OnboardingDialog";
+import MfaRequiredNotice from "@/components/MfaRequiredNotice";
 
 // Nav entries gated by permission check. `perm` = [resource, action, minScope]
 const allNav = [
@@ -216,6 +217,7 @@ export default function Layout() {
           </div>
         </div>
         <OfflineBar />
+        <MfaRequiredNotice />
         <Outlet />
       </main>
       {!isSuper && <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />}

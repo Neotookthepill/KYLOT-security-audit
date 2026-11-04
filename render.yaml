@@ -48,6 +48,10 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: MFA_ENFORCE_ADMINS
+        value: "true"
+      - key: MFA_GRACE_DAYS
+        value: "7"
 
   - type: web
     runtime: docker
