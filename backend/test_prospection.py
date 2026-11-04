@@ -73,7 +73,18 @@ class ProspectionCommissionTests(unittest.TestCase):
             "id": "project-proj", "company_id": "company-a", "sale_id": "sale-proj",
             "client_id": "c-1", "scheduled_date": "2026-12-10",
         }))
+        run(self.db.projects.insert_one({
+            "id": "project-done", "company_id": "company-a", "sale_id": "sale-done",
+            "client_id": "c-4", "completion": {"completed_at": "2027-03-20T10:00:00+00:00"},
+        }))
+        run(self.db.sales.insert_one({
+            "id": "sale-done", "company_id": "company-a", "client_id": "c-4",
+            "sale_date": "2026-11-06", "amount": 4000, "status": "en_cours",
+            "prospecteur_id": "prospecteur-a", "prospecteur_name": "Prospecteur A",
+            "prospecteur_commission": 200, "service": "Assistance", "bdc": "B4",
+        }))
         self.headers = {"Authorization": f"Bearer {server.create_access_token(self.admin['id'], self.admin['email'])}"}
+        self.prospecteur_headers = {"Authorization": f"Bearer {server.create_access_token(self.prospecteur['id'], self.prospecteur['email'])}"}
 
     def tearDown(self):
         self.client.close()
@@ -93,6 +104,43 @@ class ProspectionCommissionTests(unittest.TestCase):
         rows = {row["id"]: row for row in response.json()}
         self.assertEqual(rows["sale-fallback"]["commission_month"], "2026-11")
         self.assertEqual(rows["sale-fallback"]["commission_month_source"], "sale_date")
+
+    def test_completion_date_is_used_when_no_scheduled_date(self):
+        response = self.client.get("/api/prospection", headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        rows = {row["id"]: row for row in response.json()}
+        self.assertEqual(rows["sale-done"]["commission_month"], "2027-03")
+        self.assertEqual(rows["sale-done"]["commission_month_source"], "project")
+
+    def test_project_date_change_moves_commission_month(self):
+        updated = self.client.put(
+            "/api/projects/project-proj",
+            headers=self.headers,
+            json={"scheduled_date": "2027-04-12"},
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        rows = {row["id"]: row for row in self.client.get("/api/prospection", headers=self.headers).json()}
+        self.assertEqual(rows["sale-proj"]["commission_month"], "2027-04")
+
+    def test_manual_commission_update_is_persisted(self):
+        updated = self.client.put(
+            "/api/prospection/sale-fallback",
+            headers=self.headers,
+            json={"prospect_commission_month": "2027-05", "prospecteur_commission": 225},
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        rows = {row["id"]: row for row in self.client.get("/api/prospection", headers=self.headers).json()}
+        self.assertEqual(rows["sale-fallback"]["commission_month"], "2027-05")
+        self.assertEqual(rows["sale-fallback"]["commission_month_source"], "manual")
+        self.assertEqual(rows["sale-fallback"]["prospecteur_commission"], 225)
+
+    def test_prospecteur_cannot_edit_commission(self):
+        denied = self.client.put(
+            "/api/prospection/sale-fallback",
+            headers=self.prospecteur_headers,
+            json={"prospecteur_commission": 999},
+        )
+        self.assertEqual(denied.status_code, 403, denied.text)
 
 
 if __name__ == "__main__":

@@ -109,6 +109,30 @@ class ChallengeTests(unittest.TestCase):
         duplicate = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
         self.assertEqual(duplicate.status_code, 409, duplicate.text)
 
+    def test_sales_outside_the_challenge_period_are_excluded(self):
+        run(self.db.sales.insert_one({
+            "id": "s-outside", "company_id": "company-a", "commercial": "Commercial A",
+            "source": "Assist", "status": "en_cours", "amount": 9999,
+            "sale_date": "2027-01-15",
+        }))
+        created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
+        self.assertEqual(created.status_code, 200, created.text)
+        body = self.client.get("/api/challenges/current", headers=self.commercial_headers).json()
+        ranking = {row["name"]: row for row in body["ranking"]}
+        self.assertEqual(ranking["Commercial A"]["count"], 1)
+
+    def test_ca_criterion_uses_amounts_and_ignores_cancelled_sales(self):
+        payload = self._payload()
+        payload["name"] = "Challenge CA"
+        payload["criterion"] = "ca"
+        created = self.client.post("/api/challenges", headers=self.admin_headers, json=payload)
+        self.assertEqual(created.status_code, 200, created.text)
+        body = self.client.get("/api/challenges/current", headers=self.commercial_headers).json()
+        ranking = {row["name"]: row for row in body["ranking"]}
+        self.assertEqual(ranking["Commercial A"]["ca"], 4000)
+        self.assertEqual(ranking["Commercial A"]["points"], 4000)
+        self.assertEqual(ranking["Commercial B"]["ca"], 2000)
+
     def test_close_keeps_a_snapshot_in_history(self):
         created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
         cid = created.json()["id"]
