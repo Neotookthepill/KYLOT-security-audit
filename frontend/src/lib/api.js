@@ -77,7 +77,10 @@ api.interceptors.response.use(
   async (err) => {
     const status = err?.response?.status;
     const url = err?.config?.url || "";
-    if (status === 401 && !/\/auth\/(login|register)/.test(url)) {
+    const publicAuthPage = typeof window !== "undefined"
+      && ["/login", "/forgot-password", "/reset-password"].some((p) => window.location.pathname.startsWith(p));
+    const publicAuthCall = /\/auth\/(login|register|forgot-password|reset-password)/.test(url);
+    if (status === 401 && !publicAuthCall && !publicAuthPage) {
       await clearExpiredSessionState();
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         // Preserve the current route to redirect after re-login (optional)
