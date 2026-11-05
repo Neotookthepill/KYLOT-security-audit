@@ -644,7 +644,7 @@ export default function Sales() {
           <button
             key={p.k}
             onClick={() => setPeriod(p.k)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition ${period === p.k ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"}`}
+            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-full border transition ${period === p.k ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"}`}
             data-testid={`sales-period-${p.k}`}
           >
             {p.l}

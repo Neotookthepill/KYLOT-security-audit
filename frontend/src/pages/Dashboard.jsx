@@ -748,7 +748,7 @@ export default function Dashboard() {
           <div className="inline-flex rounded-lg border border-border bg-card p-0.5" data-testid="dashboard-period-tabs">
             {PERIODS.map((p) => (
               <button key={p.key} onClick={() => setPeriod(p.key)} data-testid={`period-${p.key}`}
-                className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
+                className={`min-h-[34px] px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
             ))}
           </div>
           <Button
