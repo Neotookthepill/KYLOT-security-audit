@@ -14,7 +14,9 @@ export function AuthProvider({ children }) {
     try {
       const r = await api.get("/auth/me");
       setOfflineIdentity(r.data?.id);
-      setUser(r.data);
+      // Ne pas remplacer l'objet utilisateur à chaque poll : cela provoque des
+      // re-rendus inutiles et des sauts de mise en page en arrière-plan.
+      setUser((prev) => (JSON.stringify(prev) === JSON.stringify(r.data) ? prev : r.data));
       syncOffline();
     } catch (error) {
       // A temporary network/provider failure must not impersonate a logout.
@@ -50,7 +52,7 @@ export function AuthProvider({ children }) {
   // reflected without requiring the user to log out and back in.
   useEffect(() => {
     if (!user) return;
-    const id = setInterval(() => { refreshUser(); }, 20_000);
+    const id = setInterval(() => { refreshUser(); }, 60_000);
     const onFocus = () => refreshUser();
     // iter96 : refresh instantané quand l'admin bascule l'horloge Heures sup
     // ou modifie l'équipe (event dispatché depuis TeamSection / Users.jsx).

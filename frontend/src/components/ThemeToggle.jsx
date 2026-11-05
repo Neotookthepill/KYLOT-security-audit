@@ -1,13 +1,13 @@
 import React from "react";
-import { Moon, Sun, Monitor } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
 
 export default function ThemeToggle({ tone = "light", className = "", compact = false }) {
   const { theme, resolved, setTheme } = useTheme();
-  const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
-  const label = theme === "system" ? `Thème automatique (${resolved === "dark" ? "sombre" : "clair"})` : theme === "dark" ? "Thème sombre" : "Thème clair";
-  const Icon = theme === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
+  const next = theme === "light" ? "dark" : "light";
+  const label = theme === "dark" ? "Passer en thème clair" : "Passer en thème sombre";
+  const Icon = theme === "dark" ? Sun : Moon;
   return (
     <button
       type="button"
@@ -25,7 +25,7 @@ export default function ThemeToggle({ tone = "light", className = "", compact = 
       )}
     >
       <Icon size={16} />
-      {!compact && <span className="hidden xl:inline">{theme === "system" ? "Auto" : theme === "dark" ? "Sombre" : "Clair"}</span>}
+      {!compact && <span className="hidden xl:inline">{theme === "dark" ? "Clair" : "Sombre"}</span>}
     </button>
   );
 }

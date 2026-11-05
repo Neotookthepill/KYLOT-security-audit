@@ -1,27 +1,16 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const ThemeContext = createContext({ theme: "system", resolved: "light", setTheme: () => {} });
+const ThemeContext = createContext({ theme: "light", resolved: "light", setTheme: () => {} });
 const STORAGE_KEY = "qylot-theme";
-
-function systemTheme() {
-  if (typeof window === "undefined" || !window.matchMedia) return "light";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
 
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEY) || "system"; } catch (_) { return "system"; }
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored === "dark" ? "dark" : "light";
+    } catch (_) { return "light"; }
   });
-  const [system, setSystem] = useState(systemTheme);
-  const resolved = theme === "system" ? system : theme;
-
-  useEffect(() => {
-    if (!window.matchMedia) return;
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = (e) => setSystem(e.matches ? "dark" : "light");
-    mq.addEventListener?.("change", onChange);
-    return () => mq.removeEventListener?.("change", onChange);
-  }, []);
+  const resolved = theme;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -32,7 +21,7 @@ export function ThemeProvider({ children }) {
   }, [resolved, theme]);
 
   const setTheme = (next) => {
-    if (!["light", "dark", "system"].includes(next)) return;
+    if (!["light", "dark"].includes(next)) return;
     setThemeState(next);
   };
 

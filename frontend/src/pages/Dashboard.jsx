@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   TrendingUp, Euro, Users, HardHat, CheckCircle2, Clock, Trophy,
-  Bell, ArrowRight, ArrowUp, ArrowDown, Percent, Wallet, ListChecks, Sparkles,
+  Bell, ArrowRight, ArrowUp, ArrowDown, Percent, Wallet, Sparkles,
   CalendarClock, GripVertical, EyeOff, Eye, RotateCcw, Settings2, Plus, Check,
   ChevronLeft, ChevronRight, CalendarDays, X, User as UserIcon, UserCheck, UserX,
   Maximize2,
@@ -109,7 +109,7 @@ const WIDGET_LABELS = {
 // iter182 — Éclatement de `stats` en `sales_count` (Ventes) + `today_todos` (À faire),
 // pour permettre à l'utilisateur de placer Ventes à côté de Heures sup et redimensionner
 // chaque bloc librement (⅓ / ½ / ⅔ / plein).
-const DEFAULT_ORDER = ["ca_hero", "activity", "sales_count", "overtime", "today_todos", "events", "alerts", "commissions", "ranking", "challenge", "recent_sales"];
+const DEFAULT_ORDER = ["ca_hero", "challenge", "activity", "sales_count", "overtime", "today_todos", "events", "alerts", "commissions", "recent_sales", "ranking"];
 // Tailles par défaut (grille 12-col). 6 = ½, 12 = plein.
 const DEFAULT_SIZES = {
   ca_hero: 12,
@@ -120,7 +120,7 @@ const DEFAULT_SIZES = {
   events: 6,
   alerts: 6,
   commissions: 6,
-  ranking: 6,
+  ranking: 12,
   challenge: 12,
   recent_sales: 6,
 };
@@ -155,7 +155,7 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
       onDragStart={(e) => onDragStart(id, e)}
       onDragOver={(e) => { if (editing) { e.preventDefault(); onDragOver(id); } }}
       onDrop={(e) => { if (editing) { e.preventDefault(); onDrop(id); } }}
-      className={`relative ${editing ? "ring-2 ring-dashed ring-indigo-300/60 rounded-xl transition" : ""} ${dragging === id ? "opacity-40" : ""}`}
+      className={`relative h-full ${editing ? "ring-2 ring-dashed ring-indigo-300/60 rounded-xl transition" : ""} ${dragging === id ? "opacity-40" : ""}`}
       data-testid={`widget-${id}`}
     >
       {editing && (
@@ -260,6 +260,25 @@ export default function Dashboard() {
         ord = [...ord, "challenge"];
         try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
       }
+      // Le challenge est un repère quotidien : on le remonte juste après le CA,
+      // même pour les anciennes configurations enregistrées.
+      const challengeIdx = ord.indexOf("challenge");
+      if (challengeIdx > 1) {
+        const without = ord.filter((k) => k !== "challenge");
+        const caIdx = without.indexOf("ca_hero");
+        without.splice(caIdx >= 0 ? caIdx + 1 : 0, 0, "challenge");
+        ord = without;
+        try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
+      }
+      // Évite la grande carte vide : ventes récentes à côté des commissions.
+      const cIdx = ord.indexOf("commissions");
+      const rIdx = ord.indexOf("recent_sales");
+      if (cIdx >= 0 && rIdx > cIdx + 1) {
+        const without = ord.filter((k) => k !== "recent_sales");
+        without.splice(without.indexOf("commissions") + 1, 0, "recent_sales");
+        ord = without;
+        try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
+      }
       setOrder(ord);
       setHidden(Array.isArray(cfg.hidden) ? Array.from(new Set(cfg.hidden)) : []);
       setSizes(typeof cfg.sizes === "object" && cfg.sizes ? cfg.sizes : {});
@@ -291,7 +310,7 @@ export default function Dashboard() {
     const next = { ...sizes, [id]: size };
     setSizes(next); saveConfig(order, hidden, next);
   };
-  const sizeOf = (id) => sizes[id] || DEFAULT_SIZES[id] || 12;
+  const sizeOf = (id) => (id === "ranking" ? 12 : (sizes[id] || DEFAULT_SIZES[id] || 12));
 
   const resetLayout = async () => {
     try {
@@ -714,7 +733,7 @@ export default function Dashboard() {
   // ⅓ / ½ / ⅔ / plein en mode édition, ou glisse-déplace pour réorganiser.
   // iter182 : `events` ne s'affiche que s'il y a au moins un évènement — sinon il
   // laisserait un trou dans la grille 12-col.
-  const MOBILE_PRIMARY = new Set(["ca_hero", "today_todos", "alerts", "recent_sales"]);
+  const MOBILE_PRIMARY = new Set(["ca_hero", "challenge", "today_todos", "alerts", "recent_sales"]);
   const visibleOrder = order
     .filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)))
     .filter((k) => !isMobile || mobileAll || MOBILE_PRIMARY.has(k));
@@ -791,7 +810,6 @@ export default function Dashboard() {
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="qy-section-label">Votre cockpit</p>
-        <p className="hidden text-[11px] text-muted-foreground sm:block">Glissez, masquez et adaptez vos blocs.</p>
       </div>
 
       {editing && (
@@ -833,7 +851,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" data-testid="dashboard-grid">
         {visibleOrder.map((k) => (
-          <div key={k} className={`col-span-1 ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
+          <div key={k} className={`col-span-1 h-full ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
             <WidgetShell id={k} editing={editing} dragging={dragging} size={sizeOf(k)}
               onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onHide={hideWidget} onResize={resizeWidget}>
               {renderers[k]()}
@@ -848,10 +866,6 @@ export default function Dashboard() {
         </button>
       )}
 
-      <div className="flex items-center gap-2 text-xs text-slate-500 my-6">
-        <ListChecks size={12} />
-        <span>{data?.projects?.completed || 0} chantiers terminés · CA global visible dans Rapport mensuel</span>
-      </div>
 
       <NewSaleSheet open={openNew} onOpenChange={setOpenNew} onCreated={load} />
       <EditSaleSheet sale={editingSale} open={!!editingSale} onOpenChange={(v) => !v && setEditingSale(null)} onSaved={load} />

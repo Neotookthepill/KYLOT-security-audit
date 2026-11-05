@@ -143,7 +143,7 @@ export default function Login() {
                     onChange={(e) => setMfaCode(e.target.value)}
                     data-testid="login-mfa-code-input"
                     placeholder="123456 ou code de secours"
-                    className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]"
+                    className="qy-login-field h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]"
                   />
                 </div>
                 {error && <ErrorBox error={error} />}
@@ -158,11 +158,11 @@ export default function Login() {
               <form onSubmit={submit} className="space-y-5" data-testid="login-form">
                 <div className="space-y-1.5">
                   <Label htmlFor="email" className="text-[12px] font-medium text-[#344054]">Email professionnel</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email-input" placeholder="vous@entreprise.fr" className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
+                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email-input" placeholder="vous@entreprise.fr" className="qy-login-field h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className="text-[12px] font-medium text-[#344054]">Mot de passe</Label>
-                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
+                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="qy-login-field h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
                 </div>
                 {error && <ErrorBox error={error} />}
                 <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#0b1220] text-[14px] font-semibold text-[#f7f3e9] hover:bg-[#1d2939]" data-testid="login-submit-btn">

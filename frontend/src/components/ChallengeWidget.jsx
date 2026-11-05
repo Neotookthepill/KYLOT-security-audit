@@ -69,7 +69,7 @@ export default function ChallengeWidget() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 30_000);
+    const id = setInterval(load, 90_000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
     return () => { clearInterval(id); window.removeEventListener("focus", onFocus); };
