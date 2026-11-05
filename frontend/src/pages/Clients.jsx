@@ -145,6 +145,7 @@ export default function Clients() {
         <div>
           <p className="overline">Répertoire</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Clients</h1>
+          <p className="page-subtitle">Appelez, qualifiez et retrouvez l’historique de chaque client.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {can("clients", "create") && (

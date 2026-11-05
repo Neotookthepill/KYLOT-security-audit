@@ -7,7 +7,7 @@ const Card = React.forwardRef(({ className, ...props }, ref) => (
     ref={ref}
     // iter175 : cartes plus douces (rayon rounded-2xl, bordure slate-200/70, shadow-sm) —
     // uniformisation premium sur toute l'app sans casser les overrides existants.
-    className={cn("rounded-2xl border border-slate-200/70 bg-card text-card-foreground shadow-sm", className)}
+    className={cn("rounded-2xl border border-border bg-card text-card-foreground shadow-sm", className)}
     {...props} />
 ))
 Card.displayName = "Card"

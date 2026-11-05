@@ -361,7 +361,7 @@ export default function Dashboard() {
   const barPct = Math.min(100, ca.progress);
   // iter66 : au-delà de 100% pour un commercial → barre violette célébration
   const isOverPerf = isCommercial && ca.progress > 100;
-  const barColor = isOverPerf ? "bg-gradient-to-r from-violet-500 to-fuchsia-500" : ca.progress >= 100 ? "bg-emerald-500" : ca.progress >= 60 ? "bg-slate-900" : "bg-indigo-500";
+  const barColor = isOverPerf ? "bg-gradient-to-r from-primary to-[#e3a07e]" : ca.progress >= 100 ? "bg-emerald-500" : ca.progress >= 60 ? "bg-foreground" : "bg-primary";
 
   // Renderers keyed by widget id — each returns the widget's own <Card>
   const renderers = useMemo(() => ({
@@ -709,18 +709,28 @@ export default function Dashboard() {
   // Mapping col-span statique (Tailwind purge les classes dynamiques — on doit les lister)
   const SPAN_CLASS = { 4: "lg:col-span-4", 6: "lg:col-span-6", 8: "lg:col-span-8", 12: "lg:col-span-12" };
 
+  const todayLabel = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+  const firstName = String(user?.name || "").trim().split(/\s+/)[0] || "";
+  const alertCount = Array.isArray(data?.alerts) ? data.alerts.length : 0;
+  const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
+
   return (
-    <div className="p-4 md:p-8 max-w-[1400px]">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <div>
-          <p className="overline">Aperçu</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Tableau de bord</h1>
+    <div className="qy-dashboard mx-auto max-w-[1440px] p-4 md:p-8">
+      <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="qy-eyebrow capitalize">{todayLabel}</p>
+          <h1 className="mt-2 font-display text-[30px] font-semibold leading-[1.05] tracking-[-.045em] md:text-[40px]">
+            {firstName ? `Bonjour, ${firstName}.` : "Bonjour."}
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Voici ce qui mérite votre attention aujourd’hui. Le reste peut attendre.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg bg-slate-100 p-0.5" data-testid="dashboard-period-tabs">
+          <div className="inline-flex rounded-lg border border-border bg-card p-0.5" data-testid="dashboard-period-tabs">
             {PERIODS.map((p) => (
               <button key={p.key} onClick={() => setPeriod(p.key)} data-testid={`period-${p.key}`}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition ${period === p.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>{p.label}</button>
+                className={`px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
             ))}
           </div>
           <Button
@@ -735,6 +745,35 @@ export default function Dashboard() {
           </Button>
           {canCreateSale && <Button onClick={() => setOpenNew(true)} data-testid="dashboard-new-sale-btn" className="h-9">+ Nouvelle vente</Button>}
         </div>
+      </header>
+
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Ventes</p>
+            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{data?.sales?.count ?? 0}</p>
+          </div>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary"><TrendingUp size={16} /></span>
+        </button>
+        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
+            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{alertCount}</p>
+          </div>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))]"><Bell size={16} /></span>
+        </button>
+        <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Aujourd’hui</p>
+            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{todayEvents}<span className="ml-1.5 text-xs font-normal text-muted-foreground">événement{todayEvents > 1 ? "s" : ""}</span></p>
+          </div>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))]"><CalendarClock size={16} /></span>
+        </button>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="qy-section-label">Votre cockpit</p>
+        <p className="hidden text-[11px] text-muted-foreground sm:block">Glissez, masquez et adaptez vos blocs.</p>
       </div>
 
       {editing && (

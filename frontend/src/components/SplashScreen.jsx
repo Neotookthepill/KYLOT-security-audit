@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 /**
- * QYLOT launch splash — shown once when the app truly boots (fresh page load).
+ * Qylot launch splash — shown once when the app truly boots (fresh page load).
  * Desktop ≈ 1.25s. Mobile is slower and smoother (≈ 1.9s) so the intro
  * doesn't feel rushed on small screens.
  */
@@ -30,26 +30,10 @@ export default function SplashScreen({ onDone }) {
     >
       <div className="kylot-splash__glow" />
       <div className="kylot-splash__logo">
-        <svg viewBox="0 0 512 512" width="140" height="140" className="kylot-splash__svg">
-          {/* iter184 — Logo QYLOT officiel : anneau argenté brossé + accent diagonal métallique */}
-          <defs>
-            <linearGradient id="qy-ring" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#F8FAFC" />
-              <stop offset="55%" stopColor="#CBD5E1" />
-              <stop offset="100%" stopColor="#64748B" />
-            </linearGradient>
-            <linearGradient id="qy-tail" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#94A3B8" />
-              <stop offset="60%" stopColor="#475569" />
-              <stop offset="100%" stopColor="#1E293B" />
-            </linearGradient>
-          </defs>
-          {/* Anneau du Q */}
-          <circle cx="256" cy="256" r="150" fill="none" stroke="url(#qy-ring)" strokeWidth="30" className="kylot-splash__k" />
-          {/* Queue diagonale (arrête plate, traverse le Q vers l'extérieur) */}
-          <line x1="280" y1="280" x2="436" y2="436" stroke="url(#qy-tail)" strokeWidth="36" strokeLinecap="butt" className="kylot-splash__accent" />
-        </svg>
-        <div className="kylot-splash__wordmark">QYLOT</div>
+        <div className="grid h-[104px] w-[104px] place-items-center rounded-[26px] border border-white/10 bg-[#0b1220] shadow-2xl">
+          <span className="font-display text-[58px] font-bold leading-none tracking-[-.06em] text-[#f7f3e9]">Q</span>
+        </div>
+        <div className="kylot-splash__wordmark">Qylot</div>
       </div>
     </div>
   );

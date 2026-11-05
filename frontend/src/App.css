@@ -137,8 +137,8 @@
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   font-weight: 600;
   font-size: 18px;
-  letter-spacing: 0.42em;
-  text-indent: 0.42em;   /* balances the letter-spacing on the right side */
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
   opacity: 0;
   animation: kylotWordIn 500ms ease-out 420ms both;
 }
@@ -194,8 +194,8 @@
   .kylot-splash__glow { width: 280px; height: 280px; animation-duration: 1800ms; }
   .kylot-splash__wordmark {
     font-size: 17px;
-    letter-spacing: 0.42em;
-    text-indent: 0.42em;
+    letter-spacing: 0.18em;
+    text-indent: 0.18em;
     animation-duration: 700ms;
     animation-delay: 650ms;
   }

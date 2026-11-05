@@ -28,6 +28,7 @@ import AIHelper from "@/components/AIHelper";
 import ErrorBoundary, { AppErrorFallback } from "@/components/ErrorBoundary";
 import SplashScreen from "@/components/SplashScreen";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import useVersionPoll from "@/hooks/useVersionPoll";
 
 const PROSPECT_ROLES = ["prospecteur", "responsable_prospecteur"];
@@ -137,6 +138,7 @@ export default function App() {
     <div className="App">
       {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <ErrorBoundary fallback={AppErrorFallback}>
+        <ThemeProvider>
         <AuthProvider>
           <SettingsProvider>
             <BrowserRouter>
@@ -148,6 +150,7 @@ export default function App() {
             <Toaster position="top-right" richColors />
           </SettingsProvider>
         </AuthProvider>
+        </ThemeProvider>
       </ErrorBoundary>
     </div>
   );

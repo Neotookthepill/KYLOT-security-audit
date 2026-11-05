@@ -232,6 +232,7 @@ export default function CalendarPage() {
         <div>
           <p className="overline">Vue calendrier</p>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">Planning</h1>
+          <p className="page-subtitle">Vos interventions, chantiers et événements, sans double saisie.</p>
           {(user?.role === "technicien" || user?.role === "sous_traitant") && <p className="text-sm text-slate-500 mt-2">Vous voyez uniquement vos chantiers.</p>}
           {isProspect && <p className="text-sm text-slate-500 mt-2" data-testid="calendar-prospect-note">Chantiers des clients issus de la prospection.</p>}
         </div>

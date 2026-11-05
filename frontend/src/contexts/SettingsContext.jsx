@@ -6,16 +6,17 @@ const SettingsContext = createContext(null);
 
 const DEFAULTS = {
   objectif_ca: 100000,
-  theme_primary: "#0f172a",
-  theme_accent: "#6366f1",
-  font_family: "Inter",
+  theme_primary: "#0b1220",
+  theme_accent: "#b5622e",
+  font_family: "Instrument Sans",
   logo: "",
-  app_name: "QYLOT",
+  app_name: "Qylot",
   overtime_alert_threshold: 30,
 };
 
 const FONT_URLS = {
   Inter: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+  "Instrument Sans": "https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap",
   Outfit: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap",
   Poppins: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap",
   Manrope: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap",
@@ -37,6 +38,12 @@ function loadFont(name) {
   link.rel = "stylesheet";
   link.href = url;
   document.head.appendChild(link);
+}
+
+function normalizeSettings(s) {
+  if (!s) return s;
+  const oldName = String(s.app_name || "").trim().toUpperCase();
+  return { ...s, app_name: ["KEYLOT", "QYLOT", "KYLOT"].includes(oldName) ? "Qylot" : s.app_name };
 }
 
 function applyToRoot(s) {
@@ -79,7 +86,7 @@ export function SettingsProvider({ children }) {
   const refresh = useCallback(async () => {
     try {
       const { data } = await api.get("/settings");
-      const merged = { ...DEFAULTS, ...data };
+      const merged = normalizeSettings({ ...DEFAULTS, ...data });
       setSettings(merged);
       applyToRoot(merged);
       saveCache(data?.company_id || user?.company_id, merged);
@@ -111,7 +118,7 @@ export function SettingsProvider({ children }) {
 
   const update = async (patch) => {
     const { data } = await api.put("/settings", patch);
-    const merged = { ...DEFAULTS, ...data };
+    const merged = normalizeSettings({ ...DEFAULTS, ...data });
     setSettings(merged);
     applyToRoot(merged);
     saveCache(user?.company_id, merged);

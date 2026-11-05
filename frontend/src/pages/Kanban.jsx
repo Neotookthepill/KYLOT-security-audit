@@ -151,6 +151,7 @@ export default function Kanban() {
         <div>
           <p className="overline">Vue kanban</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Chantiers</h1>
+          <p className="page-subtitle">Du devis au chantier terminé, une seule vue.</p>
           {(user?.role === "technicien" || user?.role === "sous_traitant") && <p className="text-sm text-slate-500 mt-2">Vous voyez uniquement les chantiers qui vous sont assignés.</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">

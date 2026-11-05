@@ -84,7 +84,7 @@ export default function Settings() {
         theme_accent: form.theme_accent,
         font_family: form.font_family,
         logo: form.logo || "",
-        app_name: form.app_name || "QYLOT",
+        app_name: form.app_name || "Qylot",
         overtime_alert_threshold: parseFloat(form.overtime_alert_threshold ?? 30) || 30,
         notifications: form.notifications || {},
         dashboard_widgets: form.dashboard_widgets || {},
@@ -141,7 +141,7 @@ export default function Settings() {
     if (!window.confirm("Réinitialiser aux valeurs par défaut ?")) return;
     setSaving(true);
     try {
-      await update({ theme_primary: "#0f172a", theme_accent: "#6366f1", font_family: "Inter", logo: "", app_name: "KEYLOT" });
+      await update({ theme_primary: "#0b1220", theme_accent: "#b5622e", font_family: "Inter", logo: "", app_name: "Qylot" });
       toast.success("Paramètres réinitialisés");
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setSaving(false); }
@@ -181,7 +181,7 @@ export default function Settings() {
           <div className="space-y-4">
             <div>
               <Label>Nom de la société / application</Label>
-              <Input value={form.app_name || ""} onChange={(e) => setForm({ ...form, app_name: e.target.value })} placeholder="KEYLOT" data-testid="settings-appname" />
+              <Input value={form.app_name || ""} onChange={(e) => setForm({ ...form, app_name: e.target.value })} placeholder="Qylot" data-testid="settings-appname" />
               <p className="text-xs text-slate-500 mt-1.5">S'affiche en haut de la barre latérale et sur la page de connexion.</p>
             </div>
             <div>
@@ -217,8 +217,15 @@ export default function Settings() {
             </div>
             <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4">
               <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Aperçu</p>
-              <p className="text-2xl font-semibold" style={{ fontFamily: `"${form.font_family}", sans-serif` }}>Bonjour, {form.app_name || "KEYLOT"} 👋</p>
+              <p className="text-2xl font-semibold" style={{ fontFamily: `"${form.font_family}", sans-serif` }}>Bonjour, {form.app_name || "Qylot"} 👋</p>
               <p className="text-sm text-slate-600 mt-1" style={{ fontFamily: `"${form.font_family}", sans-serif` }}>Le meilleur outil pour vos ventes et chantiers.</p>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">Mode d’affichage</p>
+                <p className="text-xs text-slate-500 mt-0.5">Clair, sombre ou automatique.</p>
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </Card>
@@ -260,7 +267,7 @@ export default function Settings() {
           <div className="mt-6 rounded-lg p-4 border" style={{ background: form.theme_primary, color: "white" }}>
             <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Aperçu couleurs</p>
             <div className="flex items-center gap-3">
-              <span className="font-display text-xl font-semibold">{form.app_name || "KEYLOT"}</span>
+              <span className="font-display text-xl font-semibold">{form.app_name || "Qylot"}</span>
               <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: form.theme_accent }}>Accent</span>
               <button className="ml-auto px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: form.theme_accent }}>Bouton</button>
             </div>

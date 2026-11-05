@@ -6,35 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { ArrowUpRight, Check, Compass, ShieldCheck } from "lucide-react";
 
-function QylotLogo({ size = 88 }) {
-  // iter184 — Logo QYLOT officiel : tuile arrondie noire + anneau argenté brossé
-  // + queue diagonale métallique. Identique au visuel de la maquette utilisateur.
-  const uid = `qy-${size}`;
-  return (
-    <svg viewBox="0 0 512 512" width={size} height={size} aria-hidden="true">
-      <defs>
-        <linearGradient id={`${uid}-bg`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#111318" />
-          <stop offset="100%" stopColor="#05070f" />
-        </linearGradient>
-        <linearGradient id={`${uid}-ring`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#F8FAFC" />
-          <stop offset="55%" stopColor="#CBD5E1" />
-          <stop offset="100%" stopColor="#64748B" />
-        </linearGradient>
-        <linearGradient id={`${uid}-tail`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#94A3B8" />
-          <stop offset="60%" stopColor="#475569" />
-          <stop offset="100%" stopColor="#1E293B" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="112" fill={`url(#${uid}-bg)`} />
-      <circle cx="256" cy="256" r="150" fill="none" stroke={`url(#${uid}-ring)`} strokeWidth="30" />
-      <line x1="280" y1="280" x2="436" y2="436" stroke={`url(#${uid}-tail)`} strokeWidth="36" strokeLinecap="butt" />
-    </svg>
-  );
-}
+const PROOF = [
+  "Vos ventes et commissions, au même endroit",
+  "Le planning et les chantiers, sans double saisie",
+  "Une vision claire pour le bureau comme pour le terrain",
+];
 
 export default function Login() {
   const { login, verifyMfa } = useAuth();
@@ -86,115 +64,135 @@ export default function Login() {
     }
   };
 
-  const brand = settings.theme_primary || "#0f172a";
+  const appName = settings.app_name || "Qylot";
 
   return (
-    <div className="qy-login flex items-center justify-center px-6 py-10" data-testid="login-page">
-      {/* iter188 — Fond bleu nuit + arcs lumineux + carte glass, aligné à la maquette CPF */}
-      <div className="qy-login__deco">
-        <div className="qy-login__arc qy-login__arc--tl" />
-        <div className="qy-login__arc qy-login__arc--r" />
-        <div className="qy-login__arc qy-login__arc--br" />
-      </div>
-      <p className="qy-login__side qy-login__side--tr hidden sm:block">
-        BÂTIR<br />AUJOURD'HUI<br />DEMAIN
-      </p>
-      <p className="qy-login__side qy-login__side--bl hidden sm:block">
-        DES SOLUTIONS<br />POUR FAIRE GRANDIR<br />VOS AMBITIONS
-      </p>
+    <div className="min-h-screen bg-[#f7f3e9] text-[#0b1220]" data-testid="login-page">
+      <div className="grid min-h-screen lg:grid-cols-[1.08fr_.92fr]">
+        {/* Brand panel */}
+        <section className="relative hidden overflow-hidden bg-[#0b1220] px-12 py-12 text-[#f7f3e9] lg:flex lg:flex-col xl:px-20">
+          <div className="pointer-events-none absolute inset-0 opacity-[.16]" style={{ backgroundImage: "linear-gradient(rgba(247,243,233,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(247,243,233,.22) 1px, transparent 1px)", backgroundSize: "72px 72px" }} />
+          <div className="pointer-events-none absolute -right-40 top-1/3 h-[540px] w-[540px] rounded-full border border-[#c8784e]/25" />
+          <div className="pointer-events-none absolute -right-24 top-1/3 h-[380px] w-[380px] rounded-full border border-[#c8784e]/15" />
 
-      <div className="w-full max-w-md qy-login__card px-7 py-8 sm:px-9 sm:py-10">
-        {/* Logo hero */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <div className="rounded-2xl shadow-[0_10px_40px_-12px_rgba(120,170,255,0.35)] overflow-hidden" data-testid="login-logo">
-            {settings.logo ? (
-              <img src={settings.logo} alt="logo" className="h-[80px] w-[80px] object-contain bg-white" />
-            ) : (
-              <QylotLogo size={80} />
-            )}
+          <div className="relative flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f7f3e9] font-display text-2xl font-bold text-[#0b1220]" data-testid="login-logo">
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : "Q"}
+            </div>
+            <div>
+              <div className="font-display text-[22px] font-semibold leading-none tracking-[-.02em]">{appName}</div>
+              <div className="mt-1 text-[9px] uppercase tracking-[.22em] text-white/40">Chantiers & croissance</div>
+            </div>
           </div>
-          <span className="font-display text-2xl font-semibold tracking-[0.28em] text-white mt-4">
-            {settings.app_name || "QYLOT"}
-          </span>
-          <p className="text-sm text-slate-300/80 mt-2 max-w-xs">
-            Vos chantiers. Vos clients. Votre croissance.
-          </p>
-        </div>
 
-        {mfaChallenge ? (
-          <form onSubmit={submitMfa} className="space-y-5" data-testid="login-mfa-form">
-            <div className="space-y-1 text-center">
-              <p className="overline text-slate-300/70">Double authentification</p>
-              <h1 className="font-display text-xl font-semibold tracking-tight text-white">Vérification en deux étapes</h1>
-              <p className="text-sm text-slate-300/80 mt-2">
-                Ouvrez votre application d'authentification et saisissez le code à 6 chiffres.
+          <div className="relative my-auto max-w-[570px] py-12">
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#d98b61]">Le logiciel des entreprises qui construisent</p>
+            <h1 className="mt-5 font-display text-[46px] font-semibold leading-[.98] tracking-[-.055em] xl:text-[58px]">
+              Le chantier.<br />Les clients.<br /><span className="text-[#d98b61]">La croissance.</span>
+            </h1>
+            <p className="mt-7 max-w-[430px] text-[15px] leading-relaxed text-white/60">
+              Qylot réunit le commercial, le terrain et le pilotage dans un seul espace lisible. Pas un tableau de bord de plus : un outil de travail.
+            </p>
+            <ul className="mt-9 space-y-3.5">
+              {PROOF.map((item) => (
+                <li key={item} className="flex items-start gap-3 text-[13px] text-white/75">
+                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#c8784e]/15 text-[#d98b61]"><Check size={12} strokeWidth={2.5} /></span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative flex items-center justify-between border-t border-white/10 pt-5 text-[10px] uppercase tracking-[.16em] text-white/30">
+            <span>Préproduction · 2026</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck size={12} /> Accès sécurisé</span>
+          </div>
+        </section>
+
+        {/* Form panel */}
+        <section className="flex min-h-screen flex-col justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
+          <div className="mb-10 flex items-center gap-2.5 lg:hidden">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#0b1220] font-display text-lg font-bold text-[#f7f3e9]">Q</div>
+            <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>
+          </div>
+
+          <div className="w-full max-w-[430px]">
+            <div className="mb-8">
+              <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#a9552b]">{mfaChallenge ? "Vérification" : "Connexion"}</p>
+              <h2 className="mt-3 font-display text-[32px] font-semibold leading-tight tracking-[-.04em] text-[#0b1220] sm:text-[38px]">
+                {mfaChallenge ? "Un dernier contrôle." : "Bon retour."}
+              </h2>
+              <p className="mt-3 text-[13px] leading-relaxed text-[#667085]">
+                {mfaChallenge ? "Ouvrez votre application d'authentification et saisissez le code à 6 chiffres." : "Entrez vos identifiants pour retrouver votre espace de travail."}
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="mfa-code">Code d'authentification</Label>
-              <Input
-                id="mfa-code"
-                inputMode="text"
-                autoComplete="one-time-code"
-                autoFocus
-                required
-                minLength={6}
-                maxLength={32}
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                data-testid="login-mfa-code-input"
-                placeholder="123456 ou code de secours"
-              />
-            </div>
-
-            {error && (
-              <div className="text-sm text-red-100 bg-red-500/20 border border-red-400/40 rounded-md px-3 py-2" data-testid="login-error">
-                {error}
-              </div>
+            {mfaChallenge ? (
+              <form onSubmit={submitMfa} className="space-y-5" data-testid="login-mfa-form">
+                <div className="space-y-1.5">
+                  <Label htmlFor="mfa-code" className="text-[12px] font-medium text-[#344054]">Code d'authentification</Label>
+                  <Input
+                    id="mfa-code"
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                    minLength={6}
+                    maxLength={32}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    data-testid="login-mfa-code-input"
+                    placeholder="123456 ou code de secours"
+                    className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]"
+                  />
+                </div>
+                {error && <ErrorBox error={error} />}
+                <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#0b1220] text-[14px] font-semibold text-[#f7f3e9] hover:bg-[#1d2939]" data-testid="login-mfa-submit-btn">
+                  {loading ? "Vérification…" : "Valider le code"}
+                </Button>
+                <button type="button" className="w-full text-xs font-medium text-[#667085] underline underline-offset-4 hover:text-[#0b1220]" onClick={() => { setMfaChallenge(""); setMfaCode(""); setError(""); }}>
+                  Revenir à la connexion
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={submit} className="space-y-5" data-testid="login-form">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-[12px] font-medium text-[#344054]">Email professionnel</Label>
+                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email-input" placeholder="vous@entreprise.fr" className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-[12px] font-medium text-[#344054]">Mot de passe</Label>
+                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
+                </div>
+                {error && <ErrorBox error={error} />}
+                <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#0b1220] text-[14px] font-semibold text-[#f7f3e9] hover:bg-[#1d2939]" data-testid="login-submit-btn">
+                  {loading ? "Connexion…" : <span className="flex items-center gap-2">Se connecter <ArrowUpRight size={16} /></span>}
+                </Button>
+              </form>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full h-11 bg-white text-slate-900 hover:bg-slate-100 shadow-lg" data-testid="login-mfa-submit-btn">
-              {loading ? "Vérification…" : "Valider le code"}
-            </Button>
-            <button
-              type="button"
-              className="w-full text-xs text-slate-300/80 hover:text-white underline"
-              onClick={() => { setMfaChallenge(""); setMfaCode(""); setError(""); }}
-            >
-              Revenir à la connexion
-            </button>
-          </form>
-        ) : (
-        <form onSubmit={submit} className="space-y-5" data-testid="login-form">
-          <div className="space-y-1 text-center">
-            <p className="overline text-slate-300/70">Connexion</p>
-            <h1 className="font-display text-xl font-semibold tracking-tight text-white">Bon retour parmi nous</h1>
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email-input" placeholder="vous@exemple.com" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" />
+            <div className="mt-8 flex items-start gap-3 rounded-xl border border-[#e2dbcd] bg-white/50 p-4">
+              <Compass size={17} className="mt-0.5 shrink-0 text-[#a9552b]" />
+              <p className="text-[11px] leading-relaxed text-[#667085]">
+                Un problème d’accès ? Contactez votre administrateur. Vos données restent isolées par entreprise.
+              </p>
             </div>
           </div>
 
-          {error && (
-            <div className="text-sm text-red-100 bg-red-500/20 border border-red-400/40 rounded-md px-3 py-2" data-testid="login-error">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" disabled={loading} className="w-full h-11 bg-white text-slate-900 hover:bg-slate-100 shadow-lg" data-testid="login-submit-btn">
-            {loading ? "Connexion…" : "Se connecter"}
-          </Button>
-        </form>
-        )}
+          <div className="mt-10 flex items-center justify-between text-[10px] text-[#98a2b3] lg:mt-auto">
+            <span>© 2026 {appName}</span>
+            <span>Connexion sécurisée</span>
+          </div>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function ErrorBox({ error }) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700" data-testid="login-error" role="alert">
+      {error}
     </div>
   );
 }

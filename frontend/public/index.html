@@ -1,22 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="QYLOT — Ventes, chantiers et planning pour PME d'intervention à domicile" />
+        <meta name="theme-color" content="#f7f3e9" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#080d14" media="(prefers-color-scheme: dark)" />
+        <meta name="description" content="Qylot — ventes, chantiers et planning pour les entreprises du bâtiment et de l'énergie." />
         <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
         <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-        <meta name="apple-mobile-web-app-title" content="QYLOT" />
+        <meta name="apple-mobile-web-app-title" content="Qylot" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
+        <script>
+          (function () {
+            try {
+              var t = localStorage.getItem("qylot-theme") || "system";
+              var d = t === "dark" || (t === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+              document.documentElement.classList.toggle("dark", d);
+              document.documentElement.dataset.theme = d ? "dark" : "light";
+              document.documentElement.style.colorScheme = d ? "dark" : "light";
+            } catch (e) {}
+          })();
+        </script>
         <!--
         manifest.json provides metadata used when your web app is installed on a
         user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
@@ -30,7 +42,7 @@
         work correctly both with client-side routing and a non-root public URL.
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
-        <title>QYLOT — Ventes & Planning</title>
+        <title>Qylot — Chantiers & croissance</title>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

@@ -106,7 +106,7 @@ function ObjectifGauge({ ca, objectif }) {
   const circ = 2 * Math.PI * r;
   const halfC = circ / 2;
   const dash = (pct / 100) * halfC;
-  const strokeColor = pct >= 100 ? "#059669" : pct >= 60 ? "#0f172a" : "#6366f1";
+  const strokeColor = pct >= 100 ? "#1f6b57" : pct >= 60 ? "#0b1220" : "#b5622e";
 
   return (
     <div className="relative w-full max-w-[300px] mx-auto" data-testid="objectif-gauge">
@@ -585,6 +585,7 @@ export default function Sales() {
         <div>
           <p className="overline">Ventes à domicile</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Ventes</h1>
+          <p className="page-subtitle">Suivez vos ventes, vos règlements et vos commissions.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {can("sales", "view", "all") && unmatchedCount > 0 && (
@@ -732,7 +733,7 @@ export default function Sales() {
                 setQueries((prev) => prev.slice(0, -1));
               }
             }}
-            placeholder={queries.length === 0 ? "Rechercher (nom, tél, adresse, CP, ville, BDC, produit, commercial, statut, source : R1, CQ, TAP, Sous-traitance…) — Entrée ou virgule pour ajouter" : "Ajouter un autre filtre…"}
+            placeholder={queries.length === 0 ? "Rechercher un client, un BDC, une ville, un commercial…" : "Ajouter un autre filtre…"}
             className="border-0 shadow-none focus-visible:ring-0 h-9 px-0 flex-1 min-w-[220px]"
             data-testid="sales-search-input"
           />
@@ -758,7 +759,7 @@ export default function Sales() {
           );
         })()}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm sales-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline whitespace-nowrap">Statut</th>

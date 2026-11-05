@@ -657,7 +657,7 @@ export default function AIHelper() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
-        className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl grid place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden"
+        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl grid place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5"
         aria-label="Ouvrir l'assistant KIK'S"
         title="KIK'S — Assistant IA"
       >
@@ -665,7 +665,7 @@ export default function AIHelper() {
       </button>
 
       {open && (
-        <div className={`fixed bottom-24 right-5 z-40 ${panelWidth} h-[560px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width]`} data-testid="ai-helper-panel">
+        <div className={`fixed bottom-40 right-3 z-40 ${panelWidth} h-[560px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width] md:bottom-24 md:right-5`} data-testid="ai-helper-panel">
           <div className="p-3 border-b border-slate-200 bg-slate-900 text-white shrink-0">
             <div className="flex items-center gap-2.5">
               <KiksAvatar size={36} />
