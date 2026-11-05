@@ -211,6 +211,26 @@
   .qy-page .shadow-sm { box-shadow: 0 1px 2px hsl(0 0% 0% / .04); }
   .dark .qy-page .shadow-sm { box-shadow: 0 1px 2px hsl(0 0% 0% / .35); }
   .qy-divider { height: 1px; background: hsl(var(--border)); }
+  .qy-sheet { padding: 0; gap: 0; background: hsl(var(--card)); }
+  .qy-sheet [data-sheet-header] {
+    position: sticky; top: 0; z-index: 10;
+    padding: 1.4rem 1.5rem 1rem; margin: 0;
+    background: hsl(var(--card) / .96); border-bottom: 1px solid hsl(var(--border));
+    backdrop-filter: blur(12px);
+  }
+  .qy-sheet [data-sheet-footer] {
+    position: sticky; bottom: 0; z-index: 10;
+    padding: .9rem 1.5rem calc(.9rem + env(safe-area-inset-bottom));
+    margin: 0; background: hsl(var(--card) / .97); border-top: 1px solid hsl(var(--border));
+    backdrop-filter: blur(12px);
+  }
+  .qy-sheet > div:not([data-sheet-header]):not([data-sheet-footer]) { padding-left: 1.5rem; padding-right: 1.5rem; padding-bottom: 5.5rem; }
+  .qy-sheet .qy-form-section {
+    display: flex; align-items: center; gap: .55rem;
+    margin: 1.35rem 0 .7rem; font-size: 9px; font-weight: 700;
+    letter-spacing: .14em; text-transform: uppercase; color: hsl(var(--muted-foreground));
+  }
+  .qy-sheet .qy-form-section:after { content: ""; flex: 1; height: 1px; background: hsl(var(--border)); }
 }
 
 @layer utilities {
@@ -327,4 +347,31 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .sales-table td:nth-child(13)::before { content: "Commercial"; }
   .qy-page .sales-table td:nth-child(15)::before { content: ""; }
   .qy-page .sales-table td:nth-child(9), .qy-page .sales-table td:nth-child(13) { text-align: right; }
+}
+
+
+@media (max-width: 767px) {
+  .qy-page .clients-table thead { display: none; }
+  .qy-page .clients-table, .qy-page .clients-table tbody { display: block; width: 100%; }
+  .qy-page .clients-table tr {
+    display: block; margin: 0 0 .65rem; border: 1px solid hsl(var(--border));
+    border-radius: 12px; background: hsl(var(--card)); overflow: hidden;
+  }
+  .qy-page .clients-table td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+    padding: .55rem .8rem !important; border-bottom: 1px solid hsl(var(--border) / .55);
+    text-align: right; font-size: .8rem;
+  }
+  .qy-page .clients-table td:last-child { border-bottom: 0; }
+  .qy-page .clients-table td::before {
+    content: ""; color: hsl(var(--muted-foreground)); font-size: 9px;
+    font-weight: 600; letter-spacing: .1em; text-transform: uppercase; text-align: left;
+    flex: 0 0 5.5rem;
+  }
+  .qy-page .clients-table td:nth-child(1)::before { content: "Client"; }
+  .qy-page .clients-table td:nth-child(2)::before { content: "Téléphone"; }
+  .qy-page .clients-table td:nth-child(5)::before { content: "Ville"; }
+  .qy-page .clients-table td:nth-child(6)::before { content: "Catégories"; }
+  .qy-page .clients-table td:nth-child(7)::before { content: ""; }
+  .qy-page .clients-table td:nth-child(3), .qy-page .clients-table td:nth-child(4) { display: none; }
 }

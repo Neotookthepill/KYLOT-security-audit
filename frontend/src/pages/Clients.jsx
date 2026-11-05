@@ -252,7 +252,7 @@ export default function Clients() {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm clients-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-5 py-3 overline">Nom / Prénom</th>

@@ -211,13 +211,14 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-xl overflow-y-auto" data-testid="new-sale-sheet">
-        <SheetHeader>
+      <SheetContent className="qy-sheet sm:max-w-xl overflow-y-auto" data-testid="new-sale-sheet">
+        <SheetHeader data-sheet-header>
           <SheetTitle className="font-display text-2xl">Nouvelle vente</SheetTitle>
           <SheetDescription>Le chantier est ajouté automatiquement au planning (sauf si annulé ou en litige).</SheetDescription>
         </SheetHeader>
 
         <div className="mt-6 space-y-5">
+          <div className="qy-form-section">Informations</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Date</Label>
               <Input type="date" value={form.sale_date} onChange={(e) => setForm({ ...form, sale_date: e.target.value })} data-testid="sale-date" />
@@ -227,6 +228,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             </div>
           </div>
 
+          <div className="qy-form-section">Client</div>
           <div className="space-y-2">
             <Label>Nom / Prénom</Label>
             <div className="flex gap-2 text-xs">
@@ -273,6 +275,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             )}
           </div>
 
+          <div className="qy-form-section">Vente & règlement</div>
           <div className="space-y-1.5"><Label>Produits</Label>
             <Textarea rows={2} value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })} placeholder="Ex : PAC air/eau + ballon thermodynamique" data-testid="sale-service" />
           </div>
@@ -342,6 +345,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             </div>
           )}
 
+          <div className="qy-form-section">Commission</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Type de commission{form.is_de ? " commercial 1" : ""}</Label>
               <Select value={form.commission_type || "fixed"} onValueChange={(v) => setForm({ ...form, commission_type: v })}>
@@ -486,6 +490,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             </div>
           )}
 
+          <div className="qy-form-section">Suivi</div>
           <ProspecteurField form={form} setForm={setForm} testPrefix="sale" />
 
           <div className="grid grid-cols-2 gap-3">
@@ -515,7 +520,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
           </div>
         </div>
 
-        <SheetFooter className="mt-6">
+        <SheetFooter data-sheet-footer className="mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={submit} disabled={saving} data-testid="sale-submit-btn">
             {saving ? "Enregistrement…" : "Enregistrer"}

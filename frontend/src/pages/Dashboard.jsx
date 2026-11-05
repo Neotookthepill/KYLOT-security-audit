@@ -711,6 +711,11 @@ export default function Dashboard() {
 
   const todayLabel = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
   const firstName = String(user?.name || "").trim().split(/\s+/)[0] || "";
+  const roleIntro = isCommercial
+    ? "Votre performance, vos clients, votre challenge. Le reste peut attendre."
+    : user?.role === "responsable"
+      ? "La vue d’ensemble de votre équipe et de vos opérations."
+      : "Voici ce qui mérite votre attention aujourd’hui. Le reste peut attendre.";
   const alertCount = Array.isArray(data?.alerts) ? data.alerts.length : 0;
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
 
@@ -723,7 +728,7 @@ export default function Dashboard() {
             {firstName ? `Bonjour, ${firstName}.` : "Bonjour."}
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Voici ce qui mérite votre attention aujourd’hui. Le reste peut attendre.
+            {roleIntro}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -750,7 +755,7 @@ export default function Dashboard() {
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Ventes</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
             <p className="mt-1 font-display text-xl font-semibold tabular-nums">{data?.sales?.count ?? 0}</p>
           </div>
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary"><TrendingUp size={16} /></span>

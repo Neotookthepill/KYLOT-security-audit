@@ -12,7 +12,7 @@ export const ProspecteurField = ({ form, setForm, testPrefix }) => {
   const [list, setList] = useState([]);
   const canComm = ["admin", "responsable"].includes(user?.role);
   useEffect(() => {
-    api.get("/prospecteurs").then((r) => setList(r.data || [])).catch(() => {});
+    api.get("/prospecteurs").then((r) => setList(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   }, []);
   const pid = form.prospecteur_id || "";
   return (
