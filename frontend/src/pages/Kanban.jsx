@@ -197,7 +197,8 @@ export default function Kanban() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <p className="mb-2 text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground md:hidden">Glissez horizontalement pour voir les autres colonnes</p>
+      <div className="flex snap-x gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
         {columns.map((col) => {
           const items = visible.filter((p) => p.status === col.key);
           return (
@@ -205,7 +206,7 @@ export default function Kanban() {
               key={col.key}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => onDrop(e, col.key)}
-              className="bg-white border border-slate-200 rounded-xl p-3 min-h-[70vh]"
+              className="w-[86vw] shrink-0 snap-start rounded-xl border border-slate-200 bg-white p-3 min-h-[46vh] md:w-auto md:min-h-[70vh]"
               data-testid={`kanban-col-${col.key}`}
             >
               <div className="flex items-center justify-between px-2 py-2">
