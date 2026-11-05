@@ -13,6 +13,7 @@ import StatusManagerDialog from "@/components/StatusManagerDialog";
 import ImportClientPdfDialog from "@/components/ImportClientPdfDialog";
 import UnmatchedCommercialsDialog from "@/components/UnmatchedCommercialsDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SALE_STATUSES, STATUS_MAP, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
 import useTeam from "@/lib/useTeam";
@@ -211,6 +212,45 @@ function CommercialRow({ c, isAdmin, onObjectifSaved }) {
   );
 }
 
+function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
+  if (!sale) return null;
+  const st = statusMap?.[sale.status] || STATUS_MAP[sale.status];
+  const src = SOURCE_MAP[sale.source];
+  const fields = [
+    ["Date", sale.sale_date],
+    ["BDC", sale.bdc],
+    ["Client", sale.client_name],
+    ["Téléphone", sale.client_phone],
+    ["Adresse", [sale.address, sale.postal_code, sale.city].filter(Boolean).join(" · ")],
+    ["Produit", sale.service],
+    ["Montant HT", fmtEur2(sale.amount)],
+    ["Règlement", formatPayment(sale.payment_method)],
+    ["Commission", formatRate(sale.commission_rate)],
+    ["Commercial", sale.commercial],
+    ["Source", src?.label || sale.source],
+    ["Statut", st?.label || sale.status],
+  ];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg" data-testid="sale-detail-dialog">
+        <DialogHeader>
+          <DialogTitle className="font-display text-xl">Détail de la vente</DialogTitle>
+          <DialogDescription>Consultation en lecture seule.</DialogDescription>
+        </DialogHeader>
+        <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          {fields.filter(([, v]) => v !== undefined && v !== null && v !== "").map(([label, value]) => (
+            <div key={label} className="min-w-0">
+              <dt className="overline text-[10px]">{label}</dt>
+              <dd className="mt-0.5 break-words font-medium">{label === "Téléphone" ? <PhoneNumbers value={value} className="text-sm" /> : value}</dd>
+            </div>
+          ))}
+        </dl>
+        {sale.notes && <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm"><p className="overline text-[10px]">Notes</p><p className="mt-1 whitespace-pre-wrap">{sale.notes}</p></div>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Sales() {
   const { user, can, loading: authLoading } = useAuth();
   const { commerciaux, reload: reloadTeam } = useTeam();
@@ -242,6 +282,7 @@ export default function Sales() {
     return () => { cancelled = true; window.removeEventListener("kylot:settings-updated", onUpdate); };
   }, []);
   const [sales, setSales] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [] });
   const [pageTotal, setPageTotal] = useState(0);
   const [pageOffset, setPageOffset] = useState(0);
@@ -251,6 +292,7 @@ export default function Sales() {
   const [queries, setQueries] = useState([]); // ex: ["Lyon", "69003", "Dupont"]
   const [openNew, setOpenNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
+  const [viewSale, setViewSale] = useState(null);
   const [objectif, setObjectif] = useState(0);
   const [objectifYear, setObjectifYear] = useState(null); // iter132 : override annuel (null => ×12)
   const [editingObjectif, setEditingObjectif] = useState(false);
@@ -317,7 +359,8 @@ export default function Sales() {
       setPageTotal(Number(rows.headers?.["x-total-count"] || (rows.data || []).length));
       setPageOffset(Math.max(0, nextOffset));
       setSummary(aggregates.data || { count: 0, total: 0, by_commercial: [] });
-    } catch (_) { /* keep previous */ }
+      setLoadError(false);
+    } catch (_) { setLoadError(true); }
     finally { setSalesLoading(false); }
   };
   // Optimistic PATCH helper for inline edits. Rolls back on error.
@@ -629,6 +672,14 @@ export default function Sales() {
         </div>
       </div>
 
+      {loadError && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" data-testid="sales-load-error">
+          <AlertTriangle size={15} />
+          <span className="flex-1">Impossible de rafraîchir les ventes. Les données affichées peuvent être anciennes.</span>
+          <Button variant="outline" size="sm" onClick={() => load(pageOffset)}>Réessayer</Button>
+        </div>
+      )}
+
       {/* iter63 : sélecteur de période remonté en TOP (juste sous le titre)
           → pilote CA / Objectif / % atteint + tableau des ventes */}
       <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="sales-period-filter">
@@ -800,7 +851,16 @@ export default function Sales() {
                 const st = statusMap[s.status] || STATUS_MAP[s.status];
                 const src = SOURCE_MAP[s.source];
                 return (
-                  <tr key={s.id} className={`data-row border-b border-slate-100 ${canEditSaleAny ? "cursor-pointer" : "cursor-default"} ${s.status === "annule" ? "opacity-60" : ""}`} onClick={canEditSaleAny ? () => setEditingSale(s) : undefined} data-testid={`sale-row-${s.id}`}>
+                  <tr
+                    key={s.id}
+                    className={`data-row border-b border-slate-100 cursor-pointer ${s.status === "annule" ? "opacity-60" : ""}`}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Ouvrir la vente ${s.client_name || s.bdc || ""}`}
+                    onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
+                    onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); if (canEditSaleAny) setEditingSale(s); else setViewSale(s); } }}
+                    data-testid={`sale-row-${s.id}`}
+                  >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {canEditSaleAny ? (
                         <DropdownMenu>
@@ -1098,6 +1158,7 @@ export default function Sales() {
       <ImportClientPdfDialog open={pdfImportOpen} onOpenChange={setPdfImportOpen} onImported={() => { load(); }} />
       <UnmatchedCommercialsDialog open={unmatchedOpen} onOpenChange={setUnmatchedOpen} onBound={() => { load(); loadUnmatched(); }} />
       <EditSaleSheet sale={editingSale} open={!!editingSale} onOpenChange={(v) => !v && setEditingSale(null)} onSaved={() => { load(); window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { edited: true } })); }} />
+      <SaleDetailDialog sale={viewSale} open={!!viewSale} onOpenChange={(v) => !v && setViewSale(null)} statusMap={statusMap} />
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
         <AlertDialogContent data-testid="sale-delete-confirm">

@@ -3,7 +3,7 @@ import api from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, User, CalendarOff, Sun, Plus, Sparkles, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, CalendarOff, Sun, Plus, Sparkles, RefreshCw, AlertTriangle } from "lucide-react";
 import ProjectDialog from "@/components/ProjectDialog";
 import AbsencesDialog from "@/components/AbsencesDialog";
 import OffDaysDialog from "@/components/OffDaysDialog";
@@ -62,12 +62,13 @@ export default function CalendarPage() {
   });
 
   const monthStr = `${cursor.y}-${String(cursor.m + 1).padStart(2, "0")}`;
+  const [loadError, setLoadError] = useState(false);
 
   const load = async () => {
     // iter209 : endpoint dédié Planning — gated par `planning.view`, indépendant
     // de `projects.view`. Retirer « Chantiers » à un technicien ne vide plus son planning.
-    try { setProjects((await api.get("/planning/projects")).data); }
-    catch (_) { /* keep previous */ }
+    try { setProjects((await api.get("/planning/projects")).data); setLoadError(false); }
+    catch (_) { setLoadError(true); }
   };
   const loadAbsences = async () => {
     // iter159 : seuls admin/responsable/super_admin voient les absences des autres.
@@ -277,6 +278,14 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" data-testid="calendar-load-error">
+          <AlertTriangle size={15} />
+          <span className="flex-1">Impossible de rafraîchir le planning. Les données affichées peuvent être anciennes.</span>
+          <Button variant="outline" size="sm" onClick={load}>Réessayer</Button>
+        </div>
+      )}
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200">

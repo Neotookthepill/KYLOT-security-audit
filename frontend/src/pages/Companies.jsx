@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import CompanyUsersDialog from "@/components/CompanyUsersDialog";
 import { toast } from "sonner";
 import { Trash2, Building2, Plus, Users } from "lucide-react";
@@ -15,6 +15,8 @@ export default function Companies() {
   const [form, setForm] = useState({ name: "", admin_email: "", admin_password: "", admin_name: "" });
   const [saving, setSaving] = useState(false);
   const [usersCompany, setUsersCompany] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const load = async () => {
     try { setCompanies((await api.get("/superadmin/companies")).data); }
@@ -35,11 +37,14 @@ export default function Companies() {
     finally { setSaving(false); }
   };
 
-  const remove = async (c) => {
-    if (!window.confirm(`Supprimer l'entreprise ${c.name} et TOUTES ses données ?`)) return;
+  const askRemove = (c) => { setDeleteTarget(c); setDeleteConfirm(""); };
+  const remove = async () => {
+    if (!deleteTarget || deleteConfirm.trim() !== deleteTarget.name) return;
     try {
-      await api.delete(`/superadmin/companies/${c.id}`);
+      await api.delete(`/superadmin/companies/${deleteTarget.id}`);
       toast.success("Entreprise supprimée");
+      setDeleteTarget(null);
+      setDeleteConfirm("");
       load();
     } catch (err) { toast.error(formatApiError(err)); }
   };
@@ -101,7 +106,7 @@ export default function Companies() {
                     <Button variant="ghost" size="sm" onClick={() => setUsersCompany(c)} data-testid={`company-users-${c.id}`} aria-label="Utilisateurs et MFA">
                       <Users size={14} />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => remove(c)} data-testid={`company-delete-${c.id}`} aria-label="Supprimer">
+                    <Button variant="ghost" size="sm" onClick={() => askRemove(c)} data-testid={`company-delete-${c.id}`} aria-label={`Supprimer l’entreprise ${c.name}`}>
                       <Trash2 size={14} />
                     </Button>
                   </td>
@@ -111,6 +116,28 @@ export default function Companies() {
           </table>
         </div>
       </Card>
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(v) => { if (!v) { setDeleteTarget(null); setDeleteConfirm(""); } }}>
+        <DialogContent className="sm:max-w-md" data-testid="delete-company-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-red-700">Supprimer cette entreprise ?</DialogTitle>
+            <DialogDescription>
+              Cette action supprime définitivement l’entreprise, ses utilisateurs, ses ventes, ses chantiers et ses données.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p className="font-semibold">{deleteTarget?.name}</p>
+            <p className="mt-1 text-xs">{deleteTarget?.user_count ?? 0} utilisateur(s) · {deleteTarget?.sales_count ?? 0} vente(s)</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-600">Tapez exactement <strong>{deleteTarget?.name}</strong> pour confirmer.</p>
+            <Input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} aria-label="Nom de l’entreprise à confirmer" data-testid="delete-company-confirm" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }}>Annuler</Button>
+            <Button variant="destructive" onClick={remove} disabled={deleteConfirm.trim() !== (deleteTarget?.name || "")} data-testid="delete-company-confirm-btn">Supprimer définitivement</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <CompanyUsersDialog
         company={usersCompany}
         open={Boolean(usersCompany)}

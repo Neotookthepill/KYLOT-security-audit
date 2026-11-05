@@ -155,7 +155,16 @@ export default function Journal() {
                 const isOpen = !!expanded[it.id];
                 return (
                   <React.Fragment key={it.id}>
-                    <tr className="border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer" onClick={() => setExpanded({ ...expanded, [it.id]: !isOpen })} data-testid={`journal-row-${it.id}`}>
+                    <tr
+                      className="border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer"
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={isOpen}
+                      aria-label={`Détail de l’activité du ${fmtDate(it.at)}`}
+                      onClick={() => setExpanded({ ...expanded, [it.id]: !isOpen })}
+                      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setExpanded({ ...expanded, [it.id]: !isOpen }); } }}
+                      data-testid={`journal-row-${it.id}`}
+                    >
                       <td className="px-4 py-3 whitespace-nowrap text-slate-600">{fmtDate(it.at)}</td>
                       <td className="px-4 py-3 whitespace-nowrap font-medium">{it.user_name || usersMap[it.user_id] || "?"} <span className="text-xs text-slate-400">({it.user_role})</span></td>
                       <td className="px-4 py-3 whitespace-nowrap">

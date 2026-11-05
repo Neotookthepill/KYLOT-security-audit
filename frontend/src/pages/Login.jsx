@@ -110,7 +110,7 @@ export default function Login() {
         </section>
 
         {/* Form panel */}
-        <section className="flex min-h-screen flex-col justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
+        <section className="flex min-h-screen flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#0b1220] font-display text-lg font-bold text-[#f7f3e9]">Q</div>
             <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>

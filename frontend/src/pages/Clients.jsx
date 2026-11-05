@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Trash2, Upload, X, Pencil } from "lucide-react";
+import { Search, Trash2, Upload, X, Pencil, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import ClientDetailDialog from "@/components/ClientDetailDialog";
 import BulkImportClientsDialog from "@/components/BulkImportClientsDialog";
 import ImportClientsFileDialog from "@/components/ImportClientsFileDialog";
@@ -157,6 +158,18 @@ export default function Clients() {
               <Button variant="outline" onClick={() => setBulkOpen(true)} data-testid="bulk-import-btn" className="hidden sm:inline-flex">
                 <Upload size={14} className="mr-1.5" /> Import copier-coller
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="sm:hidden" aria-label="Plus d’actions" data-testid="clients-more-actions">
+                    <MoreHorizontal size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Importer des clients</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => setFileImportOpen(true)}>Importer un fichier</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setBulkOpen(true)}>Import copier-coller</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild><Button data-testid="new-client-btn">+ Nouveau client</Button></DialogTrigger>
                 <DialogContent className="sm:max-w-md" data-testid="new-client-dialog">
@@ -250,7 +263,7 @@ export default function Clients() {
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex items-center gap-3">
           <Search size={16} className="text-slate-400" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher un client" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm clients-table">
@@ -268,7 +281,16 @@ export default function Clients() {
             <tbody>
               {filteredClients.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">{loading ? "Chargement…" : "Aucun client."}</td></tr>}
               {filteredClients.map((c) => (
-                <tr key={c.id} className="data-row border-b border-slate-100 cursor-pointer" onClick={() => setSelected(c)} data-testid={`client-row-${c.id}`}>
+                <tr
+                  key={c.id}
+                  className="data-row border-b border-slate-100 cursor-pointer"
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Ouvrir la fiche de ${c.name}`}
+                  onClick={() => setSelected(c)}
+                  onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setSelected(c); } }}
+                  data-testid={`client-row-${c.id}`}
+                >
                   <td className="px-5 py-3 font-semibold text-slate-900">{c.name}</td>
                   <td className="px-5 py-3"><PhoneNumbers value={c.phone} iconSize={11} className="text-xs" /></td>
                   <td className="px-5 py-3 text-slate-600">{c.address}</td>

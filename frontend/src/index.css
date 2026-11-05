@@ -479,3 +479,5 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 
 .qy-client-picker > button.absolute { display: none !important; }
 .qy-client-picker [cmdk-item][data-selected="true"] .text-slate-500 { color: hsl(var(--accent-foreground) / .82) !important; }
+
+.qy-page tr[role="button"]:focus-visible { outline: 2px solid hsl(var(--ring) / .75); outline-offset: -2px; }
