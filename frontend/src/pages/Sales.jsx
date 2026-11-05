@@ -824,7 +824,7 @@ export default function Sales() {
             </div>
           );
         })()}
-        <div className="overflow-x-auto">
+        <div className="qy-sales-table-wrap overflow-x-auto">
           <table className="w-full text-sm sales-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
