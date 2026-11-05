@@ -284,20 +284,20 @@ export default function Clients() {
                 <tr
                   key={c.id}
                   className="data-row border-b border-slate-100 cursor-pointer"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Ouvrir la fiche de ${c.name}`}
                   onClick={() => setSelected(c)}
-                  onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setSelected(c); } }}
                   data-testid={`client-row-${c.id}`}
                 >
-                  <td className="px-5 py-3 font-semibold text-slate-900">{c.name}</td>
+                  <td className="px-5 py-3 font-semibold text-slate-900">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setSelected(c); }} className="text-left hover:underline" aria-label={`Ouvrir la fiche de ${c.name}`}>
+                      {c.name}
+                    </button>
+                  </td>
                   <td className="px-5 py-3"><PhoneNumbers value={c.phone} iconSize={11} className="text-xs" /></td>
                   <td className="px-5 py-3 text-slate-600">{c.address}</td>
                   <td className="px-5 py-3">{c.postal_code}</td>
                   <td className="px-5 py-3">{c.city}</td>
                   <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex flex-wrap items-center gap-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1">
                       {(c.categories || []).map((cc) => {
                         const cat = categories.find((x) => x.key === cc.category_key);
                         if (!cat) return null;
@@ -318,7 +318,7 @@ export default function Clients() {
                             const [ck, sk] = v.split("|");
                             assignCategory(c, ck, sk || null, "set");
                           }}
-                          className="h-6 px-1.5 rounded-md text-[10.5px] border border-dashed border-slate-300 bg-white text-slate-500 hover:border-slate-500"
+                          className="h-6 max-w-full min-w-0 px-1.5 rounded-md text-[10.5px] border border-dashed border-slate-300 bg-white text-slate-500 hover:border-slate-500"
                           data-testid={`client-assign-${c.id}`}
                           aria-label={`Affecter une catégorie à ${c.name}`}
                           defaultValue=""

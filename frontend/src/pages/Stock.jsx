@@ -681,12 +681,12 @@ export default function Stock() {
           </p>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nouveau produit…"
-              className="h-9 w-56"
+              className="h-9 w-full min-w-0 sm:w-56"
               onKeyDown={(e) => { if (e.key === "Enter") addManual(); }}
               data-testid="stock-new-name"
             />

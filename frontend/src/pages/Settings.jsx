@@ -20,6 +20,17 @@ import ThemeToggle from "@/components/ThemeToggle";
 const PRESET_PRIMARY = ["#0f172a", "#111827", "#1e293b", "#0369a1", "#1d4ed8", "#7c3aed", "#059669", "#dc2626", "#ea580c", "#d97706"];
 const PRESET_ACCENT = ["#6366f1", "#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#a855f7"];
 
+
+function darkenHex(hex, factor = 0.78) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = Math.round(((n >> 16) & 255) * factor);
+  const g = Math.round(((n >> 8) & 255) * factor);
+  const b = Math.round((n & 255) * factor);
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
 function fileToBase64(file, maxW = 512) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -166,7 +177,7 @@ export default function Settings() {
           <h1 className="font-display text-4xl font-semibold tracking-tight">Paramètres</h1>
           <p className="text-sm text-slate-500 mt-2">Ajustez l'apparence de l'application au goût de votre équipe.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <Button variant="outline" onClick={reset} disabled={saving} data-testid="settings-reset-btn"><RotateCcw size={14} className="mr-2" />Réinitialiser</Button>
           <Button onClick={save} disabled={saving} data-testid="settings-save-btn"><Save size={14} className="mr-2" />{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </div>
@@ -210,7 +221,7 @@ export default function Settings() {
             <div>
               <Label>Police d'écriture</Label>
               <Select value={form.font_family} onValueChange={(v) => setForm({ ...form, font_family: v })}>
-                <SelectTrigger data-testid="settings-font"><SelectValue /></SelectTrigger>
+                <SelectTrigger aria-label="Police d’écriture" data-testid="settings-font"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {AVAILABLE_FONTS.map((f) => (<SelectItem key={f} value={f} style={{ fontFamily: `"${f}"` }}>{f}</SelectItem>))}
                 </SelectContent>
@@ -241,8 +252,8 @@ export default function Settings() {
             <div>
               <Label>Couleur principale (fond sidebar, boutons)</Label>
               <div className="flex items-center gap-2 mt-2">
-                <input type="color" value={form.theme_primary} onChange={(e) => setForm({ ...form, theme_primary: e.target.value })} className="h-10 w-14 rounded border border-slate-200" data-testid="settings-color-primary" />
-                <Input value={form.theme_primary} onChange={(e) => setForm({ ...form, theme_primary: e.target.value })} className="h-10 font-mono text-sm" />
+                <input type="color" aria-label="Couleur principale" value={form.theme_primary} onChange={(e) => setForm({ ...form, theme_primary: e.target.value })} className="h-10 w-14 rounded border border-slate-200" data-testid="settings-color-primary" />
+                <Input aria-label="Code couleur principale" value={form.theme_primary} onChange={(e) => setForm({ ...form, theme_primary: e.target.value })} className="h-10 font-mono text-sm" />
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {PRESET_PRIMARY.map((c) => (
@@ -253,8 +264,8 @@ export default function Settings() {
             <div>
               <Label>Couleur d'accent (jauge, badges)</Label>
               <div className="flex items-center gap-2 mt-2">
-                <input type="color" value={form.theme_accent} onChange={(e) => setForm({ ...form, theme_accent: e.target.value })} className="h-10 w-14 rounded border border-slate-200" data-testid="settings-color-accent" />
-                <Input value={form.theme_accent} onChange={(e) => setForm({ ...form, theme_accent: e.target.value })} className="h-10 font-mono text-sm" />
+                <input type="color" aria-label="Couleur d’accent" value={form.theme_accent} onChange={(e) => setForm({ ...form, theme_accent: e.target.value })} className="h-10 w-14 rounded border border-slate-200" data-testid="settings-color-accent" />
+                <Input aria-label="Code couleur d’accent" value={form.theme_accent} onChange={(e) => setForm({ ...form, theme_accent: e.target.value })} className="h-10 font-mono text-sm" />
               </div>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {PRESET_ACCENT.map((c) => (
@@ -269,8 +280,8 @@ export default function Settings() {
             <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Aperçu couleurs</p>
             <div className="flex items-center gap-3">
               <span className="font-display text-xl font-semibold">{form.app_name || "Qylot"}</span>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: form.theme_accent }}>Accent</span>
-              <button className="ml-auto px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: form.theme_accent }}>Bouton</button>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: darkenHex(form.theme_accent) }}>Accent</span>
+              <button className="ml-auto px-3 py-1.5 rounded-md text-sm font-medium" style={{ background: darkenHex(form.theme_accent) }}>Bouton</button>
             </div>
           </div>
         </Card>
@@ -324,6 +335,7 @@ export default function Settings() {
               value={form.overtime_alert_threshold ?? 30}
               onChange={(e) => setForm({ ...form, overtime_alert_threshold: e.target.value })}
               className="h-10 max-w-[120px] text-center font-mono text-base"
+              aria-label="Seuil global d’heures supplémentaires"
               data-testid="overtime-threshold-input"
             />
             <span className="text-sm text-slate-600">heures / mois (global)</span>
@@ -351,11 +363,11 @@ export default function Settings() {
             <span>De 1 à</span>
             <Input type="number" min="1" step="1" value={form.prospect_smic_threshold ?? 3}
               onChange={(e) => setForm({ ...form, prospect_smic_threshold: e.target.value })}
-              className="h-10 w-20 text-center font-mono" data-testid="prospect-smic-threshold-input" />
+              className="h-10 w-20 text-center font-mono" aria-label="Nombre de ventes avant salaire de base" data-testid="prospect-smic-threshold-input" />
             <span>ventes / mois =</span>
             <Input type="number" min="0" step="1" value={form.prospect_smic_amount ?? 1867}
               onChange={(e) => setForm({ ...form, prospect_smic_amount: e.target.value })}
-              className="h-10 w-28 text-center font-mono" data-testid="prospect-smic-amount-input" />
+              className="h-10 w-28 text-center font-mono" aria-label="Montant du salaire de base" data-testid="prospect-smic-amount-input" />
             <span>€ de salaire de base (SMIC)</span>
           </div>
           <p className="text-[11px] text-slate-400 mt-2">Préréglage : de 1 à 3 ventes = 1 867 €, commissions à partir de la 4e vente. Cliquez sur « Enregistrer » en haut pour appliquer.</p>
@@ -365,22 +377,22 @@ export default function Settings() {
               <span>Salaire de base :</span>
               <Input type="number" min="0" step="0.01" value={form.prospect_mgr_base_amount ?? 2329.97}
                 onChange={(e) => setForm({ ...form, prospect_mgr_base_amount: e.target.value })}
-                className="h-10 w-32 text-center font-mono" data-testid="prospect-mgr-base-input" />
+                className="h-10 w-32 text-center font-mono" aria-label="Salaire de base du responsable prospection" data-testid="prospect-mgr-base-input" />
               <span>€ brut / mois</span>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
               <span>Objectif :</span>
               <Input type="number" min="1" step="1" value={form.prospect_mgr_goal_sales ?? 12}
                 onChange={(e) => setForm({ ...form, prospect_mgr_goal_sales: e.target.value })}
-                className="h-10 w-20 text-center font-mono" data-testid="prospect-mgr-goal-input" />
+                className="h-10 w-20 text-center font-mono" aria-label="Objectif de ventes du responsable prospection" data-testid="prospect-mgr-goal-input" />
               <span>ventes / mois — non atteint :</span>
               <Input type="number" min="0" step="0.1" value={form.prospect_mgr_rate_below ?? 1}
                 onChange={(e) => setForm({ ...form, prospect_mgr_rate_below: e.target.value })}
-                className="h-10 w-20 text-center font-mono" data-testid="prospect-mgr-rate-below-input" />
+                className="h-10 w-20 text-center font-mono" aria-label="Taux si objectif non atteint" data-testid="prospect-mgr-rate-below-input" />
               <span>% — atteint :</span>
               <Input type="number" min="0" step="0.1" value={form.prospect_mgr_rate_above ?? 2}
                 onChange={(e) => setForm({ ...form, prospect_mgr_rate_above: e.target.value })}
-                className="h-10 w-20 text-center font-mono" data-testid="prospect-mgr-rate-above-input" />
+                className="h-10 w-20 text-center font-mono" aria-label="Taux si objectif atteint" data-testid="prospect-mgr-rate-above-input" />
               <span>% du CA des prospecteurs</span>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">Préréglage : salaire de base 2 329,97 € brut, objectif 12 ventes / mois, 1 % si non atteint, 2 % si atteint.</p>

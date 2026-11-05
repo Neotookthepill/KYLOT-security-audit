@@ -145,11 +145,11 @@ export default function Layout() {
         {!compact && (
           <div className="min-w-0">
             <div className="font-display text-[19px] font-semibold leading-none tracking-[-.02em] text-white">{appName}</div>
-            <div className="mt-1.5 text-[9px] uppercase tracking-[.2em] text-white/40">Chantiers & croissance</div>
+            <div className="mt-1.5 text-[9px] uppercase tracking-[.2em] text-white/65">Chantiers & croissance</div>
           </div>
         )}
         {!inDrawer && !compact && (
-          <button type="button" onClick={toggleCollapsed} className="ml-auto grid h-7 w-7 place-items-center rounded-md text-white/45 hover:bg-white/10 hover:text-white" aria-label="Replier le menu" title="Replier le menu">
+          <button type="button" onClick={toggleCollapsed} className="ml-auto grid h-7 w-7 place-items-center rounded-md text-white/65 hover:bg-white/10 hover:text-white" aria-label="Replier le menu" title="Replier le menu">
             <ChevronsLeft size={15} />
           </button>
         )}
@@ -179,11 +179,11 @@ export default function Layout() {
               type="button"
               onClick={() => setSearchOpen(true)}
               data-testid="sidebar-search"
-              className="mt-2 flex w-full items-center gap-2 rounded-[10px] border border-white/[.08] bg-white/[.035] px-3 py-2 text-left text-[12px] text-white/45 hover:border-white/15 hover:text-white/75"
+              className="mt-2 flex w-full items-center gap-2 rounded-[10px] border border-white/[.08] bg-white/[.035] px-3 py-2 text-left text-[12px] text-white/65 hover:border-white/15 hover:text-white/75"
             >
               <Search size={14} />
               <span className="flex-1">Rechercher…</span>
-              <kbd className="rounded border border-white/10 px-1 py-0.5 text-[9px] text-white/35">⌘K</kbd>
+              <kbd className="rounded border border-white/10 px-1 py-0.5 text-[9px] text-white/60">⌘K</kbd>
             </button>
           )}
         </div>
@@ -231,13 +231,13 @@ export default function Layout() {
           </button>
         )}
         <div className={cn("mt-2 flex items-center gap-2 border-t border-white/[.08] pt-3", compact && "justify-center")}>
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-semibold text-white" title={user?.name}>
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#0b1220] text-[11px] font-semibold text-[#f7f3e9] ring-1 ring-white/20" title={user?.name}>
             {initials(user?.name)}
           </div>
           {!compact && (
             <div className="min-w-0 flex-1">
               <div className="truncate text-[12px] font-medium text-white/90">{user?.name}</div>
-              <div className="text-[9px] uppercase tracking-[.13em] text-white/35">{user?.role}</div>
+              <div className="text-[9px] uppercase tracking-[.13em] text-white/60">{user?.role}</div>
             </div>
           )}
           <button type="button" onClick={async () => { await logout(); navigate("/login"); }} data-testid="logout-btn" aria-label="Se déconnecter" className="grid h-8 w-8 place-items-center rounded-md text-white/55 hover:bg-white/10 hover:text-white" title="Se déconnecter">
@@ -245,7 +245,7 @@ export default function Layout() {
           </button>
         </div>
         {!compact && (
-          <p className="mt-2 px-1 text-[9px] uppercase tracking-[.18em] text-white/25" data-testid="sidebar-app-version">v · {APP_VERSION}</p>
+          <p className="mt-2 px-1 text-[9px] uppercase tracking-[.18em] text-white/50" data-testid="sidebar-app-version">v · {APP_VERSION}</p>
         )}
       </div>
     </aside>
@@ -299,7 +299,7 @@ export default function Layout() {
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <span>{appName}</span><span className="text-border">/</span><span className="font-medium text-foreground">{currentTitle}</span>
             </div>
-            <div className="mt-0.5 truncate text-[11px] capitalize text-muted-foreground/80">{today}</div>
+            <div className="mt-0.5 truncate text-[11px] capitalize text-muted-foreground">{today}</div>
           </div>
           {!isSuper && (
             <button type="button" onClick={() => setSearchOpen(true)} data-testid="global-search-btn" className="flex h-9 w-[240px] items-center gap-2 rounded-lg border border-border bg-card px-3 text-left text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground xl:w-[300px]">

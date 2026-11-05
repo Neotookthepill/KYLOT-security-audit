@@ -16,20 +16,20 @@ export const ProspectMgrBonusesEditor = ({ value, onChange }) => {
         {list.length === 0 && <p className="text-xs text-slate-400 border border-dashed border-slate-200 rounded-md p-3 text-center">Aucune prime configurée.</p>}
         {list.map((b, i) => (
           <div key={b.id || i} className="flex flex-wrap items-center gap-2 text-sm" data-testid={`prospect-mgr-bonus-${i}`}>
-            <Input value={b.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="Nom (ex : Palier Or)" className="h-9 w-40" data-testid={`prospect-mgr-bonus-name-${i}`} />
+            <Input value={b.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="Nom (ex : Palier Or)" className="h-9 w-40" aria-label={`Nom de la prime ${i+1}`} data-testid={`prospect-mgr-bonus-name-${i}`} />
             <span className="text-slate-500">dès</span>
-            <Input type="number" min="0" value={b.threshold} onChange={(e) => set(i, { threshold: e.target.value })} className="h-9 w-28 text-center font-mono" data-testid={`prospect-mgr-bonus-threshold-${i}`} />
+            <Input type="number" min="0" value={b.threshold} onChange={(e) => set(i, { threshold: e.target.value })} className="h-9 w-28 text-center font-mono" aria-label={`Seuil de la prime ${i+1}`} data-testid={`prospect-mgr-bonus-threshold-${i}`} />
             <Select value={b.metric || "ca"} onValueChange={(v) => set(i, { metric: v })}>
-              <SelectTrigger className="h-9 w-32" data-testid={`prospect-mgr-bonus-metric-${i}`}><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 w-32" aria-label={`Métrique de la prime ${i+1}`} data-testid={`prospect-mgr-bonus-metric-${i}`}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ca">€ de CA</SelectItem>
                 <SelectItem value="sales">ventes</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-slate-500">→ prime</span>
-            <Input type="number" min="0" value={b.amount} onChange={(e) => set(i, { amount: e.target.value })} className="h-9 w-24 text-center font-mono" data-testid={`prospect-mgr-bonus-amount-${i}`} />
+            <Input type="number" min="0" value={b.amount} onChange={(e) => set(i, { amount: e.target.value })} className="h-9 w-24 text-center font-mono" aria-label={`Montant de la prime ${i+1}`} data-testid={`prospect-mgr-bonus-amount-${i}`} />
             <span className="text-slate-500">€</span>
-            <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-600 transition-colors" data-testid={`prospect-mgr-bonus-del-${i}`}><Trash2 size={14} /></button>
+            <button type="button" onClick={() => onChange(list.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-600 transition-colors" aria-label={`Supprimer la prime ${i+1}`} data-testid={`prospect-mgr-bonus-del-${i}`}><Trash2 size={14} /></button>
           </div>
         ))}
       </div>

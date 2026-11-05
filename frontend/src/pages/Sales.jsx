@@ -850,11 +850,7 @@ export default function Sales() {
                   <tr
                     key={s.id}
                     className={`data-row border-b border-slate-100 cursor-pointer ${s.status === "annule" ? "opacity-60" : ""}`}
-                    tabIndex={0}
-                    role="button"
-                    aria-label={`Ouvrir la vente ${s.client_name || s.bdc || ""}`}
                     onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
-                    onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); if (canEditSaleAny) setEditingSale(s); else setViewSale(s); } }}
                     data-testid={`sale-row-${s.id}`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -960,7 +956,9 @@ export default function Sales() {
                       />
                     </td>
                     <td className="px-4 py-3 text-slate-900">
-                      <div className="font-semibold">{s.client_name || "—"}</div>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }} className="text-left font-semibold hover:underline" aria-label={`Ouvrir la vente ${s.client_name || s.bdc || ""}`}>
+                        {s.client_name || "—"}
+                      </button>
                       {(s.client_address || s.client_postal_code || s.client_city) && (
                         <div className="mt-1 text-[11px] font-normal text-slate-500">
                           {[s.client_address, [s.client_postal_code, s.client_city].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
@@ -1083,7 +1081,7 @@ export default function Sales() {
                   <div className="flex items-center justify-between">
                     <p className="overline">Objectif</p>
                     {canEditObjectif && !editingObjectif && !isCommercial && (
-                      <button onClick={() => { setObjectifInput(String(objectif)); setEditingObjectif(true); }} data-testid="objectif-edit-btn" className="text-slate-400 hover:text-slate-900">
+                      <button onClick={() => { setObjectifInput(String(objectif)); setEditingObjectif(true); }} data-testid="objectif-edit-btn" aria-label="Modifier l’objectif" className="text-slate-400 hover:text-slate-900">
                         <Pencil size={13} />
                       </button>
                     )}

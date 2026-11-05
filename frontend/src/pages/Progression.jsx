@@ -108,7 +108,7 @@ export default function Progression() {
                 )}
               </p>
             </div>
-            <div className="flex-1 min-w-[340px]">
+            <div className="min-w-0 flex-1">
               <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} height={70} />
             </div>
           </div>

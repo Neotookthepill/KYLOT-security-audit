@@ -13,13 +13,13 @@
     --card-foreground: 222 47% 8%;
     --popover: 42 40% 99%;
     --popover-foreground: 222 47% 8%;
-    --primary: 22 65% 46%;
+    --primary: 22 65% 38%;
     --primary-foreground: 42 40% 98%;
     --secondary: 40 22% 91%;
     --secondary-foreground: 222 47% 8%;
     --muted: 40 22% 92%;
     --muted-foreground: 220 10% 43%;
-    --accent: 22 65% 46%;
+    --accent: 22 65% 38%;
     --accent-foreground: 42 40% 98%;
     --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
@@ -37,7 +37,7 @@
     --sidebar: 222 47% 8%;
     --sidebar-foreground: 42 30% 94%;
     --sidebar-muted: 218 15% 65%;
-    --copper: 22 65% 46%;
+    --copper: 22 65% 38%;
     --paper: 42 40% 99%;
     --line: 40 17% 84%;
   }
@@ -170,7 +170,7 @@
     box-shadow: 0 0 0 1px hsl(0 0% 100% / .10), 0 8px 24px hsl(0 0% 0% / .28);
   }
   .qy-quick-create {
-    background: hsl(var(--copper));
+    background: #8a3f18;
     color: hsl(var(--primary-foreground));
     box-shadow: 0 8px 22px hsl(var(--copper) / .25);
   }
@@ -534,3 +534,11 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-client-picker [cmdk-item][data-selected="true"] .text-slate-500 { color: hsl(var(--accent-foreground) / .82) !important; }
 
 .qy-page tr[role="button"]:focus-visible { outline: 2px solid hsl(var(--ring) / .75); outline-offset: -2px; }
+
+/* Contraste : textes secondaires de la sidebar sur fond sombre. */
+.qy-sidebar .text-white\/50, .qy-sidebar .text-white\/60, .qy-sidebar .text-white\/65 { color: rgba(255,255,255,.72) !important; }
+.qy-sidebar .text-white\/35, .qy-sidebar .text-white\/40, .qy-sidebar .text-white\/45 { color: rgba(255,255,255,.70) !important; }
+
+/* Contraste texte courant en thème clair. */
+html:not(.dark) .qy-page .text-slate-500 { color: #475569 !important; }
+html:not(.dark) .qy-page .text-slate-400 { color: #64748b !important; }

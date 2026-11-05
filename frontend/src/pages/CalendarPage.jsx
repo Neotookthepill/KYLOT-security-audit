@@ -242,7 +242,7 @@ export default function CalendarPage() {
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 flex-1 sm:w-64 sm:flex-none" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 flex-1 sm:w-64 sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous les techniciens & sous-traitants</SelectItem>
                   <SelectItem value="__none">Non assignés</SelectItem>

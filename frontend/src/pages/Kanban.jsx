@@ -159,7 +159,7 @@ export default function Kanban() {
             <div className="flex items-center gap-2">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 w-52" data-testid="kanban-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-52" aria-label="Filtrer les chantiers par technicien" data-testid="kanban-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous les techniciens & sous-traitants</SelectItem>
                   <SelectItem value="__none">Non assignés</SelectItem>
