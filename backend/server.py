@@ -3570,7 +3570,9 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
             return []
 
         # Load projects for this company (no assigned_to prefilter — do it in Python)
-        all_projs = await db.projects.find(q, {"_id": 0}).sort("created_at", -1).to_list(5000)
+        # Ne jamais charger les base64 des photos dans une liste : 200+ Mo de
+        # data-URI suffisent à faire tomber une instance Render 512 Mo.
+        all_projs = await db.projects.find(q, {"_id": 0, "photos.src": 0}).sort("created_at", -1).to_list(5000)
         projects = []
         for p in all_projs:
             at = p.get("assigned_to")
@@ -3587,7 +3589,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
                 {"client_id": {"$in": client_ids}},
                 {"sale_id": {"$in": sale_ids}},
             ]
-        cursor = db.projects.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+        cursor = db.projects.find(q, {"_id": 0, "photos.src": 0}).sort("created_at", -1).skip(offset)
         if limit > 0:
             cursor = cursor.limit(limit)
         projects = await cursor.to_list(limit if limit > 0 else 5000)
