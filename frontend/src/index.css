@@ -298,7 +298,33 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .sales-table th:nth-child(12), .qy-page .sales-table td:nth-child(12),
   .qy-page .sales-table th:nth-child(14), .qy-page .sales-table td:nth-child(14) { display: none; }
 }
-@media (max-width: 1180px) {
-  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10),
-  .qy-page .sales-table th:nth-child(13), .qy-page .sales-table td:nth-child(13) { display: none; }
+@media (max-width: 767px) {
+  .qy-page .sales-table thead { display: none; }
+  .qy-page .sales-table, .qy-page .sales-table tbody { display: block; width: 100%; }
+  .qy-page .sales-table tr {
+    display: block; margin: 0 0 .65rem; border: 1px solid hsl(var(--border));
+    border-radius: 12px; background: hsl(var(--card)); overflow: hidden;
+  }
+  .qy-page .sales-table tr:last-child { margin-bottom: 0; }
+  .qy-page .sales-table td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+    padding: .55rem .8rem !important; border-bottom: 1px solid hsl(var(--border) / .55);
+    text-align: right; font-size: .8rem;
+  }
+  .qy-page .sales-table td:last-child { border-bottom: 0; }
+  .qy-page .sales-table td::before {
+    content: ""; color: hsl(var(--muted-foreground)); font-size: 9px;
+    font-weight: 600; letter-spacing: .1em; text-transform: uppercase; text-align: left;
+    flex: 0 0 5.5rem;
+  }
+  .qy-page .sales-table td:nth-child(1)::before { content: "Statut"; }
+  .qy-page .sales-table td:nth-child(2)::before { content: "Date"; }
+  .qy-page .sales-table td:nth-child(3)::before { content: "BDC"; }
+  .qy-page .sales-table td:nth-child(4)::before { content: "Client"; }
+  .qy-page .sales-table td:nth-child(5)::before { content: "Téléphone"; }
+  .qy-page .sales-table td:nth-child(9)::before { content: "Produits"; }
+  .qy-page .sales-table td:nth-child(10)::before { content: "Montant"; }
+  .qy-page .sales-table td:nth-child(13)::before { content: "Commercial"; }
+  .qy-page .sales-table td:nth-child(15)::before { content: ""; }
+  .qy-page .sales-table td:nth-child(9), .qy-page .sales-table td:nth-child(13) { text-align: right; }
 }
