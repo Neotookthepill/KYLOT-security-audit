@@ -15,6 +15,7 @@ import { ProspectMgrBonusesEditor, cleanMgrBonuses } from "@/components/Prospect
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import PerTechThresholdList from "@/components/PerTechThresholdList";
 import MfaSettingsCard from "@/components/MfaSettingsCard";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const PRESET_PRIMARY = ["#0f172a", "#111827", "#1e293b", "#0369a1", "#1d4ed8", "#7c3aed", "#059669", "#dc2626", "#ea580c", "#d97706"];
 const PRESET_ACCENT = ["#6366f1", "#3b82f6", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#a855f7"];
