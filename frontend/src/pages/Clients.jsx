@@ -150,10 +150,10 @@ export default function Clients() {
         <div className="flex flex-wrap gap-2">
           {can("clients", "create") && (
             <>
-              <Button variant="outline" onClick={() => setFileImportOpen(true)} data-testid="file-import-btn">
+              <Button variant="outline" onClick={() => setFileImportOpen(true)} data-testid="file-import-btn" className="hidden sm:inline-flex">
                 <Upload size={14} className="mr-1.5" /> Importer un fichier
               </Button>
-              <Button variant="outline" onClick={() => setBulkOpen(true)} data-testid="bulk-import-btn">
+              <Button variant="outline" onClick={() => setBulkOpen(true)} data-testid="bulk-import-btn" className="hidden sm:inline-flex">
                 <Upload size={14} className="mr-1.5" /> Import copier-coller
               </Button>
               <Dialog open={open} onOpenChange={setOpen}>

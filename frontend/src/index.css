@@ -337,6 +337,12 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
     font-weight: 600; letter-spacing: .1em; text-transform: uppercase; text-align: left;
     flex: 0 0 5.5rem;
   }
+  .qy-page .sales-top-summary { margin-bottom: .75rem; }
+  .qy-page .sales-top-summary { overflow: hidden; }
+  .qy-page .sales-top-summary > div { min-width: 0; padding: .6rem .45rem !important; }
+  .qy-page .sales-top-summary .font-display { font-size: .82rem !important; letter-spacing: -.03em; white-space: nowrap; }
+  .qy-page .sales-top-summary .overline { font-size: 8px; letter-spacing: .06em; }
+  .qy-page .sales-top-summary p { overflow: hidden; text-overflow: ellipsis; }
   .qy-page .sales-table td:nth-child(1)::before { content: "Statut"; }
   .qy-page .sales-table td:nth-child(2)::before { content: "Date"; }
   .qy-page .sales-table td:nth-child(3)::before { content: "BDC"; }
@@ -347,6 +353,11 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .sales-table td:nth-child(13)::before { content: "Commercial"; }
   .qy-page .sales-table td:nth-child(15)::before { content: ""; }
   .qy-page .sales-table td:nth-child(9), .qy-page .sales-table td:nth-child(13) { text-align: right; }
+  .qy-page [data-testid="objectif-summary"], .qy-page [data-testid="commercials-summary"] { display: none; }
+  .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3),
+  .qy-page .sales-table th:nth-child(9), .qy-page .sales-table td:nth-child(9),
+  .qy-page .sales-table th:nth-child(13), .qy-page .sales-table td:nth-child(13) { display: none; }
+  .qy-page .sales-table th:nth-child(15), .qy-page .sales-table td:nth-child(15) { display: none; }
 }
 
 
@@ -374,4 +385,5 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .clients-table td:nth-child(6)::before { content: "Catégories"; }
   .qy-page .clients-table td:nth-child(7)::before { content: ""; }
   .qy-page .clients-table td:nth-child(3), .qy-page .clients-table td:nth-child(4) { display: none; }
+  .qy-page .clients-table td:nth-child(7) { display: none; }
 }

@@ -249,7 +249,10 @@ export default function Layout() {
           </button>
           <div className="flex min-w-0 items-center gap-2">
             <span className="qy-brand-mark h-7 w-7 rounded-lg text-[15px]">Q</span>
-            <span className="truncate font-display text-[15px] font-semibold tracking-[-.02em]">{appName}</span>
+            <div className="min-w-0 leading-tight">
+              <div className="truncate font-display text-[15px] font-semibold tracking-[-.02em]">{appName}</div>
+              <div className="truncate text-[9px] font-medium text-muted-foreground">{currentTitle}</div>
+            </div>
           </div>
           <div className="ml-auto flex items-center gap-1">
             {!isSuper && (

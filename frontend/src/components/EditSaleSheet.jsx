@@ -410,7 +410,7 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
           </div>
         </div>
 
-        <SheetFooter data-sheet-footer className="mt-6 flex-col-reverse sm:flex-row sm:justify-between gap-2">
+        <SheetFooter data-sheet-footer className="mt-6 flex-col sm:flex-row sm:justify-between gap-2">
           <Button variant="ghost" onClick={remove} className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto" data-testid="edit-sale-delete-btn">
             <Trash2 size={14} className="mr-2" /> Supprimer
           </Button>

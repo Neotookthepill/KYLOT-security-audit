@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles } from "lucide-react";
+import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal } from "lucide-react";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
@@ -295,11 +295,13 @@ export default function Sales() {
     return { from: iso(first), to: iso(last), label: "Ce mois" };
   }, [period, customFrom, customTo]);
 
+  const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
+
   const load = async (nextOffset = 0) => {
     setSalesLoading(true);
     try {
       const params = new URLSearchParams({
-        limit: "100",
+        limit: String(pageSize()),
         offset: String(Math.max(0, nextOffset)),
         from_date: bounds.from,
         to_date: bounds.to,
@@ -589,25 +591,38 @@ export default function Sales() {
         </div>
         <div className="flex flex-wrap gap-2">
           {can("sales", "view", "all") && unmatchedCount > 0 && (
-            <Button variant="outline" size="sm" onClick={() => setUnmatchedOpen(true)} data-testid="sales-unmatched-btn" className="border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100">
+            <Button variant="outline" size="sm" onClick={() => setUnmatchedOpen(true)} data-testid="sales-unmatched-btn" className="hidden border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 sm:inline-flex">
               <AlertTriangle size={14} className="mr-1.5" /> {unmatchedCount} vente{unmatchedCount > 1 ? "s" : ""} à attribuer
             </Button>
           )}
           {can("sales", "view", "all") && can("settings", "modify") && (
-            <Button variant="outline" size="sm" onClick={() => setStatusManagerOpen(true)} data-testid="sales-manage-statuses-btn" title="Gérer les statuts">
+            <Button variant="outline" size="sm" onClick={() => setStatusManagerOpen(true)} data-testid="sales-manage-statuses-btn" title="Gérer les statuts" className="hidden sm:inline-flex">
               <ListChecks size={14} className="mr-1.5" /> Gérer les statuts
             </Button>
           )}
           {user?.role === "admin" && (
-            <Button variant="outline" onClick={exportCsv} data-testid="export-sales-btn">
+            <Button variant="outline" onClick={exportCsv} data-testid="export-sales-btn" className="hidden sm:inline-flex">
               <Download size={16} className="mr-2" /> Exporter CSV
             </Button>
           )}
           {can("sales", "create") && (
-            <Button variant="outline" onClick={() => setPdfImportOpen(true)} data-testid="sales-pdf-import-btn" className="border-violet-200 text-violet-700 hover:bg-violet-50">
+            <Button variant="outline" onClick={() => setPdfImportOpen(true)} data-testid="sales-pdf-import-btn" className="hidden border-violet-200 text-violet-700 hover:bg-violet-50 sm:inline-flex">
               <Sparkles size={14} className="mr-1.5" /> Importer un devis PDF
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="sm:hidden" aria-label="Plus d’actions" data-testid="sales-more-actions">
+                <MoreHorizontal size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {user?.role === "admin" && <DropdownMenuItem onClick={exportCsv}>Exporter CSV</DropdownMenuItem>}
+              {can("sales", "create") && <DropdownMenuItem onClick={() => setPdfImportOpen(true)}>Importer un devis PDF</DropdownMenuItem>}
+              {can("sales", "view", "all") && can("settings", "modify") && <DropdownMenuItem onClick={() => setStatusManagerOpen(true)}>Gérer les statuts</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {can("sales", "create") && (
             <Button onClick={() => setOpenNew(true)} data-testid="new-sale-btn">+ Nouvelle vente</Button>
           )}
@@ -647,10 +662,10 @@ export default function Sales() {
 
       {/* Synthèse en haut : CA total / Objectif / % atteint (suit le filtre période) */}
       <Card
-        className="border-slate-200 shadow-sm overflow-hidden mb-4"
+        className="sales-top-summary border-slate-200 shadow-sm overflow-hidden mb-4"
         data-testid="sales-top-summary"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+        <div className="grid grid-cols-3 divide-x divide-slate-200">
           <div className="p-4 sm:p-5">
             <p className="overline flex items-center gap-1.5">
               <Wallet size={12} className="text-slate-500" /> {isCommercial ? "Mon CA signé" : "CA total"}
@@ -977,8 +992,8 @@ export default function Sales() {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
         <span>{pageTotal === 0 ? "0 vente" : `${pageOffset + 1}–${Math.min(pageOffset + sales.length, pageTotal)} sur ${pageTotal}`}</span>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={pageOffset === 0 || salesLoading} onClick={() => load(Math.max(0, pageOffset - 100))} data-testid="sales-prev">Précédent</Button>
-          <Button variant="outline" size="sm" disabled={pageOffset + sales.length >= pageTotal || salesLoading} onClick={() => load(pageOffset + 100)} data-testid="sales-next">Suivant</Button>
+          <Button variant="outline" size="sm" disabled={pageOffset === 0 || salesLoading} onClick={() => load(Math.max(0, pageOffset - pageSize()))} data-testid="sales-prev">Précédent</Button>
+          <Button variant="outline" size="sm" disabled={pageOffset + sales.length >= pageTotal || salesLoading} onClick={() => load(pageOffset + pageSize())} data-testid="sales-next">Suivant</Button>
         </div>
       </div>
 

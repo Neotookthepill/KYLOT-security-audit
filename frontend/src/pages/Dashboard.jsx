@@ -227,6 +227,16 @@ export default function Dashboard() {
   const [addOpen, setAddOpen] = useState(false);
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  const [mobileAll, setMobileAll] = useState(false);
+
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -704,7 +714,10 @@ export default function Dashboard() {
   // ⅓ / ½ / ⅔ / plein en mode édition, ou glisse-déplace pour réorganiser.
   // iter182 : `events` ne s'affiche que s'il y a au moins un évènement — sinon il
   // laisserait un trou dans la grille 12-col.
-  const visibleOrder = order.filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)));
+  const MOBILE_PRIMARY = new Set(["ca_hero", "today_todos", "alerts", "recent_sales"]);
+  const visibleOrder = order
+    .filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)))
+    .filter((k) => !isMobile || mobileAll || MOBILE_PRIMARY.has(k));
   const hiddenAvailable = order.filter((k) => renderers[k] && showByAdmin(k) && hidden.includes(k) && k !== "stats");
   // Mapping col-span statique (Tailwind purge les classes dynamiques — on doit les lister)
   const SPAN_CLASS = { 4: "lg:col-span-4", 6: "lg:col-span-6", 8: "lg:col-span-8", 12: "lg:col-span-12" };
@@ -752,27 +765,27 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+      <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:border-primary/35 sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
-            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{data?.sales?.count ?? 0}</p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
           </div>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary"><TrendingUp size={16} /></span>
+          <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
         </button>
         <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
-            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{alertCount}</p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}</p>
           </div>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))]"><Bell size={16} /></span>
+          <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
         </button>
         <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Aujourd’hui</p>
-            <p className="mt-1 font-display text-xl font-semibold tabular-nums">{todayEvents}<span className="ml-1.5 text-xs font-normal text-muted-foreground">événement{todayEvents > 1 ? "s" : ""}</span></p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 hidden text-xs font-normal text-muted-foreground sm:inline">événement{todayEvents > 1 ? "s" : ""}</span></p>
           </div>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))]"><CalendarClock size={16} /></span>
+          <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
         </button>
       </div>
 
@@ -828,6 +841,12 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {isMobile && (
+        <button type="button" onClick={() => setMobileAll((v) => !v)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground shadow-sm">
+          {mobileAll ? "Réduire le tableau de bord" : "Afficher tous les blocs"}
+        </button>
+      )}
 
       <div className="flex items-center gap-2 text-xs text-slate-500 my-6">
         <ListChecks size={12} />

@@ -520,7 +520,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
           </div>
         </div>
 
-        <SheetFooter data-sheet-footer className="mt-6">
+        <SheetFooter data-sheet-footer className="mt-6 flex-col sm:flex-row">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={submit} disabled={saving} data-testid="sale-submit-btn">
             {saving ? "Enregistrement…" : "Enregistrer"}
