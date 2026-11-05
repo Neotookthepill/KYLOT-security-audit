@@ -464,7 +464,7 @@ export default function Settings() {
           </div>
           <button type="button" onClick={resetOrder} className="mt-3 text-xs text-slate-500 hover:text-slate-900" data-testid="status-reset">Réinitialiser à l'ordre par défaut</button>
           <div className="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setStatusManagerOpen(true)} data-testid="settings-manage-statuses-btn">
+            <Button variant="outline" size="sm" className="!whitespace-normal text-left" onClick={() => setStatusManagerOpen(true)} data-testid="settings-manage-statuses-btn">
               <Pencil size={13} className="mr-1.5" /> Ajouter · Renommer · Couleur · Supprimer
             </Button>
             <span className="text-xs text-slate-500">Gestion complète des statuts (crayon + croix)</span>

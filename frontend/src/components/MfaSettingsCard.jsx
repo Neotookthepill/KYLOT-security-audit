@@ -119,7 +119,7 @@ export default function MfaSettingsCard() {
               onChange={(e) => setPassword(e.target.value)} data-testid="mfa-password-input"
             />
           </div>
-          <Button className="mt-4" onClick={startSetup} disabled={busy || password.length < 1} data-testid="mfa-start-btn">
+          <Button className="mt-4 h-auto w-full !whitespace-normal" onClick={startSetup} disabled={busy || password.length < 1} data-testid="mfa-start-btn">
             <KeyRound size={14} className="mr-2" /> Configurer la double authentification
           </Button>
         </>

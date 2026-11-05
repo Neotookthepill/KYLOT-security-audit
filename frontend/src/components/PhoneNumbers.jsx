@@ -33,7 +33,7 @@ export default function PhoneNumbers({
           <a
             key={`${number}-${index}`}
             href={href}
-            className={`inline-flex items-center gap-1 hover:underline ${linkClassName}`.trim()}
+            className={`inline-flex min-h-6 items-center gap-1 py-0.5 hover:underline ${linkClassName}`.trim()}
             aria-label={`Appeler le ${number}`}
             onClick={(event) => event.stopPropagation()}
           >

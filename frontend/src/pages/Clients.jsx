@@ -208,7 +208,7 @@ export default function Clients() {
           className={`h-9 px-4 rounded-full text-sm font-medium border transition ${activeCat === "all" ? clsFor("slate", true) : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
           data-testid="client-cat-all"
         >
-          Tous <span className="ml-1.5 text-xs opacity-70">({counts.all || 0})</span>
+          Tous <span className="ml-1.5 text-xs">({counts.all || 0})</span>
         </button>
         {categories.map((c) => (
           <button
@@ -218,7 +218,7 @@ export default function Clients() {
             className={`h-9 px-4 rounded-full text-sm font-medium border transition ${activeCat === c.key ? clsFor(c.color, true) : `${clsFor(c.color, false)} hover:brightness-95`}`}
             data-testid={`client-cat-${c.key}`}
           >
-            {c.label} <span className="ml-1.5 text-xs opacity-70">({counts.categories?.[c.key] || 0})</span>
+            {c.label} <span className="ml-1.5 text-xs">({counts.categories?.[c.key] || 0})</span>
           </button>
         ))}
         {can("settings", "modify") && (

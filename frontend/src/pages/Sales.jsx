@@ -849,7 +849,7 @@ export default function Sales() {
                 return (
                   <tr
                     key={s.id}
-                    className={`data-row border-b border-slate-100 cursor-pointer ${s.status === "annule" ? "opacity-60" : ""}`}
+                    className="data-row border-b border-slate-100 cursor-pointer"
                     onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
                     data-testid={`sale-row-${s.id}`}
                   >
