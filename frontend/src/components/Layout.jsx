@@ -128,7 +128,7 @@ export default function Layout() {
 
   const SidebarContent = ({ compact = false, inDrawer = false }) => (
     <aside
-      className={cn("qy-sidebar flex h-full flex-col shrink-0 transition-[width] duration-200", compact ? "w-[78px]" : "w-[268px]")}
+      className={cn("qy-sidebar flex h-full flex-col shrink-0 transition-[width] duration-200", compact ? "w-[78px]" : "w-[240px]")}
       style={{ background: brand }}
       data-testid="sidebar"
     >
