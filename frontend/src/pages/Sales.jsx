@@ -295,7 +295,7 @@ export default function Sales() {
     return { from: iso(first), to: iso(last), label: "Ce mois" };
   }, [period, customFrom, customTo]);
 
-  const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
+  const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 10 : 100);
 
   const load = async (nextOffset = 0) => {
     setSalesLoading(true);

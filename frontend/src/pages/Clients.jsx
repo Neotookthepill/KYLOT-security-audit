@@ -17,6 +17,7 @@ import ClientCategoryManagerDialog from "@/components/ClientCategoryManagerDialo
 import { useAuth } from "@/contexts/AuthContext";
 
 const PAGE_SIZE = 100;
+const clientPageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 15 : PAGE_SIZE);
 const empty = { name: "", phone: "", email: "", address: "", postal_code: "", city: "", notes: "" };
 
 const CAT_COLORS = {
@@ -57,7 +58,7 @@ export default function Clients() {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
+        limit: String(clientPageSize()),
         offset: String(Math.max(0, nextOffset)),
       });
       if (q.trim()) params.set("q", q.trim());
@@ -336,14 +337,14 @@ export default function Clients() {
         <div className="flex gap-2">
           <Button
             variant="outline" size="sm" disabled={offset === 0 || loading}
-            onClick={() => loadPage(Math.max(0, offset - PAGE_SIZE))}
+            onClick={() => loadPage(Math.max(0, offset - clientPageSize()))}
             data-testid="clients-prev"
           >
             Précédent
           </Button>
           <Button
             variant="outline" size="sm" disabled={offset + clients.length >= total || loading}
-            onClick={() => loadPage(offset + PAGE_SIZE)}
+            onClick={() => loadPage(offset + clientPageSize())}
             data-testid="clients-next"
           >
             Suivant
