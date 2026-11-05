@@ -141,7 +141,7 @@ export default function Settings() {
     if (!window.confirm("Réinitialiser aux valeurs par défaut ?")) return;
     setSaving(true);
     try {
-      await update({ theme_primary: "#0b1220", theme_accent: "#b5622e", font_family: "Inter", logo: "", app_name: "Qylot" });
+      await update({ theme_primary: "#0b1220", theme_accent: "#b5622e", font_family: "Instrument Sans", logo: "", app_name: "Qylot" });
       toast.success("Paramètres réinitialisés");
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setSaving(false); }

@@ -70,7 +70,7 @@ export function AppErrorFallback({ message, reset }) {
   const reportBug = () => {
     try {
       const report = [
-        `QYLOT · rapport d'erreur`,
+        `Qylot · rapport d'erreur`,
         `Date : ${new Date().toISOString()}`,
         `URL  : ${window.location.href}`,
         `UA   : ${navigator.userAgent}`,

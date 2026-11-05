@@ -153,7 +153,7 @@ export default function ImportClientsFileDialog({ open, onOpenChange, onImported
               <Info size={14} className="mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium mb-1">Cet import crée uniquement des fiches Clients.</p>
-                <p>Aucune vente, chantier, intervention ou facture ne sera générée. Vous mapperez chaque colonne à un champ QYLOT à l'étape suivante.</p>
+                <p>Aucune vente, chantier, intervention ou facture ne sera générée. Vous mapperez chaque colonne à un champ Qylot à l'étape suivante.</p>
               </div>
             </div>
             <label htmlFor="import-file-input" className="block cursor-pointer border-2 border-dashed border-slate-300 rounded-xl px-6 py-10 text-center hover:border-slate-900 hover:bg-slate-50 transition" data-testid="import-file-dropzone">
@@ -175,7 +175,7 @@ export default function ImportClientsFileDialog({ open, onOpenChange, onImported
         {step === STEP_MAPPING && (
           <div className="space-y-3">
             <p className="text-xs text-slate-600">
-              Associez chaque colonne de votre fichier à un champ QYLOT. Les colonnes laissées sur « Ignorer » ne seront pas importées.
+              Associez chaque colonne de votre fichier à un champ Qylot. Les colonnes laissées sur « Ignorer » ne seront pas importées.
               Mappez soit <span className="font-semibold">Nom complet</span>, soit <span className="font-semibold">Prénom + Nom</span> (les deux colonnes seront concaténées automatiquement).
             </p>
             <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -184,7 +184,7 @@ export default function ImportClientsFileDialog({ open, onOpenChange, onImported
                   <tr className="text-left">
                     <th className="px-3 py-2">Colonne du fichier</th>
                     <th className="px-3 py-2">Exemple</th>
-                    <th className="px-3 py-2 w-64">Champ QYLOT</th>
+                    <th className="px-3 py-2 w-64">Champ Qylot</th>
                   </tr>
                 </thead>
                 <tbody>

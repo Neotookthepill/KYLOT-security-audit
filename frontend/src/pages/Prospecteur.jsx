@@ -333,7 +333,7 @@ export default function Prospecteur() {
     <div className="space-y-6 p-4 md:p-8" data-testid="prospecteur-page">
       <div>
         <p className="overline">Suivi prospection</p>
-        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight flex items-center gap-3"><UserSearch size={28} /> Prospecteur</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight flex items-center gap-3"><UserSearch size={28} /> Prospection</h1>
         {!isManager && <p className="text-sm text-slate-500 mt-1">Vos clients prospectés — consultation uniquement.</p>}
       </div>
 

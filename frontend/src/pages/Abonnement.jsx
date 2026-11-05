@@ -12,7 +12,7 @@ import { toast } from "sonner";
 //   21+  utilisateurs → Entreprise 149 € + 10 € HT/mois par utilisateur au-delà de 20.
 // Toutes les formules incluent 100 % des fonctionnalités.
 const ALL_FEATURES = [
-  "Toutes les fonctionnalités QYLOT incluses",
+  "Toutes les fonctionnalités Qylot incluses",
   "Gestion commerciale complète",
   "Gestion des techniciens & sous-traitants",
   "Planning des interventions",
@@ -85,19 +85,20 @@ export default function Abonnement() {
     <div className="p-6 md:p-8 max-w-[1200px] mx-auto">
       <div className="mb-6 text-center">
         <p className="overline">Abonnement · Tarifs</p>
-        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Un tarif simple, basé uniquement sur vos utilisateurs</h1>
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Abonnement</h1>
         <p className="text-sm text-slate-600 mt-3 max-w-3xl mx-auto">
-          Toutes les fonctionnalités QYLOT sont incluses dans chaque formule. Votre abonnement évolue simplement avec la taille de votre équipe.
+          Un tarif simple, basé uniquement sur vos utilisateurs.
+          Toutes les fonctionnalités Qylot sont incluses dans chaque formule. Votre abonnement évolue simplement avec la taille de votre équipe.
         </p>
         <p className="text-xs text-slate-500 mt-2">Facturation mensuelle sans engagement · TVA en sus · Paiement sécurisé Stripe.</p>
       </div>
 
       {/* Trial banner */}
       {!currentPlan && (
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-4 flex items-center gap-3 shadow-sm" data-testid="trial-banner">
+        <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#a9552b] to-[#c8784e] text-white px-5 py-4 flex items-center gap-3 shadow-sm" data-testid="trial-banner">
           <div className="h-10 w-10 rounded-full bg-white/20 grid place-items-center shrink-0"><Sparkles size={18} /></div>
           <div className="flex-1">
-            <p className="font-semibold text-lg">Essayez QYLOT gratuitement pendant 14 jours</p>
+            <p className="font-semibold text-lg">Essayez Qylot gratuitement pendant 14 jours</p>
             <p className="text-sm text-white/85">Aucune facturation avant la fin de la période d'essai · Annulation à tout moment.</p>
           </div>
         </div>
@@ -214,7 +215,7 @@ export default function Abonnement() {
       </div>
 
       <p className="text-center text-xs text-slate-500 mt-8 max-w-2xl mx-auto">
-        QYLOT est une solution destinée aux entreprises. Prix HT, la TVA au taux en vigueur est calculée à la commande.
+        Qylot est une solution destinée aux entreprises. Prix HT, la TVA au taux en vigueur est calculée à la commande.
         Vous pouvez changer, mettre en pause ou résilier votre abonnement à tout moment depuis « Gérer mon abonnement ».
         <br/><span className="text-slate-400">Aucun changement de formule ne modifie ou supprime vos données. En cas d'impayé, votre compte est simplement mis en pause — toutes vos données restent conservées.</span>
       </p>

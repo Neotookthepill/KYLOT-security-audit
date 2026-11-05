@@ -19,7 +19,7 @@ const STEPS = [
   { key: "roles", title: "Définir les rôles et permissions", desc: "Choisissez qui voit quoi. Vous pourrez ajuster à tout moment.", icon: ShieldCheck, path: "/utilisateurs", cta: "Configurer les permissions" },
   { key: "clients", title: "Ajouter ou importer les clients", desc: "Importez un fichier CSV / XLSX ou saisissez vos premiers clients manuellement.", icon: Contact2, path: "/clients", cta: "Ajouter des clients" },
   { key: "objectif", title: "Définir l'objectif commercial mensuel", desc: "Fixez le CA cible pour piloter votre équipe.", icon: Target, path: "/parametres", cta: "Définir l'objectif" },
-  { key: "first_sale", title: "Créer votre première vente ou chantier", desc: "Lancez votre activité opérationnelle avec QYLOT.", icon: Rocket, path: "/ventes", cta: "Créer une vente" },
+  { key: "first_sale", title: "Créer votre première vente ou chantier", desc: "Lancez votre activité opérationnelle avec Qylot.", icon: Rocket, path: "/ventes", cta: "Créer une vente" },
 ];
 
 export default function OnboardingDialog() {
@@ -68,9 +68,9 @@ export default function OnboardingDialog() {
         <DialogContent className="max-w-lg p-8 text-center" data-testid="onboarding-done">
           <DialogTitle className="sr-only">Onboarding terminé</DialogTitle>
           <div className="mx-auto h-14 w-14 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center mb-3"><CheckCircle2 size={30} /></div>
-          <h2 className="font-display text-2xl font-semibold">Votre espace QYLOT est prêt 🎉</h2>
+          <h2 className="font-display text-2xl font-semibold">Votre espace Qylot est prêt 🎉</h2>
           <p className="text-sm text-slate-600 mt-2">Vous pouvez à tout moment revenir sur ces étapes depuis les Paramètres.</p>
-          <Button className="mt-6 w-full h-11" onClick={finish} data-testid="onboarding-close">Commencer à utiliser QYLOT</Button>
+          <Button className="mt-6 w-full h-11" onClick={finish} data-testid="onboarding-close">Commencer à utiliser Qylot</Button>
         </DialogContent>
       </Dialog>
     );
@@ -81,10 +81,10 @@ export default function OnboardingDialog() {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) finish(); else setOpen(v); }}>
       <DialogContent className="max-w-lg p-0 overflow-hidden" data-testid="onboarding-dialog">
-        <DialogTitle className="sr-only">Bienvenue sur QYLOT</DialogTitle>
+        <DialogTitle className="sr-only">Bienvenue sur Qylot</DialogTitle>
         <div className="px-6 pt-5 pb-3 border-b border-slate-200">
           <div className="flex items-center justify-between">
-            <p className="overline">Bienvenue sur QYLOT — étape {step + 1} / {total}</p>
+            <p className="overline">Bienvenue sur Qylot — étape {step + 1} / {total}</p>
             <button className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1" onClick={finish} data-testid="onboarding-skip">Passer et fermer</button>
           </div>
           <Progress value={pct} className="mt-2 h-1.5" />

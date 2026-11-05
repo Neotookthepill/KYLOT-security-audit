@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 export default function ThemeToggle({ tone = "light", className = "", compact = false }) {
   const { theme, resolved, setTheme } = useTheme();
   const next = theme === "light" ? "dark" : "light";
-  const label = theme === "dark" ? "Passer en thème clair" : "Passer en thème sombre";
-  const Icon = theme === "dark" ? Sun : Moon;
+  const label = theme === "dark" ? "Thème sombre — passer en clair" : "Thème clair — passer en sombre";
+  const display = theme === "dark" ? "Sombre" : "Clair";
+  const Icon = theme === "dark" ? Moon : Sun;
   return (
     <button
       type="button"
@@ -25,7 +26,7 @@ export default function ThemeToggle({ tone = "light", className = "", compact = 
       )}
     >
       <Icon size={16} />
-      {!compact && <span className="hidden xl:inline">{theme === "dark" ? "Clair" : "Sombre"}</span>}
+      {!compact && <span className="hidden xl:inline">{display}</span>}
     </button>
   );
 }

@@ -99,7 +99,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
     setRows((rs) => [...rs, { value: `stat_${Date.now().toString(36)}`, label: "Nouveau statut", color: "slate", active: true, system: false, _new: true }]);
   };
   const resetDefaults = () => {
-    if (!window.confirm("Réinitialiser à l'ordre + couleurs QYLOT recommandés ? (aucune vente n'est modifiée)")) return;
+    if (!window.confirm("Réinitialiser à l'ordre + couleurs Qylot recommandés ? (aucune vente n'est modifiée)")) return;
     setRows([
       { value: "attente_prog", label: "En attente prog", color: "violet", active: true, system: true, hides_from_projects: false },
       { value: "attente_fi", label: "En attente FI", color: "orange", active: true, system: true, hides_from_projects: false },
@@ -241,7 +241,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                 <Plus size={13} className="mr-1" /> Ajouter un statut
               </Button>
               <Button variant="outline" size="sm" onClick={resetDefaults} data-testid="status-reset-btn">
-                <RotateCcw size={13} className="mr-1" /> Config QYLOT recommandée
+                <RotateCcw size={13} className="mr-1" /> Config Qylot recommandée
               </Button>
             </div>
 

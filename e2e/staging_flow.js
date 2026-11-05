@@ -71,7 +71,7 @@ async function json(response) { return response.json(); }
     const adminContext = await browser.newContext({ baseURL: BASE, viewport: { width: 1440, height: 1000 } });
     const page = await login(adminContext, env.E2E_ADMIN_EMAIL, env.E2E_ADMIN_PASSWORD);
     const api = adminContext.request;
-    ok("admin dashboard", (await page.locator('[data-testid="prospecteur-page"]').count()) === 0 && (await page.title()).includes("QYLOT"));
+    ok("admin dashboard", (await page.locator('[data-testid="prospecteur-page"]').count()) === 0 && (await page.title()).toLowerCase().includes("qylot"));
     const users = await json(await api.get("/api/users"));
     const commercial = users.find((u) => u.email === env.E2E_COMMERCIAL_EMAIL);
     ok("test commercial exists", Boolean(commercial));

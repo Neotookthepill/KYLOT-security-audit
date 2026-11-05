@@ -163,8 +163,8 @@
   .qy-brand-mark {
     display: grid; place-items: center;
     width: 38px; height: 38px; border-radius: 11px;
-    background: hsl(var(--paper));
-    color: hsl(var(--sidebar));
+    background: #f7f3e9;
+    color: #0b1220;
     font-family: "Bricolage Grotesque", sans-serif;
     font-size: 22px; font-weight: 700;
     box-shadow: 0 0 0 1px hsl(0 0% 100% / .10), 0 8px 24px hsl(0 0% 0% / .28);
@@ -434,3 +434,7 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   caret-color: #0b1220;
 }
 .qy-login-field::placeholder, .dark .qy-login-field::placeholder { color: #98a2b3 !important; }
+
+@media (max-width: 767px) {
+  .qy-page .sales-table td:nth-child(1) button { min-height: 32px; }
+}
