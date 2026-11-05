@@ -5,7 +5,7 @@ const clampScale = (s) => Math.max(1, Math.min(6, s));
 
 // iter201 — Lightbox photo avec zoom (roulette, double-clic, pinch, +/-, drag pour panner).
 // Utilisé dans ProjectDialog (chantiers / planning) et ReinterventionDialog.
-export default function ZoomableImage({ src, onClose, testid = "zoom-image" }) {
+export default function ZoomableImage({ src, alt = "Photo du chantier", onClose, testid = "zoom-image" }) {
   const safeSrc = typeof src === "string" && /^(?:https:\/\/|data:image\/(?:jpeg|jpg|png|webp);base64,)/i.test(src) ? src : "";
   const [scale, setScale] = useState(1);
   const [tx, setTx] = useState(0);
@@ -100,7 +100,7 @@ export default function ZoomableImage({ src, onClose, testid = "zoom-image" }) {
     >
       <img
         src={safeSrc}
-        alt="preview"
+        alt={alt}
         draggable={false}
         onDoubleClick={onDoubleClick}
         onMouseDown={onMouseDown}

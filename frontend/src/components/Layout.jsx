@@ -17,6 +17,7 @@ import MfaRequiredNotice from "@/components/MfaRequiredNotice";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import ThemeToggle from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
+import useAccessibleLabels from "@/hooks/useAccessibleLabels";
 
 const allNav = [
   { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, end: true, tid: "nav-dashboard", perm: ["sales", "view", "own"], group: "Pilotage" },
@@ -44,6 +45,7 @@ function initials(name) {
 }
 
 export default function Layout() {
+  useAccessibleLabels();
   const { user, logout, can } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();

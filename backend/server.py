@@ -968,6 +968,15 @@ class LoginIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+    password: str = Field(min_length=12, max_length=72)
+
+
 class MfaSetupIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
@@ -1372,6 +1381,61 @@ async def login(data: LoginIn, response: Response, request: Request):
     mfa_state = await _ensure_mfa_grace(u)
     set_auth_cookie(response, token)
     return {**_auth_response(u, token), **mfa_state}
+
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: ForgotPasswordIn):
+    """Demande de réinitialisation. Réponse volontairement générique."""
+    email = (data.email or "").strip().lower()
+    user = await db.users.find_one({"email": email, "is_active": {"$ne": False}})
+    if user:
+        raw = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        now = datetime.now(timezone.utc)
+        await db.password_resets.delete_many({"user_id": user["id"]})
+        await db.password_resets.insert_one({
+            "token_hash": token_hash,
+            "user_id": user["id"],
+            "created_at": now,
+            "expires_at": now + timedelta(minutes=30),
+            "used": False,
+        })
+        base = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+        if not base:
+            base = "http://localhost:3000"
+        link = f"{base}/reset-password?token={quote(raw)}"
+        html = (
+            '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#0b1220">'
+            '<h2 style="font-size:22px">Réinitialisation de votre mot de passe</h2>'
+            '<p>Vous avez demandé à réinitialiser votre mot de passe Qylot.</p>'
+            f'<p><a href="{escape(link)}" style="display:inline-block;background:#0b1220;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Choisir un nouveau mot de passe</a></p>'
+            '<p style="color:#667085;font-size:12px">Ce lien expire dans 30 minutes et ne peut être utilisé qu’une fois. Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>'
+            '</div>'
+        )
+        await send_email(to=email, subject="Qylot — réinitialisation du mot de passe", html=html)
+    return {"message": "Si un compte correspond à cette adresse, un email de réinitialisation a été envoyé."}
+
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: ResetPasswordIn):
+    token_hash = hashlib.sha256((data.token or "").encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    record = await db.password_resets.find_one({
+        "token_hash": token_hash, "used": False, "expires_at": {"$gt": now},
+    })
+    if not record:
+        raise HTTPException(status_code=400, detail="Lien invalide ou expiré")
+    user = await db.users.find_one({"id": record["user_id"], "is_active": {"$ne": False}})
+    if not user:
+        raise HTTPException(status_code=400, detail="Lien invalide ou expiré")
+    now_ms = int(time.time() * 1000)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": hash_password(data.password), "token_epoch_ms": now_ms, "token_epoch": int(time.time())}},
+    )
+    await db.password_resets.update_one({"_id": record["_id"]}, {"$set": {"used": True, "used_at": now}})
+    await db.password_resets.delete_many({"user_id": user["id"], "used": False})
+    return {"message": "Mot de passe mis à jour. Vous pouvez vous reconnecter."}
+
 
 @api_router.post("/auth/mfa/setup")
 async def mfa_setup(data: MfaSetupIn, response: Response, user: dict = Depends(get_current_user)):

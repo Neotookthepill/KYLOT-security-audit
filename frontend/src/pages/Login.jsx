@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { formatApiError } from "@/lib/api";
@@ -165,6 +166,9 @@ export default function Login() {
                   <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="qy-login-field h-12 rounded-xl border-[#d8d0c0] bg-white text-[15px] shadow-none focus-visible:ring-[#a9552b]" />
                 </div>
                 {error && <ErrorBox error={error} />}
+                <div className="flex justify-end">
+                  <Link to="/forgot-password" className="text-xs font-medium text-[#a9552b] underline underline-offset-4 hover:text-[#7a3b18]">Mot de passe oublié ?</Link>
+                </div>
                 <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#0b1220] text-[14px] font-semibold text-[#f7f3e9] hover:bg-[#1d2939]" data-testid="login-submit-btn">
                   {loading ? "Connexion…" : <span className="flex items-center gap-2">Se connecter <ArrowUpRight size={16} /></span>}
                 </Button>
