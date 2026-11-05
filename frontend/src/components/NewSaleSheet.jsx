@@ -28,6 +28,7 @@ const today = () => {
 
 function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, isMobile }) {
   const listRef = React.useRef(null);
+  const inputRef = React.useRef(null);
   const [query, setQuery] = React.useState("");
   React.useEffect(() => {
     if (!open) return;
@@ -38,6 +39,11 @@ function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, i
   React.useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = 0;
   }, [query]);
+  React.useEffect(() => {
+    if (!open || !isMobile) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [open, isMobile]);
   const search = query.trim().toLowerCase();
   const filteredClients = search
     ? clients.filter((c) => [c.name, c.phone, c.address, c.city, c.postal_code]
@@ -52,6 +58,7 @@ function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, i
   const list = (
     <Command shouldFilter={false}>
       <CommandInput
+        ref={inputRef}
         autoFocus
         placeholder="Chercher un nom, un téléphone, une ville…"
         className="qy-client-picker-search h-12 text-[15px]"
