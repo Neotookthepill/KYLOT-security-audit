@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Check, ChevronDown } from "lucide-react";
 import { ChequeInstallmentsSelect } from "@/components/ChequeInstallmentsSelect";
 import { ProspecteurField, prospecteurPayload } from "@/components/ProspecteurField";
 import { SALE_STATUSES, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload } from "@/lib/saleConstants";
@@ -23,6 +25,90 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
+function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, isMobile }) {
+  const listRef = React.useRef(null);
+  const [query, setQuery] = React.useState("");
+  React.useEffect(() => {
+    if (!open) return;
+    setQuery("");
+    const t = setTimeout(() => { if (listRef.current) listRef.current.scrollTop = 0; }, 0);
+    return () => clearTimeout(t);
+  }, [open]);
+  React.useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [query]);
+  const search = query.trim().toLowerCase();
+  const filteredClients = search
+    ? clients.filter((c) => [c.name, c.phone, c.address, c.city, c.postal_code]
+      .filter(Boolean).join(" ").toLowerCase().includes(search))
+    : clients;
+  const trigger = (
+    <Button variant="outline" role="combobox" className="w-full justify-between" data-testid="client-select-trigger">
+      <span className="truncate text-left">{selectedClient ? selectedClient.name : "Choisir un client…"}</span>
+      <ChevronDown size={15} className="ml-2 shrink-0 opacity-60" />
+    </Button>
+  );
+  const list = (
+    <Command shouldFilter={false}>
+      <CommandInput
+        autoFocus
+        placeholder="Chercher un nom, un téléphone, une ville…"
+        className="qy-client-picker-search h-12 text-[15px]"
+        value={query}
+        onValueChange={setQuery}
+      />
+      <CommandList ref={listRef} className="qy-client-picker-list">
+        <CommandEmpty>Aucun client trouvé.</CommandEmpty>
+        <CommandGroup>
+          {filteredClients.map((c) => (
+            <CommandItem
+              key={c.id}
+              value={`${c.name} ${c.phone} ${c.address} ${c.city} ${c.postal_code}`}
+              onSelect={() => { onSelect(c.id); onOpenChange(false); }}
+              data-testid={`client-option-${c.id}`}
+              className="items-start gap-3 px-3 py-3"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium">{c.name}</div>
+                <div className="mt-0.5 truncate text-xs text-slate-500">
+                  {c.phone || "—"} · {c.postal_code || ""} {c.city || ""}
+                </div>
+              </div>
+              {selectedClient?.id === c.id && <Check size={15} className="mt-0.5 shrink-0 text-primary" />}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+
+  if (isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+        <DialogContent className="qy-client-picker" data-testid="client-picker-mobile">
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
+            <DialogTitle className="text-sm font-semibold">Choisir un client</DialogTitle>
+            <button type="button" onClick={() => onOpenChange(false)} className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+              Fermer
+            </button>
+          </div>
+          {list}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-[min(420px,calc(100vw-2rem))] p-0" align="start">
+        {list}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = null }) {
   const { commerciaux } = useTeam();
@@ -52,6 +138,35 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
     }
     return orderStatuses(settings?.sale_status_order);
   }, [saleStatusesPayload, settings?.sale_status_order]);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty("--qy-keyboard-inset", `${inset}px`);
+      document.documentElement.style.setProperty("--qy-vvh", `${vv.height}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      document.documentElement.style.removeProperty("--qy-keyboard-inset");
+      document.documentElement.style.removeProperty("--qy-vvh");
+    };
+  }, [isMobile]);
+
   const [clients, setClients] = useState([]);
   const [clientMode, setClientMode] = useState("existing");
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -236,31 +351,14 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
               <button type="button" onClick={() => setClientMode("new")} data-testid="client-mode-new" className={`px-3 py-1 rounded-md border ${clientMode === "new" ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600"}`}>Nouveau client</button>
             </div>
             {clientMode === "existing" ? (
-              <Popover open={comboOpen} onOpenChange={setComboOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" className="w-full justify-between" data-testid="client-select-trigger">
-                    {selectedClient ? selectedClient.name : "Rechercher un client…"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="p-0 w-[420px]">
-                  <Command>
-                    <CommandInput placeholder="Chercher par nom, téléphone…" />
-                    <CommandList>
-                      <CommandEmpty>Aucun client.</CommandEmpty>
-                      <CommandGroup>
-                        {clients.map((c) => (
-                          <CommandItem key={c.id} value={`${c.name} ${c.phone} ${c.address} ${c.city}`} onSelect={() => { setSelectedClientId(c.id); setComboOpen(false); }} data-testid={`client-option-${c.id}`}>
-                            <div>
-                              <div className="font-medium">{c.name}</div>
-                              <div className="text-xs text-slate-500">{c.phone} · {c.postal_code} {c.city}</div>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              <ClientPicker
+                clients={clients}
+                selectedClient={selectedClient}
+                open={comboOpen}
+                onOpenChange={setComboOpen}
+                onSelect={setSelectedClientId}
+                isMobile={isMobile}
+              />
             ) : (
               <div className="space-y-2">
                 <Input placeholder="Nom / Prénom" value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} data-testid="new-client-name" />
