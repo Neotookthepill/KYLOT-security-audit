@@ -542,3 +542,7 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 /* Contraste texte courant en thème clair. */
 html:not(.dark) .qy-page .text-slate-500 { color: #475569 !important; }
 html:not(.dark) .qy-page .text-slate-400 { color: #64748b !important; }
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3) { display: none; }
+}

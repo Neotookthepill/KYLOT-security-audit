@@ -18,16 +18,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
-        <script>
-          (function () {
-            try {
-              var t = localStorage.getItem("qylot-theme") === "dark" ? "dark" : "light";
-              document.documentElement.classList.toggle("dark", t === "dark");
-              document.documentElement.dataset.theme = t;
-              document.documentElement.style.colorScheme = d ? "dark" : "light";
-            } catch (e) {}
-          })();
-        </script>
+        <script src="%PUBLIC_URL%/theme-boot.js"></script>
         <!--
         manifest.json provides metadata used when your web app is installed on a
         user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
