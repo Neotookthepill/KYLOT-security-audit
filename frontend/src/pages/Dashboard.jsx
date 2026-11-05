@@ -782,8 +782,8 @@ export default function Dashboard() {
         </button>
         <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Aujourd’hui</p>
-            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 hidden text-xs font-normal text-muted-foreground sm:inline">événement{todayEvents > 1 ? "s" : ""}</span></p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda</p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
         </button>

@@ -49,7 +49,7 @@ export default function TodayTodos() {
 
       <div className="flex gap-2 mb-3">
         <Input
-          placeholder="Ajouter un rappel (rappeler client, docs manquants…)"
+          placeholder="Ajouter un rappel…"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ShoppingBag, Kanban as KanbanIcon, CalendarDays,
   Users as UsersIcon, Shield, Percent, LogOut, Settings as SettingsIcon, Star,
   BarChart3, Clock, Building2, Menu, History, Boxes, TrendingUp, Search,
-  UserSearch, Map as MapIcon, Plus, ChevronsLeft, ChevronsRight,
+  UserSearch, Map as MapIcon, Plus, ChevronsLeft, ChevronsRight, Sparkles,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import GlobalSearchDialog from "@/components/GlobalSearchDialog";
@@ -193,6 +193,11 @@ export default function Layout() {
       </nav>
 
       <div className={cn("border-t border-white/[.08] pb-3", compact ? "px-2 pt-2" : "px-3 pt-2")}>
+        {compact && (
+          <button type="button" onClick={toggleCollapsed} title="Déplier le menu" aria-label="Déplier le menu" className="qy-nav-item mb-1 w-full justify-center px-0">
+            <ChevronsRight size={17} />
+          </button>
+        )}
         {!isSuper && (
           <NavLink to="/abonnement" data-testid="nav-subscription" onClick={closeMobile} title={compact ? "Abonnement" : undefined} className={({ isActive }) => cn("qy-nav-item", isActive && "is-active", compact && "justify-center px-0")}>
             <Star size={17} strokeWidth={1.9} />
@@ -204,6 +209,18 @@ export default function Layout() {
             <SettingsIcon size={17} strokeWidth={1.9} />
             {!compact && <span>Paramètres</span>}
           </NavLink>
+        )}
+        {!isSuper && (
+          <button
+            type="button"
+            onClick={() => { closeMobile(); setTimeout(() => window.dispatchEvent(new Event("kylot:open-ai")), 120); }}
+            title={compact ? "Assistant IA" : undefined}
+            className={cn("qy-nav-item w-full", compact && "justify-center px-0")}
+            aria-label="Ouvrir l’assistant IA"
+          >
+            <Sparkles size={17} strokeWidth={1.9} />
+            {!compact && <span>Assistant IA</span>}
+          </button>
         )}
         <div className={cn("mt-2 flex items-center gap-2 border-t border-white/[.08] pt-3", compact && "justify-center")}>
           <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-semibold text-white" title={user?.name}>
@@ -304,7 +321,7 @@ export default function Layout() {
       {/* Mobile bottom nav */}
       {!isSuper && mobileNav.length > 0 && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Navigation mobile">
-          <div className="grid grid-cols-5">
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length + 1}, minmax(0, 1fr))` }}>
             {mobileNav.map((item) => {
               const Icon = item.icon;
               const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);

@@ -332,6 +332,11 @@ export default function AIHelper() {
     canCreateClient: can("clients", "create"),
   };
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const openFromShell = () => setOpen(true);
+    window.addEventListener("kylot:open-ai", openFromShell);
+    return () => window.removeEventListener("kylot:open-ai", openFromShell);
+  }, []);
   const [mode, setMode] = useState("action");
   // Draft persisted in sessionStorage — survives navigation, panel toggle
   const [state, setState] = useState(() => {
@@ -657,7 +662,7 @@ export default function AIHelper() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
-        className="fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl grid place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5"
+        className="fixed bottom-5 right-5 z-40 hidden h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:grid"
         aria-label="Ouvrir l'assistant KIK'S"
         title="KIK'S — Assistant IA"
       >
@@ -665,7 +670,7 @@ export default function AIHelper() {
       </button>
 
       {open && (
-        <div className={`fixed bottom-40 right-3 z-40 ${panelWidth} h-[560px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width] md:bottom-24 md:right-5`} data-testid="ai-helper-panel">
+        <div className={`fixed bottom-20 right-2 z-50 ${panelWidth} h-[560px] max-h-[78vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width] md:bottom-24 md:right-5`} data-testid="ai-helper-panel">
           <div className="p-3 border-b border-slate-200 bg-slate-900 text-white shrink-0">
             <div className="flex items-center gap-2.5">
               <KiksAvatar size={36} />
@@ -678,6 +683,9 @@ export default function AIHelper() {
                   Effacer
                 </button>
               )}
+              <button type="button" onClick={() => setOpen(false)} aria-label="Fermer l’assistant" className="grid h-8 w-8 place-items-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white">
+                <X size={16} />
+              </button>
             </div>
             <div className="flex gap-1 mt-2 bg-white/10 rounded-lg p-0.5">
               <button onClick={() => setMode("action")} data-testid="ai-mode-action" className={`flex-1 h-7 text-[11px] rounded-md flex items-center justify-center gap-1 transition ${mode === "action" ? "bg-white text-slate-900 font-medium" : "text-white/80 hover:text-white"}`}>
