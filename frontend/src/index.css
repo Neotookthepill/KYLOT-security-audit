@@ -310,7 +310,7 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 
 
 /* Sales: keep the essential columns readable; full detail remains in the row sheet. */
-@media (max-width: 1500px) {
+@media (max-width: 1199px) {
   .qy-page .sales-table th:nth-child(6), .qy-page .sales-table td:nth-child(6),
   .qy-page .sales-table th:nth-child(7), .qy-page .sales-table td:nth-child(7),
   .qy-page .sales-table th:nth-child(8), .qy-page .sales-table td:nth-child(8),

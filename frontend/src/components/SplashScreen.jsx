@@ -11,8 +11,8 @@ export default function SplashScreen({ onDone }) {
   useEffect(() => {
     const isMobile = typeof window !== "undefined" && window.innerWidth <= 640;
     const timings = isMobile
-      ? { hold: 900, out: 1500, done: 2000 }   // slower, more premium on phones
-      : { hold: 500, out: 900,  done: 1250 };  // desktop unchanged
+      ? { hold: 140, out: 340, done: 430 }
+      : { hold: 120, out: 280, done: 360 };
 
     const t1 = setTimeout(() => setPhase("hold"), timings.hold);
     const t2 = setTimeout(() => setPhase("out"),  timings.out);
