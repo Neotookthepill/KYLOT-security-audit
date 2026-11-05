@@ -183,7 +183,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between text-[10px] text-[#98a2b3] lg:mt-auto">
+          <div className="mt-10 flex items-center justify-between gap-4 text-[10px] text-[#98a2b3] lg:mt-auto">
             <span>© 2026 {appName}</span>
             <span>Connexion sécurisée</span>
           </div>

@@ -50,6 +50,12 @@ export default function Layout() {
   const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
+  React.useEffect(() => {
+    // Évite d'arriver au milieu d'une page longue après un changement de route.
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [newSaleOpen, setNewSaleOpen] = useState(false);
@@ -183,7 +189,7 @@ export default function Layout() {
         </div>
       )}
 
-      <nav className={cn("flex-1 overflow-y-auto pb-4", compact ? "px-2 pt-3" : "px-3 pt-2")} aria-label="Navigation principale">
+      <nav className={cn("qy-sidebar-nav flex-1 overflow-y-auto pb-4", compact ? "px-2 pt-3" : "px-3 pt-2")} aria-label="Navigation principale" data-testid="sidebar-nav">
         {groups.map(([group, items]) => (
           <div key={group}>
             {!compact && <div className="qy-nav-group-label">{group}</div>}

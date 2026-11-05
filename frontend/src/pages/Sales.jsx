@@ -831,22 +831,18 @@ export default function Sales() {
                 <th className="px-4 py-3 overline whitespace-nowrap">Statut</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Date</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">BDC</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">Nom / Prénom</th>
+                <th className="px-4 py-3 overline whitespace-nowrap">Client</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Téléphone</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">Adresse</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">CP</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">Ville</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Produits</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Montant HT</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Règlement</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">Comm.</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Commercial</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Source</th>
                 {canDeleteSale && <th className="px-2 py-3 overline whitespace-nowrap text-right w-10"></th>}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (<tr><td colSpan={canDeleteSale ? 15 : 14} className="p-8 text-center text-slate-500">Aucune vente.</td></tr>)}
+              {filtered.length === 0 && (<tr><td colSpan={canDeleteSale ? 11 : 10} className="p-8 text-center text-slate-500">Aucune vente.</td></tr>)}
               {filtered.map((s) => {
                 const st = statusMap[s.status] || STATUS_MAP[s.status];
                 const src = SOURCE_MAP[s.source];
@@ -963,11 +959,15 @@ export default function Sales() {
                         testId={`sale-bdc-${s.id}`}
                       />
                     </td>
-                    <td className="px-4 py-3 font-semibold text-slate-900 whitespace-nowrap">{s.client_name || "—"}</td>
+                    <td className="px-4 py-3 text-slate-900">
+                      <div className="font-semibold">{s.client_name || "—"}</div>
+                      {(s.client_address || s.client_postal_code || s.client_city) && (
+                        <div className="mt-1 text-[11px] font-normal text-slate-500">
+                          {[s.client_address, [s.client_postal_code, s.client_city].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap"><PhoneNumbers value={s.client_phone} iconSize={11} className="text-xs" /></td>
-                    <td className="px-4 py-3 text-slate-600">{s.client_address}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{s.client_postal_code}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{s.client_city}</td>
                     <td className="px-4 py-3 max-w-[220px]"><div className="truncate" title={s.service}>{s.service}</div></td>
                     <td className="px-4 py-3 font-semibold whitespace-nowrap">{fmtEur(s.amount)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-600" onClick={(e) => e.stopPropagation()}>
@@ -981,17 +981,7 @@ export default function Sales() {
                         testId={`sale-payment-${s.id}`}
                       />
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {s.is_de && s.commercial_2 ? (
-                        <span className="text-xs">
-                          {formatRate(s.commission_rate)}
-                          <span className="text-slate-400 mx-1">/</span>
-                          {formatRate(s.commission_rate_2 != null ? s.commission_rate_2 : s.commission_rate)}
-                        </span>
-                      ) : (
-                        formatRate(s.commission_rate)
-                      )}
-                    </td>
+
                     <td className="px-4 py-3 whitespace-nowrap font-medium" onClick={(e) => e.stopPropagation()}>
                       <InlineCell
                         type="select"
@@ -1016,6 +1006,10 @@ export default function Sales() {
                           />
                         </div>
                       )}
+                      <div className="mt-1 text-[10px] text-slate-500">
+                        Commission {formatRate(s.commission_rate)}
+                        {s.is_de && s.commercial_2 ? ` / ${formatRate(s.commission_rate_2 != null ? s.commission_rate_2 : s.commission_rate)}` : ""}
+                      </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <InlineCell

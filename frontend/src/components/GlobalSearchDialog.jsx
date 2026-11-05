@@ -85,14 +85,14 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
         className="max-w-2xl p-0 overflow-hidden top-[8px] translate-y-0 sm:top-[50%] sm:-translate-y-1/2"
         data-testid="global-search-dialog"
       >
-        <div className="flex items-center gap-2 px-4 border-b border-slate-200 sticky top-0 bg-white z-10">
+        <div className="qy-global-search-bar flex items-center gap-2 px-4 border-b border-slate-200 sticky top-0 bg-card z-10">
           <Search size={18} className="text-slate-400" />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Rechercher un client, chantier, vente…"
-            className="flex-1 h-12 bg-transparent outline-none text-sm placeholder-slate-400"
+            className="qy-global-search-input flex-1 h-12 bg-transparent outline-none text-sm placeholder-slate-400"
             data-testid="global-search-input"
           />
           {q && <button onClick={() => setQ("")} className="p-1 text-slate-400 hover:text-slate-600"><X size={16} /></button>}

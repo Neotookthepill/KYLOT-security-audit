@@ -309,36 +309,65 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 }
 
 
-/* Sales: keep the essential columns readable; full detail remains in the row sheet. */
+/* Sales: colonnes essentielles + informations secondaires dans les cellules. */
 @media (max-width: 1439px) {
-  .qy-page .sales-table th:nth-child(6), .qy-page .sales-table td:nth-child(6),
-  .qy-page .sales-table th:nth-child(7), .qy-page .sales-table td:nth-child(7),
-  .qy-page .sales-table th:nth-child(8), .qy-page .sales-table td:nth-child(8),
-  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11),
-  .qy-page .sales-table th:nth-child(12), .qy-page .sales-table td:nth-child(12),
-  .qy-page .sales-table th:nth-child(14), .qy-page .sales-table td:nth-child(14) { display: none; }
+  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10),
+  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11) { display: none; }
 }
 @media (min-width: 1440px) {
   .qy-page .sales-table { table-layout: fixed; width: 100% !important; }
   .qy-page .sales-table th, .qy-page .sales-table td {
-    padding-left: .2rem !important; padding-right: .2rem !important;
-    font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: .5rem .35rem !important; font-size: 12px !important;
+    vertical-align: top; line-height: 1.35;
   }
-  .qy-page .sales-table th:nth-child(1), .qy-page .sales-table td:nth-child(1) { width: 62px; }
-  .qy-page .sales-table th:nth-child(2), .qy-page .sales-table td:nth-child(2) { width: 70px; }
-  .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3) { width: 58px; }
-  .qy-page .sales-table th:nth-child(4), .qy-page .sales-table td:nth-child(4) { width: 105px; }
-  .qy-page .sales-table th:nth-child(5), .qy-page .sales-table td:nth-child(5) { width: 90px; }
-  .qy-page .sales-table th:nth-child(6), .qy-page .sales-table td:nth-child(6) { width: 100px; }
-  .qy-page .sales-table th:nth-child(7), .qy-page .sales-table td:nth-child(7) { width: 42px; }
-  .qy-page .sales-table th:nth-child(8), .qy-page .sales-table td:nth-child(8) { width: 72px; }
-  .qy-page .sales-table th:nth-child(9), .qy-page .sales-table td:nth-child(9) { width: 110px; }
-  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10) { width: 74px; }
-  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11) { width: 74px; }
-  .qy-page .sales-table th:nth-child(12), .qy-page .sales-table td:nth-child(12) { width: 52px; }
-  .qy-page .sales-table th:nth-child(13), .qy-page .sales-table td:nth-child(13) { width: 92px; }
-  .qy-page .sales-table th:nth-child(14), .qy-page .sales-table td:nth-child(14) { width: 46px; }
-  .qy-page .sales-table th:nth-child(15), .qy-page .sales-table td:nth-child(15) { width: 38px; }
+  .qy-page .sales-table th { white-space: normal; line-height: 1.2; letter-spacing: .06em; }
+  .qy-page .sales-table td { white-space: normal; overflow: hidden; }
+  .qy-page .sales-table td:nth-child(4), .qy-page .sales-table td:nth-child(6) { overflow-wrap: break-word; }
+  .qy-page .sales-table th:nth-child(1), .qy-page .sales-table td:nth-child(1) { width: 70px; }
+  .qy-page .sales-table th:nth-child(2), .qy-page .sales-table td:nth-child(2) { width: 78px; }
+  .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3) { width: 62px; }
+  .qy-page .sales-table th:nth-child(4), .qy-page .sales-table td:nth-child(4) { width: 190px; }
+  .qy-page .sales-table th:nth-child(5), .qy-page .sales-table td:nth-child(5) { width: 100px; }
+  .qy-page .sales-table th:nth-child(6), .qy-page .sales-table td:nth-child(6) { width: 160px; }
+  .qy-page .sales-table th:nth-child(7), .qy-page .sales-table td:nth-child(7) { width: 82px; }
+  .qy-page .sales-table th:nth-child(8), .qy-page .sales-table td:nth-child(8) { width: 100px; }
+  .qy-page .sales-table th:nth-child(9), .qy-page .sales-table td:nth-child(9) { width: 122px; }
+  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10) { width: 62px; }
+  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11) { width: 38px; }
+}
+
+@media (min-width: 768px) and (max-width: 1439px) {
+  .qy-page .sales-table { table-layout: fixed; width: 100% !important; }
+  .qy-page .sales-table th, .qy-page .sales-table td {
+    padding: .5rem .35rem !important; font-size: 12px !important;
+    vertical-align: top; line-height: 1.35;
+  }
+  .qy-page .sales-table th { white-space: normal; line-height: 1.2; letter-spacing: .06em; }
+  .qy-page .sales-table td { white-space: normal; overflow: hidden; }
+  .qy-page .sales-table td:nth-child(4), .qy-page .sales-table td:nth-child(6) { overflow-wrap: break-word; }
+}
+
+.qy-global-search-input:focus-visible,
+.qy-global-search-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.qy-global-search-bar:focus-within {
+  box-shadow: inset 0 -2px 0 hsl(var(--ring) / .55);
+}
+
+.qy-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(0 0% 100% / .28) transparent;
+  overscroll-behavior: contain;
+}
+.qy-sidebar-nav::-webkit-scrollbar { width: 6px; }
+.qy-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.qy-sidebar-nav::-webkit-scrollbar-thumb { background: hsl(0 0% 100% / .24); border-radius: 99px; }
+.qy-sidebar-nav .qy-nav-group-label {
+  position: sticky; top: 0; z-index: 2;
+  background: hsl(var(--sidebar));
+  padding-top: .8rem; padding-bottom: .35rem;
 }
 
 @media (max-width: 767px) {
@@ -371,16 +400,17 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .sales-table td:nth-child(3)::before { content: "BDC"; }
   .qy-page .sales-table td:nth-child(4)::before { content: "Client"; }
   .qy-page .sales-table td:nth-child(5)::before { content: "Téléphone"; }
-  .qy-page .sales-table td:nth-child(9)::before { content: "Produits"; }
-  .qy-page .sales-table td:nth-child(10)::before { content: "Montant"; }
-  .qy-page .sales-table td:nth-child(13)::before { content: "Commercial"; }
-  .qy-page .sales-table td:nth-child(15)::before { content: ""; }
-  .qy-page .sales-table td:nth-child(9), .qy-page .sales-table td:nth-child(13) { text-align: right; }
+  .qy-page .sales-table td:nth-child(6)::before { content: "Produits"; }
+  .qy-page .sales-table td:nth-child(7)::before { content: "Montant"; }
+  .qy-page .sales-table td:nth-child(8)::before { content: "Règlement"; }
+  .qy-page .sales-table td:nth-child(9)::before { content: "Commercial"; }
+  .qy-page .sales-table td:nth-child(10)::before { content: "Source"; }
+  .qy-page .sales-table td:nth-child(11)::before { content: ""; }
+  .qy-page .sales-table td:nth-child(6), .qy-page .sales-table td:nth-child(9) { text-align: right; }
   .qy-page [data-testid="objectif-summary"], .qy-page [data-testid="commercials-summary"] { display: none; }
   .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3),
-  .qy-page .sales-table th:nth-child(9), .qy-page .sales-table td:nth-child(9),
-  .qy-page .sales-table th:nth-child(13), .qy-page .sales-table td:nth-child(13) { display: none; }
-  .qy-page .sales-table th:nth-child(15), .qy-page .sales-table td:nth-child(15) { display: none; }
+  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10),
+  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11) { display: none; }
 }
 
 
