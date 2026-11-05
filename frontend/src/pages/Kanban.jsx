@@ -53,7 +53,7 @@ export default function Kanban() {
   const load = async () => {
     try {
       const suffix = filter === "__deleted" ? "?include_deleted=only" : "";
-      setProjects((await api.get(`/projects${suffix}`)).data);
+      setProjects((await api.get(`/projects${suffix}${suffix.includes("?") ? "&" : "?"}limit=500`)).data);
     }
     catch (err) { toast.error(formatApiError(err)); }
   };

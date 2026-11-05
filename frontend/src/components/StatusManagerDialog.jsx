@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api, { formatApiError } from "@/lib/api";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +58,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(null);
+  const [reassign, setReassign] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,19 +83,19 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
     // iter103 : réaffectation obligatoire avant suppression — l'admin choisit vers quel statut
     const candidates = rows.filter((x) => x.value !== r.value && x.active !== false && x.value);
     if (candidates.length === 0) { toast.error("Aucun autre statut actif disponible pour réaffecter."); return; }
-    const labels = candidates.map((c, i) => `${i + 1}. ${c.label} (${c.value})`).join("\n");
-    const answer = window.prompt(`« ${r.label} » est utilisé par ${usage[r.value]} vente(s).\nVers quel statut voulez-vous les réaffecter ? Tapez le numéro :\n\n${labels}`);
-    if (!answer) return;
-    const idxPicked = parseInt(String(answer).trim(), 10) - 1;
-    const target = candidates[idxPicked];
-    if (!target) { toast.error("Choix invalide"); return; }
+    setReassign({ source: r.value, sourceLabel: r.label, count: usage[r.value] || 0, candidates });
+  };
+  const doReassign = async (target) => {
+    if (!reassign || !target) return;
     try {
-      const res = await api.post("/sale-statuses/reassign", { source: r.value, target: target.value });
+      const res = await api.post("/sale-statuses/reassign", { source: reassign.source, target: target.value });
       toast.success(`${res.data.reassigned} vente(s) réaffectée(s) vers « ${target.label} »`);
+      setReassign(null);
       onSaved?.();
       await load();
     } catch (err) { toast.error(formatApiError(err)); }
   };
+
   const addRow = () => {
     setRows((rs) => [...rs, { value: `stat_${Date.now().toString(36)}`, label: "Nouveau statut", color: "slate", active: true, system: false, _new: true }]);
   };
@@ -157,6 +158,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
   const preview = useMemo(() => rows.filter((r) => r.active !== false), [rows]);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!saving) onOpenChange(v); }}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="status-manager-dialog">
         <DialogHeader>
@@ -265,5 +267,33 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={Boolean(reassign)} onOpenChange={(v) => { if (!v) setReassign(null); }}>
+      <DialogContent className="sm:max-w-md" data-testid="status-reassign-dialog">
+        <DialogHeader>
+          <DialogTitle>Réaffecter les ventes</DialogTitle>
+          <DialogDescription>
+            « {reassign?.sourceLabel} » est utilisé par {reassign?.count} vente(s). Choisissez le statut de remplacement.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {(reassign?.candidates || []).map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => doReassign(c)}
+              data-testid={`status-reassign-${c.value}`}
+              className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-3 text-left transition hover:border-primary hover:bg-muted"
+            >
+              <span className="font-medium">{c.label}</span>
+              <span className="text-xs text-muted-foreground">{c.value}</span>
+            </button>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setReassign(null)}>Annuler</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

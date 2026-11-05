@@ -3596,6 +3596,8 @@ async def list_projects(
 async def list_planning_projects(
     user: dict = Depends(get_current_user),
     include_deleted: str = Query(default="", pattern=r"^(only|1)?$"),
+    limit: int = Query(500, ge=1, le=5000),
+    offset: int = Query(0, ge=0),
 ):
     """iter209 — même charge que `/projects` mais gated par `planning.view`.
     Permet à un technicien à qui l'admin a retiré `projects.view` de conserver
@@ -3603,12 +3605,12 @@ async def list_planning_projects(
     iter215 — `keep_closed=True` : un chantier reste visible sur le calendrier peu
     importe son statut ou celui de la vente, sauf annulation (`sale.status='annule'`)."""
     if _is_prospect_role(user):
-        rows = await _fetch_projects_list(user, "", perm_resource="planning", keep_closed=True)
+        rows = await _fetch_projects_list(user, "", perm_resource="planning", keep_closed=True, limit=limit, offset=offset)
         keep = ("id", "client_id", "client_name", "client_address", "client_postal_code", "client_city", "status", "sale_status",
                 "scheduled_date", "scheduled_dates", "extra_dates", "duration_days", "end_date", "days_done", "day_exclusions", "cancelled")
         return [{k: p.get(k) for k in keep if k in p} | {"service": ""} for p in rows]
     check_perm(user, "planning", "view", "own")
-    return await _fetch_projects_list(user, include_deleted, perm_resource="planning", keep_closed=True)
+    return await _fetch_projects_list(user, include_deleted, perm_resource="planning", keep_closed=True, limit=limit, offset=offset)
 
 
 @api_router.get("/projects/{pid}")
