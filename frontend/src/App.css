@@ -120,4 +120,7 @@
     padding-left: 8px;
     padding-right: 8px;
   }
+  .qy-challenge-table th {
+    white-space: normal !important;
+  }
 }
