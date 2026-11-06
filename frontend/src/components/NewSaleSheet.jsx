@@ -601,7 +601,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Statut</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger data-testid="sale-status"><SelectValue /></SelectTrigger>
+                <SelectTrigger data-testid="sale-status" aria-label="Statut de la vente"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {statuses.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
                 </SelectContent>
@@ -610,7 +610,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             <div className="space-y-1.5"><Label>Date d’intervention souhaitée</Label>
               <Input type="date" value={form.desired_intervention_date && !["attente_financement","attente_14j"].includes(form.desired_intervention_date) ? form.desired_intervention_date : ""} onChange={(e) => setForm({ ...form, desired_intervention_date: e.target.value })} disabled={["attente_financement","attente_14j"].includes(form.desired_intervention_date)} data-testid="sale-intervention-date" />
               <Select value={["attente_financement","attente_14j"].includes(form.desired_intervention_date) ? form.desired_intervention_date : "__date"} onValueChange={(v) => setForm({ ...form, desired_intervention_date: v === "__date" ? "" : v })}>
-                <SelectTrigger className="mt-1.5 h-8" data-testid="sale-intervention-mode"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="mt-1.5 h-8" data-testid="sale-intervention-mode" aria-label="Mode de date d’intervention"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__date">Date précise</SelectItem>
                   <SelectItem value="attente_financement">En attente d'acceptation financement</SelectItem>

@@ -295,14 +295,14 @@ export default function ChallengeWidget() {
             <DialogTitle className="font-display text-2xl">{editing ? "Modifier le challenge" : "Nouveau challenge"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nom</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Challenge de Noël 2026" /></div>
+            <div><Label htmlFor="challenge-name">Nom</Label><Input id="challenge-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Challenge de Noël 2026" /></div>
             <div className="grid grid-cols-2 gap-2">
-              <div><Label>Début</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-              <div><Label>Fin</Label><Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></div>
+              <div><Label htmlFor="challenge-start">Début</Label><Input id="challenge-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+              <div><Label htmlFor="challenge-end">Fin</Label><Input id="challenge-end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} /></div>
             </div>
             <div>
-              <Label>Critère</Label>
-              <select value={form.criterion} onChange={(e) => setForm({ ...form, criterion: e.target.value })} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+              <Label htmlFor="challenge-criterion">Critère</Label>
+              <select id="challenge-criterion" value={form.criterion} onChange={(e) => setForm({ ...form, criterion: e.target.value })} className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
                 {Object.entries(CRITERIA).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
@@ -315,7 +315,7 @@ export default function ChallengeWidget() {
                     {name}
                   </label>
                 ))}
-                {!participants.length && <p className="text-xs text-slate-500">Aucun commercial dans l'équipe.</p>}
+                {!participants.length && <p className="text-xs text-slate-600">Aucun commercial dans l'équipe.</p>}
               </div>
             </div>
             <div>
@@ -323,9 +323,10 @@ export default function ChallengeWidget() {
               <div className="grid grid-cols-3 gap-2 mt-1">
                 {[0, 1, 2].map((i) => (
                   <div key={i}>
-                    <p className="text-[11px] text-slate-500">{MEDALS[i]} {i + 1}e</p>
+                    <p className="text-[11px] text-slate-600">{MEDALS[i]} {i + 1}e</p>
                     <Input
                       type="number" min={0} value={form.rewards[i]?.amount ?? 0}
+                      aria-label={`Récompense ${i + 1}e place`}
                       onChange={(e) => {
                         const rewards = [...form.rewards];
                         rewards[i] = { place: i + 1, amount: Number(e.target.value || 0) };

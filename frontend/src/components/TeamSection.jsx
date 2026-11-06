@@ -213,18 +213,20 @@ function CommercialList({ members, onChanged }) {
                 </div>
               ) : (
                 <>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">{m.name}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex-1 min-w-0 basis-full sm:basis-auto">
+                    <div className="font-medium text-sm break-words">{m.name}</div>
                     <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5 truncate">
                       {m.email ? (
-                        <span className="flex items-center gap-1"><Mail size={10} className="shrink-0" /><span className="truncate">{m.email}</span></span>
+                        <span className="flex items-center gap-1 min-w-0"><Mail size={10} className="shrink-0" /><span className="truncate">{m.email}</span></span>
                       ) : (
                         <span className="text-amber-600 flex items-center gap-1" title="Sans email, ce commercial ne recevra pas les rappels J-1"><MailX size={10} className="shrink-0" />Pas d'email</span>
                       )}
                     </div>
+                    <div className="sm:hidden text-[11px] text-slate-500 mt-1">Objectif : <span className="font-semibold text-slate-700">{m.objectif > 0 ? fmtEur(m.objectif) : "—"}</span></div>
                   </div>
-                  <span className="text-xs text-slate-500 min-w-[80px] text-right">Objectif : <span className="font-semibold text-slate-700">{m.objectif > 0 ? fmtEur(m.objectif) : "—"}</span></span>
+                  <span className="hidden sm:inline text-xs text-slate-500 min-w-[80px] text-right">Objectif : <span className="font-semibold text-slate-700">{m.objectif > 0 ? fmtEur(m.objectif) : "—"}</span></span>
+                  <div className="ml-auto flex items-center gap-0.5 shrink-0">
                   <button
                     onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
                     className={`shrink-0 ${expandedId === m.id ? "text-indigo-600" : "text-slate-400 hover:text-slate-700"}`}
@@ -245,6 +247,7 @@ function CommercialList({ members, onChanged }) {
                   </button>
                   <button onClick={() => setEditing({ id: m.id, objectif: m.objectif || 0, email: m.email || "" })} className="text-slate-400 hover:text-slate-700" data-testid={`team-obj-edit-${m.id}`} aria-label="Modifier"><Pencil size={12} /></button>
                   <button onClick={() => remove(m)} className="text-slate-400 hover:text-red-600" data-testid={`team-commercial-${m.id}-remove`} aria-label={`Supprimer ${m.name}`}><X size={14} /></button>
+                  </div>
                 </div>
                 {expandedId === m.id && (
                   <div className="mt-1 pt-2 border-t border-slate-100 space-y-1.5" data-testid={`team-company-panel-${m.id}`}>
@@ -303,9 +306,9 @@ function CommercialList({ members, onChanged }) {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mt-3">
-          <Input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Nom du commercial" data-testid="team-commercial-input" />
-          <Input type="email" value={addingEmail} onChange={(e) => setAddingEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Email (optionnel)" data-testid="team-commercial-email-input" />
+        <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-[1fr_1fr_auto]">
+          <Input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Nom du commercial" aria-label="Nom du commercial à ajouter" data-testid="team-commercial-input" />
+          <Input type="email" value={addingEmail} onChange={(e) => setAddingEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Email (optionnel)" aria-label="Email du commercial à ajouter" data-testid="team-commercial-email-input" />
           <Button onClick={add} disabled={busy || !adding.trim()} data-testid="team-commercial-add-btn">
             <Plus size={14} className="mr-1" /> Ajouter
           </Button>
@@ -569,7 +572,7 @@ function SousTraitantList({ members, onChanged }) {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mt-3">
+        <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-[1fr_1fr_auto]">
           <Input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Ajouter un sous-traitant…" data-testid="team-sous-traitant-input" />
           <Input type="email" value={addingEmail} onChange={(e) => setAddingEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Email" data-testid="team-sous-traitant-email-input" />
           <Button onClick={add} disabled={busy || !adding.trim()} data-testid="team-sous-traitant-add-btn">

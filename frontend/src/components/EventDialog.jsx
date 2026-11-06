@@ -188,7 +188,7 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5"><UsersIcon size={13} /> Participants</p>
-                <p className="text-xs text-slate-500">Seules ces personnes verront l'événement.</p>
+                <p className="text-xs text-slate-600">Seules ces personnes verront l'événement.</p>
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <Switch checked={form.all_company} onCheckedChange={(v) => setForm({ ...form, all_company: v })} data-testid="event-all-company" />
@@ -197,7 +197,7 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
             </div>
             {!form.all_company && (
               <div className="max-h-40 overflow-y-auto rounded-md border border-slate-100 p-2 space-y-1">
-                {sortedUsers.length === 0 && <p className="text-xs text-slate-500">Aucun utilisateur.</p>}
+                {sortedUsers.length === 0 && <p className="text-xs text-slate-600">Aucun utilisateur.</p>}
                 {sortedUsers.map((u) => (
                   <label key={u.id} className="flex items-center gap-2 py-1 cursor-pointer text-sm" data-testid={`event-part-${u.id}`}>
                     <input
@@ -219,14 +219,14 @@ export default function EventDialog({ open, onOpenChange, event, onSaved, defaul
               <Switch checked={form.send_notification} onCheckedChange={(v) => setForm({ ...form, send_notification: v })} />
               <div>
                 <p className="text-sm font-semibold text-slate-900">Envoyer une notification</p>
-                <p className="text-xs text-slate-500">Seuls les participants reçoivent la notification (création, modification ou annulation).</p>
+                <p className="text-xs text-slate-600">Seuls les participants reçoivent la notification (création, modification ou annulation).</p>
               </div>
             </label>
             <label className="flex items-center gap-3 cursor-pointer" data-testid="event-dashboard-toggle">
               <Switch checked={form.show_on_dashboard} onCheckedChange={(v) => setForm({ ...form, show_on_dashboard: v })} />
               <div>
                 <p className="text-sm font-semibold text-slate-900">Afficher sur le tableau de bord</p>
-                <p className="text-xs text-slate-500">Ajoute l'événement dans « Événements à venir » chez les participants.</p>
+                <p className="text-xs text-slate-600">Ajoute l'événement dans « Événements à venir » chez les participants.</p>
               </div>
             </label>
           </div>

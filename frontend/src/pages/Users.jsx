@@ -124,7 +124,7 @@ export default function Users() {
                     <SelectItem value="responsable_prospecteur">Responsable prospecteur — tous les prospecteurs + CA</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-slate-500 mt-1.5">Le rôle définit les droits par défaut, vous pourrez ensuite les personnaliser via le bouton bouclier.</p>
+                <p className="text-[11px] text-slate-600 mt-1.5">Le rôle définit les droits par défaut, vous pourrez ensuite les personnaliser via le bouton bouclier.</p>
               </div>
             </div>
             <DialogFooter>
