@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Compass, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, Check, Compass } from "lucide-react";
 
 const PROOF = [
   "Ventes et commissions centralisées",
@@ -106,7 +106,6 @@ export default function Login() {
 
           <div className="relative flex items-center justify-between border-t border-white/10 pt-5 text-[10px] uppercase tracking-[.16em] text-white/30">
             <span>Version 2026</span>
-            <span className="flex items-center gap-1.5"><ShieldCheck size={12} /> Accès sécurisé</span>
           </div>
         </section>
 
@@ -180,7 +179,7 @@ export default function Login() {
             <div className="mt-8 flex items-start gap-3 rounded-xl border border-[#e2dbcd] bg-white/50 p-4">
               <Compass size={17} className="mt-0.5 shrink-0 text-[#a9552b]" />
               <p className="text-[11px] leading-relaxed text-[#667085]">
-                Un problème d’accès ? Contactez votre administrateur. Vos données restent isolées par entreprise.
+                Un problème d’accès ? Contactez votre administrateur.
               </p>
             </div>
           </div>
