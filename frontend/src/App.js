@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
@@ -28,7 +28,6 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PaymentCancel from "@/pages/PaymentCancel";
 import AIHelper from "@/components/AIHelper";
 import ErrorBoundary, { AppErrorFallback } from "@/components/ErrorBoundary";
-import SplashScreen from "@/components/SplashScreen";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import useVersionPoll from "@/hooks/useVersionPoll";
@@ -115,7 +114,6 @@ function AppRoutes() {
 }
 
 export default function App() {
-  const [splashDone, setSplashDone] = useState(false);
   // iter54: guards globaux — capturent les erreurs qui échappent aux ErrorBoundary
   // (Promise rejections, exceptions dans handlers async, etc.) et empêchent
   // l'écran blanc en surface visible via l'ErrorBoundary racine.
@@ -140,7 +138,6 @@ export default function App() {
   }, []);
   return (
     <div className="App">
-      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
       <ErrorBoundary fallback={AppErrorFallback}>
         <ThemeProvider>
         <AuthProvider>
