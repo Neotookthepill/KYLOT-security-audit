@@ -222,12 +222,12 @@ export default function Layout() {
           <button
             type="button"
             onClick={() => { closeMobile(); setTimeout(() => window.dispatchEvent(new Event("kylot:open-ai")), 120); }}
-            title={compact ? "Assistant IA" : undefined}
+            title={compact ? "Assistant Qylot" : undefined}
             className={cn("qy-nav-item w-full", compact && "justify-center px-0")}
             aria-label="Ouvrir l’assistant IA"
           >
             <Sparkles size={17} strokeWidth={1.9} />
-            {!compact && <span>Assistant IA</span>}
+            {!compact && <span>Assistant Qylot</span>}
           </button>
         )}
         <div className={cn("mt-2 flex items-center gap-2 border-t border-white/[.08] pt-3", compact && "justify-center")}>

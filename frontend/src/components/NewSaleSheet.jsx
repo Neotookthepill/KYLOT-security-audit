@@ -542,8 +542,8 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
           <label className="flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/40 px-3 py-2 cursor-pointer" data-testid="sale-de-toggle">
             <input type="checkbox" checked={!!form.is_de} onChange={(e) => setForm({ ...form, is_de: e.target.checked, commercial_2: e.target.checked ? form.commercial_2 : "", commission_rate_2: e.target.checked ? (form.commission_rate_2 ?? form.commission_rate) : null })} className="rounded border-indigo-300" />
             <div className="text-sm">
-              <span className="font-semibold text-indigo-900">Vente en DE (2 commerciaux)</span>
-              <span className="text-xs text-indigo-700 ml-2">CA réparti automatiquement 50 / 50 · commissions indépendantes</span>
+              <span className="font-semibold text-indigo-900">Vente en duo (2 commerciaux)</span>
+              <span className="text-xs text-indigo-700 ml-2">CA réparti 50/50 · commissions indépendantes</span>
             </div>
           </label>
 

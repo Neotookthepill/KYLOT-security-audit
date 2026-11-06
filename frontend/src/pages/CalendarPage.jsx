@@ -264,7 +264,7 @@ export default function CalendarPage() {
                 <RefreshCw size={14} className="mr-1.5" /> Réintervention
               </Button>
               <Button variant="outline" size="sm" onClick={() => setOffOpen(true)} data-testid="calendar-off-days" className="border-slate-300 text-slate-600 hover:bg-slate-100">
-                <Sun size={14} className="mr-1.5" /> Jours OFF
+                <Sun size={14} className="mr-1.5" /> Jours de repos
               </Button>
               <Button variant="outline" size="sm" onClick={() => setAbsOpen(true)} data-testid="calendar-manage-absences" className="border-red-200 text-red-700 hover:bg-red-50">
                 <CalendarOff size={14} className="mr-1.5" /> Absences
@@ -352,10 +352,10 @@ export default function CalendarPage() {
                               setReinterOpen(true);
                             }}
                             className={`text-[10px] px-1.5 py-0.5 rounded border font-medium truncate cursor-pointer hover:brightness-95 ${r.status === "terminee" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-orange-100 text-orange-800 border-orange-300"}`}
-                            title={`Réinter — ${r.client_name || ""}${r.scheduled_time ? " · " + r.scheduled_time : ""}${r.technician_name ? " · " + r.technician_name : ""}${r.note ? "\n" + r.note : ""}`}
+                            title={`Réintervention — ${r.client_name || ""}${r.scheduled_time ? " · " + r.scheduled_time : ""}${r.technician_name ? " · " + r.technician_name : ""}${r.note ? "\n" + r.note : ""}`}
                             data-testid={`cal-reinter-${r.id}`}
                           >
-                            🔄 {r.client_name || "Réinter"}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}
+                            🔄 {r.client_name || "Réintervention"}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}
                           </div>
                         ))}
                         {(reintersByDay[cellIso] || []).length > 2 && <div className="text-[10px] text-orange-700">+{(reintersByDay[cellIso] || []).length - 2}</div>}

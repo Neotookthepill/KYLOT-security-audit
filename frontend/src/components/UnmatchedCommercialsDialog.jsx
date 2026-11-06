@@ -61,7 +61,7 @@ export default function UnmatchedCommercialsDialog({ open, onOpenChange, onBound
             <AlertTriangle size={18} className="text-amber-500" /> Ventes non associées à un commercial
           </DialogTitle>
           <p className="text-sm text-slate-500">
-            Ces ventes contiennent un nom de vendeur qui ne correspond à aucun utilisateur reconnu. Choisis le bon commercial pour chaque ligne. Les ventes au nom de « Direction » sont reconnues automatiquement.
+            Ces ventes contiennent un nom de commercial qui ne correspond à aucun utilisateur reconnu. Choisissez le bon commercial pour chaque ligne. Les ventes au nom de « Direction » sont reconnues automatiquement.
           </p>
           {!loading && users.length === 0 && (
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mt-2">

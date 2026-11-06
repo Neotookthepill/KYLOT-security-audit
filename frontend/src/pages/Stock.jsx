@@ -14,7 +14,7 @@ const fmtShortDate = (iso) => {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 };
-const STATUS_LABEL = { a_planifier: "À planifier", en_cours: "PROG" };
+const STATUS_LABEL = { a_planifier: "À planifier", en_cours: "En cours" };
 const STATUS_CLS = { a_planifier: "bg-slate-100 text-slate-700 border-slate-200", en_cours: "bg-amber-100 text-amber-800 border-amber-200" };
 
 function StatusDot({ status }) {

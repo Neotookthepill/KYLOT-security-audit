@@ -497,7 +497,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               <SelectTrigger data-testid="project-status"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="a_planifier">À planifier</SelectItem>
-                <SelectItem value="en_cours">PROG</SelectItem>
+                <SelectItem value="en_cours">En cours</SelectItem>
                 <SelectItem value="termine">À encaisser</SelectItem>
                 <SelectItem value="encaisse">Terminé</SelectItem>
               </SelectContent>

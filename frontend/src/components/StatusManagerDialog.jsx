@@ -104,7 +104,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
     setRows([
       { value: "attente_prog", label: "En attente prog", color: "violet", active: true, system: true, hides_from_projects: false },
       { value: "attente_fi", label: "En attente FI", color: "orange", active: true, system: true, hides_from_projects: false },
-      { value: "en_cours", label: "PROG", color: "indigo", active: true, system: true, hides_from_projects: false },
+      { value: "en_cours", label: "En cours", color: "indigo", active: true, system: true, hides_from_projects: false },
       { value: "chantier_fini", label: "Chantier fini", color: "yellow", active: true, system: true, hides_from_projects: false },
       { value: "commercial_cheque", label: "Commercial a le chèque", color: "sky", active: true, system: true, hides_from_projects: false },
       { value: "argent_recupere", label: "Chèque récupéré", color: "emerald", active: true, system: true, hides_from_projects: false },

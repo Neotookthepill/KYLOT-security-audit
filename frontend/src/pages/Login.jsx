@@ -10,9 +10,9 @@ import { toast } from "sonner";
 import { ArrowUpRight, Check, Compass, ShieldCheck } from "lucide-react";
 
 const PROOF = [
-  "Vos ventes et commissions, au même endroit",
-  "Le planning et les chantiers, sans double saisie",
-  "Une vision claire pour le bureau comme pour le terrain",
+  "Ventes et commissions centralisées",
+  "Planning et chantiers synchronisés",
+  "Les mêmes données au bureau et sur le terrain",
 ];
 
 export default function Login() {
@@ -89,10 +89,10 @@ export default function Login() {
           <div className="relative my-auto max-w-[570px] py-12">
             <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#d98b61]">Le logiciel des entreprises qui construisent</p>
             <h1 className="mt-5 font-display text-[46px] font-semibold leading-[.98] tracking-[-.055em] xl:text-[58px]">
-              Le chantier.<br />Les clients.<br /><span className="text-[#d98b61]">La croissance.</span>
+              Vos ventes.<br />Vos chantiers.<br /><span className="text-[#d98b61]">Votre équipe.</span>
             </h1>
             <p className="mt-7 max-w-[430px] text-[15px] leading-relaxed text-white/60">
-              Qylot réunit le commercial, le terrain et le pilotage dans un seul espace lisible. Pas un tableau de bord de plus : un outil de travail.
+              Ventes, chantiers et planning dans un seul outil.
             </p>
             <ul className="mt-9 space-y-3.5">
               {PROOF.map((item) => (
@@ -105,7 +105,7 @@ export default function Login() {
           </div>
 
           <div className="relative flex items-center justify-between border-t border-white/10 pt-5 text-[10px] uppercase tracking-[.16em] text-white/30">
-            <span>Préproduction · 2026</span>
+            <span>Version 2026</span>
             <span className="flex items-center gap-1.5"><ShieldCheck size={12} /> Accès sécurisé</span>
           </div>
         </section>
@@ -123,10 +123,10 @@ export default function Login() {
             <div className="mb-8">
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#a9552b]">{mfaChallenge ? "Vérification" : "Connexion"}</p>
               <h2 className="mt-3 font-display text-[32px] font-semibold leading-tight tracking-[-.04em] text-[#0b1220] sm:text-[38px]">
-                {mfaChallenge ? "Un dernier contrôle." : "Bon retour."}
+                {mfaChallenge ? "Un dernier contrôle." : "Connectez-vous."}
               </h2>
               <p className="mt-3 text-[13px] leading-relaxed text-[#667085]">
-                {mfaChallenge ? "Ouvrez votre application d'authentification et saisissez le code à 6 chiffres." : "Entrez vos identifiants pour retrouver votre espace de travail."}
+                {mfaChallenge ? "Saisissez le code à 6 chiffres de votre application d'authentification." : "Accédez à votre espace de travail."}
               </p>
             </div>
 

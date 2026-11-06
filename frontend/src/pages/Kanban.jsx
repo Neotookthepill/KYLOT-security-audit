@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const columns = [
   { key: "a_planifier", label: "À planifier", color: "bg-slate-100 text-slate-700" },
   // iter158 : renommage de la colonne "En cours" → "PROG" (demande utilisateur Msg 350).
-  { key: "en_cours", label: "PROG", color: "bg-amber-100 text-amber-800" },
+  { key: "en_cours", label: "En cours", color: "bg-amber-100 text-amber-800" },
   { key: "termine", label: "À encaisser", color: "bg-emerald-100 text-emerald-800" },
 ];
 

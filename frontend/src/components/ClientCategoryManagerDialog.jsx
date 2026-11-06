@@ -168,7 +168,7 @@ export default function ClientCategoryManagerDialog({ open, onOpenChange, onSave
         <DialogHeader>
           <DialogTitle>Gérer les catégories clients</DialogTitle>
           <p className="text-sm text-slate-500">
-            Renommez, réordonnez, ajoutez ou supprimez vos catégories. Chaque catégorie peut avoir ses propres sous-statuts (ex. Réinter · À programmer / Programmé / Clos).
+            Renommez, réordonnez, ajoutez ou supprimez vos catégories. Chaque catégorie peut avoir ses propres sous-statuts (ex. Réintervention · À programmer / Programmé / Clos).
           </p>
         </DialogHeader>
 

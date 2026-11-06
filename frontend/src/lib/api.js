@@ -121,6 +121,13 @@ api.interceptors.response.use(
 );
 
 export function formatApiError(err) {
+  const status = err?.response?.status;
+  if ([502, 503, 504].includes(status)) {
+    return "Le serveur est momentanément indisponible. Réessayez dans quelques instants.";
+  }
+  if (!err?.response && /network|failed to fetch|load failed/i.test(String(err?.message || ""))) {
+    return "Connexion impossible. Vérifiez votre réseau puis réessayez.";
+  }
   const detail = err?.response?.data?.detail;
   if (detail == null) return err?.message || "Une erreur est survenue";
   if (typeof detail === "string") return detail;

@@ -753,10 +753,10 @@ export default function Dashboard() {
   const todayLabel = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
   const firstName = String(user?.name || "").trim().split(/\s+/)[0] || "";
   const roleIntro = isCommercial
-    ? "Votre performance, vos clients, votre challenge. Le reste peut attendre."
+    ? "Votre performance, vos clients et votre challenge."
     : user?.role === "responsable"
       ? "La vue d’ensemble de votre équipe et de vos opérations."
-      : "Voici ce qui mérite votre attention aujourd’hui. Le reste peut attendre.";
+      : "Les indicateurs du jour.";
   const alertCount = Array.isArray(data?.alerts) ? data.alerts.length : 0;
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
 
@@ -818,7 +818,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="qy-section-label">Votre cockpit</p>
+        <p className="qy-section-label">Votre activité</p>
       </div>
 
       {editing && (

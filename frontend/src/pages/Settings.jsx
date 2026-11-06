@@ -150,7 +150,7 @@ export default function Settings() {
   const resetOrder = () => setForm((prev) => ({ ...prev, sale_status_order: null }));
 
   const reset = async () => {
-    if (!window.confirm("Réinitialiser aux valeurs par défaut ?")) return;
+    if (!window.confirm("Rétablir tous les paramètres par défaut ?")) return;
     setSaving(true);
     try {
       await update({ theme_primary: "#0b1220", theme_accent: "#b5622e", font_family: "Instrument Sans", logo: "", app_name: "Qylot" });
@@ -173,12 +173,12 @@ export default function Settings() {
     <div className="p-4 md:p-8 max-w-[1100px]">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="overline">Personnalisation</p>
+          <p className="overline">Paramètres généraux</p>
           <h1 className="font-display text-4xl font-semibold tracking-tight">Paramètres</h1>
-          <p className="text-sm text-slate-500 mt-2">Ajustez l'apparence de l'application au goût de votre équipe.</p>
+          <p className="text-sm text-slate-500 mt-2">Apparence, notifications et règles de l'application.</p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Button variant="outline" onClick={reset} disabled={saving} data-testid="settings-reset-btn"><RotateCcw size={14} className="mr-2" />Réinitialiser</Button>
+          <Button variant="outline" onClick={reset} disabled={saving} data-testid="settings-reset-btn"><RotateCcw size={14} className="mr-2" />Rétablir les paramètres</Button>
           <Button onClick={save} disabled={saving} data-testid="settings-save-btn"><Save size={14} className="mr-2" />{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function Settings() {
               { key: "planning", label: "Modifications de planning", desc: "Changement d'affectation ou de date d'un chantier." },
               { key: "overtime", label: "Heures supplémentaires", desc: "Nouvelle déclaration à valider (admin & responsable)." },
               { key: "project_alerts", label: "Alertes chantier", desc: "Chantiers à planifier ou en retard." },
-              { key: "chantier_started", label: "Email : chantier programmé", desc: "Un email est envoyé aux techniciens/sous-traitants dès qu'un chantier passe en « PROG »." },
+              { key: "chantier_started", label: "Email : chantier programmé", desc: "Un email est envoyé aux techniciens/sous-traitants dès qu'un chantier passe en « En cours »." },
               { key: "chantier_confirmed", label: "Email + notification : chantier confirmé", desc: "Un email et une notification cloche sont envoyés aux techniciens/sous-traitants dès qu'un chantier est confirmé (bouton vert)." },
               { key: "chantier_terminated", label: "Email : chantier terminé", desc: "Un email est envoyé au commercial concerné ET aux administrateurs / responsables dès qu'un technicien valide le chantier terminé (à encaisser)." },
               { key: "attente_14j_jourj_notif", label: "Notification automatique au bout de 14 jours", desc: "Envoie une notification cloche bien visible au(x) commercial(aux) et aux admins dès qu'une vente en « attente 14 jours » atteint le Jour J. Ne modifie pas le statut de la vente." },

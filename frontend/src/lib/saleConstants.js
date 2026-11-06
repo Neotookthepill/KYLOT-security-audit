@@ -58,7 +58,7 @@ export const clsFromColor = (color) => {
 export const SALE_STATUSES = [
   { value: "attente_prog", label: "En attente prog", color: "violet", cls: clsFromColor("violet") },
   { value: "attente_fi", label: "En attente FI", color: "orange", cls: clsFromColor("orange") },
-  { value: "en_cours", label: "PROG", color: "indigo", cls: clsFromColor("indigo") },
+  { value: "en_cours", label: "En cours", color: "indigo", cls: clsFromColor("indigo") },
   { value: "chantier_fini", label: "Chantier fini", color: "yellow", cls: clsFromColor("yellow") },
   { value: "commercial_cheque", label: "Commercial a le chèque", color: "sky", cls: clsFromColor("sky") },
   { value: "argent_recupere", label: "Chèque récupéré", color: "emerald", cls: clsFromColor("emerald") },

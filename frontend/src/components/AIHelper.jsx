@@ -18,10 +18,10 @@ const ACTION_SUGGESTIONS = [
 ];
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
-const STATUS_LABELS = { en_cours: "PROG", commercial_cheque: "Commercial a le chèque", argent_recupere: "Argent récupéré", chantier_fini: "Chantier fini", litige: "Litige", annule: "Annulé" };
+const STATUS_LABELS = { en_cours: "En cours", commercial_cheque: "Commercial a le chèque", argent_recupere: "Argent récupéré", chantier_fini: "Chantier fini", litige: "Litige", annule: "Annulé" };
 const DRAFT_KEY_BASE = "kylot_ai_draft_v1";
 const AI_TIMEOUT_MS = 60000;
-const ASSISTANT_NAME = "KIK'S"; // iter69 : nom de l'assistant IA (l'app reste "Ki-lot")
+const ASSISTANT_NAME = "Assistant Qylot"; // iter69 : nom de l'assistant IA (l'app reste "Ki-lot")
 
 // iter182 — Nouvel avatar KIK'S : identique au style Emergent — rond noir plein
 // avec un petit glyphe blanc (bulle de dialogue) centré. Minimaliste, monochrome,
@@ -33,7 +33,7 @@ function KiksAvatar({ size = 24, className = "", ringed = true }) {
       height={size}
       viewBox="0 0 32 32"
       className={`inline-block ${ringed ? "ring-1 ring-white/20 shadow-sm rounded-full" : ""} ${className}`}
-      aria-label="KIK'S"
+      aria-label="Assistant Qylot"
       role="img"
     >
       {/* Cercle noir plein */}
@@ -663,8 +663,8 @@ export default function AIHelper() {
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
         className="fixed bottom-5 right-5 z-40 hidden h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:grid"
-        aria-label="Ouvrir l'assistant KIK'S"
-        title="KIK'S — Assistant IA"
+        aria-label="Ouvrir l'assistant Qylot"
+        title="Assistant Qylot"
       >
         {open ? <X size={22} /> : <KiksAvatar size={56} ringed={false} className="!ring-0 !shadow-none" />}
       </button>
@@ -675,7 +675,7 @@ export default function AIHelper() {
             <div className="flex items-center gap-2.5">
               <KiksAvatar size={36} />
               <div className="flex-1 min-w-0">
-                <div className="font-display font-semibold" data-testid="ai-helper-title">Assistant KIK'S</div>
+                <div className="font-display font-semibold" data-testid="ai-helper-title">Assistant Qylot</div>
                 <div className="text-[11px] text-white/70 truncate">{listening ? "🎙️ Écoute en cours…" : (mode === "action" ? "Prépare une vente, un client, un statut" : "Analyse un devis, réponds à une question")}</div>
               </div>
               {(state.messages.length > 0 || state.preview) && (
@@ -812,8 +812,8 @@ export default function AIHelper() {
                 <button
                   type="button"
                   onClick={toggleDictation}
-                  aria-label={listening ? "Arrêter la dictée" : "Dicter à KIK'S"}
-                  title={listening ? "Arrêter la dictée" : "Dicter à KIK'S"}
+                  aria-label={listening ? "Arrêter la dictée" : "Dicter à l’assistant Qylot"}
+                  title={listening ? "Arrêter la dictée" : "Dicter à l’assistant Qylot"}
                   className={`h-10 w-10 rounded-md grid place-items-center transition ${listening ? "bg-red-600 text-white animate-pulse" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                   data-testid="ai-dictate-btn"
                 >

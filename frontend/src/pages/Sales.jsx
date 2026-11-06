@@ -830,7 +830,7 @@ export default function Sales() {
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline whitespace-nowrap">Statut</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Date</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">BDC</th>
+                <th className="px-4 py-3 overline whitespace-nowrap"><abbr title="Bon de commande">BDC</abbr></th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Client</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Téléphone</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Produits</th>

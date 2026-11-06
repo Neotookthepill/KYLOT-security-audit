@@ -95,7 +95,7 @@ export default function Users() {
     <div className="p-4 md:p-8 max-w-[1200px]">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <p className="overline">Gestion des accès</p>
+          <p className="overline">Comptes et droits d’accès</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Utilisateurs & permissions</h1>
           <p className="text-sm text-slate-500 mt-2">Créez des comptes et personnalisez précisément les droits de chaque utilisateur.</p>
         </div>

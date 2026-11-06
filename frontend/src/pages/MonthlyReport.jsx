@@ -66,7 +66,7 @@ export default function MonthlyReport() {
         <div>
           <p className="overline">Bilan mensuel</p>
           <h1 className="font-display text-4xl font-semibold tracking-tight">Rapport mensuel</h1>
-          <p className="text-sm text-slate-500 mt-2">Statistiques par vendeur pour un mois donné : ventes par source, annulations, CA et commissions.</p>
+          <p className="text-sm text-slate-500 mt-2">Statistiques par commercial pour un mois donné : ventes par source, annulations, CA et commissions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button

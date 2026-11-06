@@ -215,7 +215,7 @@ export default function ChallengeWidget() {
 
         {!loading && !ch && (
           <p className="text-sm text-slate-600 mt-4">
-            Aucun challenge actif. {isAdmin ? "Lance le challenge de Noël ou crée un challenge personnalisé." : "Le prochain challenge sera affiché ici."}
+            Aucun challenge actif. {isAdmin ? "Lancez le challenge de Noël ou créez un challenge personnalisé." : "Le prochain challenge sera affiché ici."}
           </p>
         )}
 

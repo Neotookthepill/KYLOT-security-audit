@@ -23,7 +23,7 @@ const ALL_FEATURES = [
   "Exports CSV / PDF",
   "Statistiques avancées",
   "Rôles & permissions",
-  "Assistant IA KIK'S",
+  "Assistant Qylot",
   "Support prioritaire",
 ];
 
@@ -87,8 +87,8 @@ export default function Abonnement() {
         <p className="overline">Abonnement · Tarifs</p>
         <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Abonnement</h1>
         <p className="text-sm text-slate-600 mt-3 max-w-3xl mx-auto">
-          Un tarif simple, basé uniquement sur vos utilisateurs.
-          Toutes les fonctionnalités Qylot sont incluses dans chaque formule. Votre abonnement évolue simplement avec la taille de votre équipe.
+          Un tarif par utilisateur, sans engagement.
+          Toutes les fonctions sont incluses. Le tarif dépend du nombre d’utilisateurs.
         </p>
         <p className="text-xs text-slate-500 mt-2">Facturation mensuelle sans engagement · TVA en sus · Paiement sécurisé Stripe.</p>
       </div>
