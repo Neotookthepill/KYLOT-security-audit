@@ -12,24 +12,47 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Adaptateur hors ligne : GET servis depuis le cache sans réseau, modifications mises en file d'attente
+// Adaptateur hors ligne : GET servis depuis le cache sans réseau, modifications mises en file d'attente.
+// En ligne, les GET de configuration sont dédupliqués et mémorisés quelques secondes :
+// sans cela, Layout + pages + dialogues relançaient /settings, /team et /sale-statuses
+// 3 à 4 fois au même moment (5–7 s perçues sur une connexion Render froide).
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 const ok = (config, data, statusText) => ({ data, status: 200, statusText, headers: {}, config, request: {} });
+const GET_CACHE_TTL = 15000;
+const staticGet = (url) => /^\/(settings|team|sale-statuses|users|client-categories)(\?|$)/.test(url || "");
+const memoryGet = new Map();
+const pendingGet = new Map();
+export const clearApiGetCache = () => { memoryGet.clear(); pendingGet.clear(); };
 api.defaults.adapter = async (config) => {
   const method = (config.method || "get").toLowerCase();
   if (config._direct || isSkipped(config.url) || (typeof FormData !== "undefined" && config.data instanceof FormData)) return baseAdapter(config);
+  if (method !== "get") { clearApiGetCache(); }
   if (method === "get") {
     const k = cacheKey(config);
-    try {
-      const r = await baseAdapter(config);
-      if (r.status === 200 && (!config.responseType || config.responseType === "json")) writeCache(k, r.data);
-      return r;
-    } catch (e) {
-      if (e.response) throw e;
-      const cached = await readCache(k);
-      if (cached !== undefined) return ok(config, cached, "OK (hors ligne)");
-      throw e;
+    const memo = memoryGet.get(k);
+    if (staticGet(config.url) && memo && Date.now() - memo.ts < GET_CACHE_TTL && (!config.responseType || config.responseType === "json")) {
+      return ok(config, memo.data, "OK (cache mémoire)");
     }
+    if (staticGet(config.url) && pendingGet.has(k)) return pendingGet.get(k);
+    const request = (async () => {
+      try {
+        const r = await baseAdapter(config);
+        if (r.status === 200 && (!config.responseType || config.responseType === "json")) {
+          writeCache(k, r.data);
+          if (staticGet(config.url)) memoryGet.set(k, { data: r.data, ts: Date.now() });
+        }
+        return r;
+      } catch (e) {
+        if (e.response) throw e;
+        const cached = await readCache(k);
+        if (cached !== undefined) return ok(config, cached, "OK (hors ligne)");
+        throw e;
+      } finally {
+        pendingGet.delete(k);
+      }
+    })();
+    if (staticGet(config.url)) pendingGet.set(k, request);
+    return request;
   }
   if (navigator.onLine) {
     return baseAdapter(config);
