@@ -700,7 +700,7 @@ export default function Dashboard() {
         <div className="divide-y divide-slate-100">
           {(!data?.ranking || data.ranking.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour la période.</p>}
           {data?.ranking?.map((r, i) => (
-            <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "opacity-80 bg-slate-50/60" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
+            <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "bg-slate-50/60" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
               <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-800" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-orange-100 text-orange-800" : "bg-slate-50 text-slate-500"}`}>{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
