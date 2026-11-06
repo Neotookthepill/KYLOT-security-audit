@@ -5,10 +5,30 @@ import { canPerm, permScope } from "@/lib/permissions";
 import { toast } from "sonner";
 
 const AuthContext = createContext(null);
+const AUTH_CACHE_KEY = "kylot_auth_user";
+
+function readCachedUser() {
+  try {
+    const raw = sessionStorage.getItem(AUTH_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && parsed.id ? parsed : null;
+  } catch (_) { return null; }
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // A refresh must not flash a full-screen "Chargement…" while /auth/me is
+  // revalidated. The cached profile contains no secret; the HttpOnly cookie
+  // remains the only proof of authentication and the API still enforces RBAC.
+  const cachedUser = readCachedUser();
+  const [user, setUser] = useState(cachedUser);
+  const [loading, setLoading] = useState(!cachedUser);
+
+  useEffect(() => {
+    try {
+      if (user) sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(user));
+      else sessionStorage.removeItem(AUTH_CACHE_KEY);
+    } catch (_) {}
+  }, [user]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -48,6 +68,7 @@ export function AuthProvider({ children }) {
           if (cancelled) return;
           if (error?.response?.status === 401) {
             setOfflineIdentity(null);
+            setUser(null);
             break;
           }
           if (attempt < 2) {
@@ -55,7 +76,8 @@ export function AuthProvider({ children }) {
             continue;
           }
           setOfflineIdentity(null);
-          setUser(null);
+          // Un 502/503 transitoire ne doit pas effacer un profil déjà affiché.
+          if (!cachedUser) setUser(null);
         }
       }
     };
