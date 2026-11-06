@@ -46,6 +46,7 @@ export function AuthProvider({ children }) {
           return;
         } catch (error) {
           if (cancelled) return;
+          if (error?.response?.status === 401) setOfflineIdentity(null);
           if (attempt < 2) {
             await new Promise((resolve) => setTimeout(resolve, 450));
             continue;
