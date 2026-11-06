@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import api, { syncOffline } from "@/lib/api";
 import { prepareOfflineSession, clearSensitiveClientState, setOfflineIdentity } from "@/lib/offline";
 import { canPerm, permScope } from "@/lib/permissions";
@@ -19,9 +19,9 @@ export function AuthProvider({ children }) {
   // A refresh must not flash a full-screen "Chargement…" while /auth/me is
   // revalidated. The cached profile contains no secret; the HttpOnly cookie
   // remains the only proof of authentication and the API still enforces RBAC.
-  const cachedUser = readCachedUser();
-  const [user, setUser] = useState(cachedUser);
-  const [loading, setLoading] = useState(!cachedUser);
+  const cachedUserRef = useRef(readCachedUser());
+  const [user, setUser] = useState(cachedUserRef.current);
+  const [loading, setLoading] = useState(!cachedUserRef.current);
 
   useEffect(() => {
     try {
@@ -77,7 +77,7 @@ export function AuthProvider({ children }) {
           }
           setOfflineIdentity(null);
           // Un 502/503 transitoire ne doit pas effacer un profil déjà affiché.
-          if (!cachedUser) setUser(null);
+          if (!cachedUserRef.current) setUser(null);
         }
       }
     };
