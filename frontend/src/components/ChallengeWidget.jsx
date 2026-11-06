@@ -243,23 +243,26 @@ export default function ChallengeWidget() {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg border border-slate-200 overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto">
+              <table className="w-full min-w-[340px] text-sm">
                 <thead className="bg-slate-50 text-left">
                   <tr>
-                    <th className="px-3 py-2 overline">Rang</th>
+                    <th className="px-3 py-2 overline whitespace-nowrap">Rang</th>
                     <th className="px-3 py-2 overline">Commercial</th>
-                    <th className="px-3 py-2 overline text-right">{ch.criterion_label}</th>
-                    <th className="px-3 py-2 overline text-right">CA</th>
+                    <th className="px-3 py-2 overline text-right whitespace-nowrap">{ch.criterion_label}</th>
+                    <th className="px-3 py-2 overline text-right hidden sm:table-cell">CA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ranking.map((row) => (
                     <tr key={row.name} className={`border-t border-slate-100 ${row.is_me ? "bg-indigo-50/70 font-medium" : ""}`} data-testid={`challenge-row-${row.name}`}>
                       <td className="px-3 py-2">{row.rank <= 3 ? MEDALS[row.rank - 1] : row.rank}</td>
-                      <td className="px-3 py-2">{row.name} {row.is_me && <span className="text-[10px] text-indigo-600">(vous)</span>}</td>
-                      <td className="px-3 py-2 text-right">{pointsLabel(row, ch.criterion)}</td>
-                      <td className="px-3 py-2 text-right text-slate-500">{fmtEur(row.ca)}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{row.name} {row.is_me && <span className="text-[10px] text-indigo-600">(vous)</span>}</div>
+                        <div className="text-[11px] text-slate-500 sm:hidden">{fmtEur(row.ca)}</div>
+                      </td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">{pointsLabel(row, ch.criterion)}</td>
+                      <td className="px-3 py-2 text-right text-slate-500 hidden sm:table-cell">{fmtEur(row.ca)}</td>
                     </tr>
                   ))}
                   {!ranking.length && <tr><td colSpan={4} className="px-3 py-4 text-center text-slate-500">Aucune vente comptabilisée.</td></tr>}
