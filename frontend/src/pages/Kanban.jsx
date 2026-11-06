@@ -198,7 +198,7 @@ export default function Kanban() {
       )}
 
       <p className="mb-2 text-[10px] font-medium uppercase tracking-[.12em] text-muted-foreground md:hidden">Glissez horizontalement pour voir les autres colonnes</p>
-      <div className="flex snap-x gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
+      <div className="flex snap-x gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0" tabIndex={0} role="region" aria-label="Colonnes des chantiers">
         {columns.map((col) => {
           const items = visible.filter((p) => p.status === col.key);
           return (

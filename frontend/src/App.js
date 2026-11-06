@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
@@ -7,25 +7,25 @@ import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Layout from "@/components/Layout";
-import Dashboard from "@/pages/Dashboard";
-import Sales from "@/pages/Sales";
-import MonthlyReport from "@/pages/MonthlyReport";
-import HeuresSup from "@/pages/HeuresSup";
-import Kanban from "@/pages/Kanban";
-import CalendarPage from "@/pages/CalendarPage";
-import Clients from "@/pages/Clients";
-import Users from "@/pages/Users";
-import Companies from "@/pages/Companies";
-import Journal from "@/pages/Journal";
-import Commissions from "@/pages/Commissions";
-import Progression from "@/pages/Progression";
-import Stock from "@/pages/Stock";
-import Prospecteur from "@/pages/Prospecteur";
-import MapPage from "@/pages/MapPage";
-import Settings from "@/pages/Settings";
-import Abonnement from "@/pages/Abonnement";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import PaymentCancel from "@/pages/PaymentCancel";
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Sales = lazy(() => import("@/pages/Sales"));
+const MonthlyReport = lazy(() => import("@/pages/MonthlyReport"));
+const HeuresSup = lazy(() => import("@/pages/HeuresSup"));
+const Kanban = lazy(() => import("@/pages/Kanban"));
+const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
+const Clients = lazy(() => import("@/pages/Clients"));
+const Users = lazy(() => import("@/pages/Users"));
+const Companies = lazy(() => import("@/pages/Companies"));
+const Journal = lazy(() => import("@/pages/Journal"));
+const Commissions = lazy(() => import("@/pages/Commissions"));
+const Progression = lazy(() => import("@/pages/Progression"));
+const Stock = lazy(() => import("@/pages/Stock"));
+const Prospecteur = lazy(() => import("@/pages/Prospecteur"));
+const MapPage = lazy(() => import("@/pages/MapPage"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const Abonnement = lazy(() => import("@/pages/Abonnement"));
+const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
+const PaymentCancel = lazy(() => import("@/pages/PaymentCancel"));
 import AIHelper from "@/components/AIHelper";
 import ErrorBoundary, { AppErrorFallback } from "@/components/ErrorBoundary";
 import { SettingsProvider } from "@/contexts/SettingsContext";
@@ -72,6 +72,12 @@ function HomeRedirect() {
   return <Navigate to="/parametres" replace />;
 }
 
+function RouteFallback() {
+  // Pas de spinner plein écran : les pages sont découpées en chunks et la
+  // navigation affiche un espace vide pendant le chargement du chunk.
+  return <div className="min-h-[45vh] bg-slate-50/40" aria-busy="true" />;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   const location = useLocation();
@@ -82,6 +88,7 @@ function AppRoutes() {
     return <Navigate to="/login" replace />;
   }
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
@@ -116,6 +123,7 @@ function AppRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 
