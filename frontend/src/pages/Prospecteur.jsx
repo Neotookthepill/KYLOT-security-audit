@@ -109,7 +109,7 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase }) {
           <div key={x.name} className={`rounded-xl border p-4 flex flex-col gap-3 transition-transform hover:-translate-y-0.5 ${i === 0 ? "border-amber-200 bg-amber-50/40" : "border-slate-200 bg-white"}`} data-testid={`prospect-ca-row-${x.name}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold text-slate-900 truncate">{x.name}</span>
-              <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${i === 0 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-600"}`}>#{i + 1}</span>
+              <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${i === 0 ? "bg-amber-700 text-white" : "bg-slate-100 text-slate-600"}`}>#{i + 1}</span>
             </div>
             <div className="flex items-end justify-between gap-2">
               <div data-testid={`prospect-count-${x.name}`}>

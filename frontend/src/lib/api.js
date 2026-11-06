@@ -19,7 +19,7 @@ const api = axios.create({
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 const ok = (config, data, statusText) => ({ data, status: 200, statusText, headers: {}, config, request: {} });
 const GET_CACHE_TTL = 15000;
-const staticGet = (url) => /^\/(settings|team|sale-statuses|users|client-categories)(\?|$)/.test(url || "");
+const staticGet = (url) => /^\/(settings|team|sale-statuses|users|client-categories|dashboard\/executive)(\?|$)/.test(url || "");
 const memoryGet = new Map();
 const pendingGet = new Map();
 export const clearApiGetCache = () => { memoryGet.clear(); pendingGet.clear(); };

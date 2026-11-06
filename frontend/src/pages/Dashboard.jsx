@@ -368,6 +368,15 @@ export default function Dashboard() {
   // Ne déclenche PAS de fetch tant que l'authentification n'est pas résolue,
   // sinon le token n'est pas encore posé sur axios et l'appel /dashboard part sans header → 401 silencieux → data reste null → 0 affichés.
   useEffect(() => { if (!authLoading && user?.id) load(); }, [authLoading, user?.id, load]);
+  // Précharge le mois précédent pendant que l'utilisateur lit le mois courant.
+  // Le clic suivant est alors servi par le cache mémoire (TTL 15 s).
+  useEffect(() => {
+    if (authLoading || !user?.id || period === "prev") return;
+    const id = setTimeout(() => {
+      api.get("/dashboard/executive?period=prev").catch(() => {});
+    }, 900);
+    return () => clearTimeout(id);
+  }, [authLoading, user?.id, period]);
   useEffect(() => {
     if (authLoading || !user?.id) return;
     loadEvents(); loadConfig();

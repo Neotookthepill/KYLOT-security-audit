@@ -4558,11 +4558,6 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     # iter173 : exclure les chantiers annulés (cancelled=True) des KPI, cohérence
     # avec la vue Kanban qui filtre déjà `cancelled: {$ne: True}`.
     _proj_active = {**proj_q, "cancelled": {"$ne": True}}
-    to_schedule, in_progress, completed = await asyncio.gather(
-        db.projects.count_documents({**_proj_active, "status": "a_planifier"}),
-        db.projects.count_documents({**_proj_active, "status": "en_cours"}),
-        db.projects.count_documents({**_proj_active, "status": "termine"}),
-    )
 
     # --- Activité chantiers : aujourd'hui + semaine en cours (lundi -> dimanche) ---
     # Filter: projects with a real scheduled_date (YYYY-MM-DD), status != termine, and whose
@@ -4573,6 +4568,12 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
              "scheduled_date": {"$regex": r"^\d{4}-\d{2}-\d{2}$"}}
     # Les blocs indépendants du dashboard sont lancés ensemble. On conserve des
     # Future Motor (pas create_task) pour ne pas casser sous CI/Render.
+    act_projects_fut = db.projects.find(act_q, {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1, "duration_days": 1}).to_list(5000)
+    to_schedule, in_progress, completed = await asyncio.gather(
+        db.projects.count_documents({**_proj_active, "status": "a_planifier"}),
+        db.projects.count_documents({**_proj_active, "status": "en_cours"}),
+        db.projects.count_documents({**_proj_active, "status": "termine"}),
+    )
     unpaid_q = None
     if comm_scope != "none":
         unpaid_q = cq(user, {"commission_paid": {"$ne": True}, "status": {"$nin": ["annule", "litige", "non_financable"]}})
@@ -4605,7 +4606,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             return await db.clients.count_documents(cq(user, {"id": {"$in": ids}})) if ids else 0
         return 0
     clients_count_fut = asyncio.ensure_future(_clients_count_for_dashboard())
-    act_projects = await db.projects.find(act_q, {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1, "duration_days": 1}).to_list(5000)
+    act_projects = await act_projects_fut
     sale_ids_act = list({p.get("sale_id") for p in act_projects if p.get("sale_id")})
     sale_amounts: dict = {}
     if sale_ids_act:
