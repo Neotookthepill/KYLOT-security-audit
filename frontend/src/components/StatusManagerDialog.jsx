@@ -27,6 +27,7 @@ function ColorPicker({ value, onChange, disabled }) {
           disabled={disabled}
           className="inline-flex items-center gap-1.5 h-8 px-2 rounded-md border border-slate-200 hover:border-slate-400 transition"
           title="Choisir la couleur"
+          aria-label={`Choisir la couleur du statut ${value}`}
           data-testid="status-color-btn"
         >
           <span className={`h-3.5 w-3.5 rounded-full ${STATUS_COLORS.find((c) => c.key === value)?.dot || "bg-slate-500"}`} />
@@ -180,7 +181,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                   onDragStart={() => onDragStart(idx)}
                   onDragOver={onDragOver}
                   onDrop={() => onDrop(idx)}
-                  className={`flex items-center gap-2 p-2 rounded-md border transition ${dragging === idx ? "opacity-40" : ""} ${r.active === false ? "bg-slate-50 border-slate-200 opacity-70" : "bg-white border-slate-200 hover:border-slate-300"}`}
+                  className={`flex flex-wrap items-center gap-2 p-2 rounded-md border transition ${dragging === idx ? "opacity-40" : ""} ${r.active === false ? "bg-slate-50 border-slate-200 opacity-70" : "bg-white border-slate-200 hover:border-slate-300"}`}
                   data-testid={`status-row-${r.value}`}
                 >
                   <span className="text-slate-400 cursor-grab active:cursor-grabbing" title="Glisser pour déplacer">
@@ -190,7 +191,8 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                   <Input
                     value={r.label}
                     onChange={(e) => updateRow(idx, { label: e.target.value })}
-                    className="h-8 flex-1 min-w-0"
+                    className="h-8 flex-1 min-w-[120px]"
+                    aria-label={`Nom du statut ${r.label || r.value}`}
                     data-testid={`status-label-${r.value}`}
                   />
                   {r.system ? (
@@ -201,7 +203,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                   {(usage[r.value] || 0) > 0 && (
                     <span className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">{usage[r.value]} vente{usage[r.value] > 1 ? "s" : ""}</span>
                   )}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1 shrink-0 ml-auto">
                     <button
                       type="button"
                       onClick={() => updateRow(idx, { hides_from_projects: !r.hides_from_projects })}
@@ -221,6 +223,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                     <Switch
                       checked={r.active !== false}
                       onCheckedChange={(v) => updateRow(idx, { active: v })}
+                      aria-label={`Statut ${r.label || r.value} actif`}
                       data-testid={`status-active-${r.value}`}
                     />
                     <button
@@ -229,6 +232,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                       disabled={r.system}
                       className="h-8 w-8 grid place-items-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
                       title={r.system ? "Statut système (non supprimable)" : (usage[r.value] || 0) > 0 ? `Supprimer (${usage[r.value]} ventes à réaffecter)` : "Supprimer"}
+                      aria-label={`Supprimer le statut ${r.label || r.value}`}
                       data-testid={`status-remove-${r.value}`}
                     >
                       <Trash2 size={13} />
