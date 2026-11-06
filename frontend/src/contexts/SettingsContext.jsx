@@ -57,7 +57,7 @@ function applyToRoot(s) {
 
 // Local cache so the logo / app_name survive logout → login on the same device.
 // Company_id in the key ensures we don't leak across companies.
-const CACHE_PREFIX = "kylot_settings_cache";
+const CACHE_PREFIX = "kylot_settings_cache_v2";
 const loadCache = (companyId) => {
   try {
     const raw = localStorage.getItem(`${CACHE_PREFIX}:${companyId || "default"}`);
