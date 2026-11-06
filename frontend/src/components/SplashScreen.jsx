@@ -31,7 +31,7 @@ export default function SplashScreen({ onDone }) {
       <div className="kylot-splash__glow" />
       <div className="kylot-splash__logo">
         <div className="h-[104px] w-[104px] overflow-hidden rounded-[26px] border border-white/10 bg-[#0b1220] shadow-2xl">
-          <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />
+          <img src="/brand/qylot-mark-light.svg?v=2" alt="Qylot" className="h-full w-full object-contain" />
         </div>
         <div className="kylot-splash__wordmark">Qylot</div>
       </div>

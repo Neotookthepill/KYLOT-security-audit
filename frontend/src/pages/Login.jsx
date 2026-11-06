@@ -78,7 +78,7 @@ export default function Login() {
 
           <div className="relative flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#f7f3e9]" data-testid="login-logo">
-              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />}
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg?v=2" alt="Qylot" className="h-full w-full object-contain" />}
             </div>
             <div>
               <div className="font-display text-[22px] font-semibold leading-none tracking-[-.02em]">{appName}</div>
@@ -114,7 +114,7 @@ export default function Login() {
         <section className="flex min-h-screen flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
             <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg bg-[#0b1220]">
-              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />}
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg?v=2" alt="Qylot" className="h-full w-full object-contain" />}
             </div>
             <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>
           </div>
