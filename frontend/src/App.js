@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "@/pages/Login";
@@ -73,8 +73,14 @@ function HomeRedirect() {
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const location = useLocation();
   useVersionPoll();
+  // Pas de spinner plein écran avant la page de connexion : si aucune session
+  // en cache et que l'on arrive sur la racine, on affiche directement /login.
+  if (loading && !user && location.pathname === "/") {
+    return <Navigate to="/login" replace />;
+  }
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
