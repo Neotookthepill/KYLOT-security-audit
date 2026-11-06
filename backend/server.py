@@ -11110,12 +11110,23 @@ async def list_stock(
         if from_date: date_q["$gte"] = from_date
         if until: date_q["$lte"] = until
         proj_q["scheduled_date"] = date_q
-    async for p in db.projects.find(proj_q, {"_id": 0, "prestations": 1, "sale_id": 1}):
+    projects = await db.projects.find(proj_q, {"_id": 0, "prestations": 1, "sale_id": 1}).to_list(5000)
+    # Batch the fallback sales instead of one query per project. Under load this
+    # endpoint was doing dozens of serial round-trips to Atlas (~7 s).
+    fallback_sale_ids = list({p.get("sale_id") for p in projects if not p.get("prestations") and p.get("sale_id")})
+    sales_map = {}
+    if fallback_sale_ids:
+        sale_rows = await db.sales.find(
+            cq(user, {"id": {"$in": fallback_sale_ids}}),
+            {"_id": 0, "id": 1, "prestations": 1, "status": 1},
+        ).to_list(len(fallback_sale_ids))
+        sales_map = {row["id"]: row for row in sale_rows}
+    for p in projects:
         prestas = p.get("prestations") or []
         if not prestas and p.get("sale_id"):
-            s = await db.sales.find_one(cq(user, {"id": p["sale_id"]}), {"_id": 0, "prestations": 1, "status": 1})
-            if s and s.get("status") not in ("annule", "litige"):
-                prestas = s.get("prestations") or []
+            sale = sales_map.get(p["sale_id"])
+            if sale and sale.get("status") not in ("annule", "litige"):
+                prestas = sale.get("prestations") or []
         for it in prestas:
             name = (it.get("name") or "").strip()
             qty = max(0, int(it.get("quantity") or 0))
