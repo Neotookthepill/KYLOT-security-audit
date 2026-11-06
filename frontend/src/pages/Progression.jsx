@@ -84,11 +84,11 @@ export default function Progression() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setYear(year - 1)} data-testid="progression-prev-year"><ChevronLeft size={16} /></Button>
+          <Button variant="outline" size="icon" onClick={() => setYear(year - 1)} data-testid="progression-prev-year" aria-label="Année précédente"><ChevronLeft size={16} /></Button>
           <div className="font-display text-lg font-semibold w-24 text-center flex items-center justify-center gap-2">
             <CalendarIcon size={16} className="text-slate-400" />{year}
           </div>
-          <Button variant="outline" size="icon" onClick={() => setYear(year + 1)} data-testid="progression-next-year"><ChevronRight size={16} /></Button>
+          <Button variant="outline" size="icon" onClick={() => setYear(year + 1)} data-testid="progression-next-year" aria-label="Année suivante"><ChevronRight size={16} /></Button>
           {year !== new Date().getFullYear() && (
             <Button variant="ghost" size="sm" onClick={() => setYear(new Date().getFullYear())}>Cette année</Button>
           )}

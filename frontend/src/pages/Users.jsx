@@ -112,7 +112,7 @@ export default function Users() {
               <div>
                 <Label>Rôle</Label>
                 <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-                  <SelectTrigger data-testid="user-role-select"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-testid="user-role-select" aria-label="Rôle du nouvel utilisateur"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin — accès complet</SelectItem>
                     <SelectItem value="responsable">Responsable — équipes, planning, chantiers</SelectItem>
@@ -158,7 +158,7 @@ export default function Users() {
                   <td className="px-5 py-3 text-slate-600">{uEmail}</td>
                   <td className="px-5 py-3">
                     <Select value={uRole} onValueChange={(v) => changeRole(u.id, v)}>
-                      <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 w-44" aria-label={`Rôle de ${uName}`}><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="responsable">Responsable</SelectItem>

@@ -148,6 +148,9 @@ export function formatApiError(err) {
       if (type === "string_pattern_mismatch" || /match pattern/i.test(msg)) {
         return field ? `« ${field} » : format invalide (attendu AAAA-MM-JJ).` : "Format de date invalide (attendu AAAA-MM-JJ).";
       }
+      if (type.startsWith("email") || /email address/i.test(msg)) {
+        return field ? `« ${field} » : adresse email invalide.` : "Adresse email invalide.";
+      }
       if (type === "missing" || /field required/i.test(msg)) {
         return field ? `« ${field} » est obligatoire.` : "Champ obligatoire manquant.";
       }

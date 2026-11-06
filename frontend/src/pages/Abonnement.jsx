@@ -166,7 +166,7 @@ export default function Abonnement() {
                 </div>
               )}
               {isSuggested && !active && (
-                <div className="absolute -top-3 right-4 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-semibold whitespace-nowrap">
+                <div className="absolute -top-3 right-4 flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-700 text-white text-[10px] font-semibold whitespace-nowrap">
                   Adapté à votre équipe
                 </div>
               )}

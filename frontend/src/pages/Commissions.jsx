@@ -448,7 +448,7 @@ export default function Commissions() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Commercial :</span>
               <Select value={commercialFilter} onValueChange={setCommercialFilter}>
-                <SelectTrigger className="h-9 w-44" data-testid="commissions-commercial-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-44" aria-label="Filtrer par commercial" data-testid="commissions-commercial-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous</SelectItem>
                   {commerciaux.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}
@@ -521,7 +521,7 @@ export default function Commissions() {
                     <td className="px-3 py-3 whitespace-nowrap">
                       {canEditCommissions ? (
                         <Select value={String(r.commission_rate)} onValueChange={(v) => patchSale(r.sale_id, r.commercial_slot === 2 ? { commission_rate_2: parseFloat(v) } : { commission_rate: parseFloat(v) })}>
-                          <SelectTrigger className="h-8 w-24" data-testid={`commission-rate-${r.sale_id}${r.commercial_slot === 2 ? '-2' : ''}`}><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 w-24" aria-label={`Taux de commission ${r.client_name || r.sale_id}`} data-testid={`commission-rate-${r.sale_id}${r.commercial_slot === 2 ? '-2' : ''}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {rates.map((rate) => (<SelectItem key={rate} value={String(rate)}>{formatRate(rate)}</SelectItem>))}
                           </SelectContent>
@@ -534,7 +534,7 @@ export default function Commissions() {
                     <td className="px-3 py-3 whitespace-nowrap">
                       {canEditCommissions ? (
                         <Select value={r.commission_month || currentMonth()} onValueChange={(v) => patchSale(r.sale_id, { commission_month: v })}>
-                          <SelectTrigger className="h-8 w-40" data-testid={`commission-month-${r.sale_id}`}><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-8 w-40" aria-label={`Mois de paiement ${r.client_name || r.sale_id}`} data-testid={`commission-month-${r.sale_id}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {paymentMonthOptions.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
                           </SelectContent>
@@ -590,7 +590,7 @@ export default function Commissions() {
             ))}
           </div>
           <div className="flex items-center gap-2 mt-4">
-            <Input placeholder="Nouveau taux (ex : 15% ou 0.18)" value={newRateInput} onChange={(e) => setNewRateInput(e.target.value)} data-testid="rate-new-input" />
+            <Input placeholder="Nouveau taux (ex : 15% ou 0.18)" aria-label="Nouveau taux de commission" value={newRateInput} onChange={(e) => setNewRateInput(e.target.value)} data-testid="rate-new-input" />
             <Button onClick={addRate} size="sm" data-testid="rate-add-btn"><Plus size={14} className="mr-1" /> Ajouter</Button>
           </div>
           <DialogFooter className="mt-4">

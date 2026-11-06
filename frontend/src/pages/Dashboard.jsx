@@ -670,7 +670,7 @@ export default function Dashboard() {
         <div className="divide-y divide-slate-100">
           {(!data?.ranking || data.ranking.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour la période.</p>}
           {data?.ranking?.map((r, i) => (
-            <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "opacity-60 bg-slate-50/60" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
+            <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "opacity-80 bg-slate-50/60" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
               <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-800" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-orange-100 text-orange-800" : "bg-slate-50 text-slate-500"}`}>{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
@@ -679,7 +679,7 @@ export default function Dashboard() {
                     <EyeOff size={12} className="text-slate-400" aria-label="Masqué du classement public" />
                   )}
                 </p>
-                <div className="flex items-center gap-2 mt-0.5"><span className="text-xs text-slate-500">{r.count} vente{r.count > 1 ? "s" : ""}</span>{r.progress != null && (<span className={`text-[11px] font-medium ${r.progress >= 100 ? "text-emerald-700" : "text-slate-500"}`}>{r.progress}% obj.</span>)}</div>
+                <div className="flex items-center gap-2 mt-0.5"><span className="text-xs text-slate-600">{r.count} vente{r.count > 1 ? "s" : ""}</span>{r.progress != null && (<span className={`text-[11px] font-medium ${r.progress >= 100 ? "text-emerald-700" : "text-slate-500"}`}>{r.progress}% obj.</span>)}</div>
                 {r.objectif > 0 && (<div className="mt-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[240px]"><div className={`h-full ${r.progress >= 100 ? "bg-emerald-500" : "bg-slate-900"}`} style={{ width: `${Math.min(100, r.progress || 0)}%` }} /></div>)}
               </div>
               <p className="font-display text-base font-semibold whitespace-nowrap">{fmtEur(r.ca)}</p>

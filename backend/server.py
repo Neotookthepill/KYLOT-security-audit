@@ -4456,7 +4456,11 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             return None
         return round(((cv - pv) / pv) * 100, 1)
 
-    team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500)
+    team, settings = await asyncio.gather(
+        db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500),
+        db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}),
+    )
+    settings = settings or {}
     tmap = {t["name"]: float(t.get("objectif") or 0) for t in team}
     # iter199 — Fallback prénom accent-insensible : Théo Dudal / Anaïs Tran (users
     # sans team_member.objectif direct mais présents dans un team_member "Théo" / "Anaïs").
@@ -4511,7 +4515,6 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
         my_name_lc = (user.get("name") or "").lower()
         ranking = [r for r in ranking if not r.get("hidden_from_ranking") or (r.get("commercial") or "").lower() == my_name_lc]
 
-    settings = await db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}) or {}
     monthly_objectif = float(settings.get("objectif_ca") or 100000)
     # iter74/78 : source unique = team_members.objectif défini par l'admin.
     # Match robuste en 3 étapes pour éviter les "Non défini" quand user.name ≠ team_member.name :
@@ -4568,6 +4571,40 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     week_end = week_start + timedelta(days=6)             # Sunday
     act_q = {**proj_q, "status": {"$ne": "termine"},
              "scheduled_date": {"$regex": r"^\d{4}-\d{2}-\d{2}$"}}
+    # Les blocs indépendants du dashboard sont lancés ensemble. On conserve des
+    # Future Motor (pas create_task) pour ne pas casser sous CI/Render.
+    unpaid_q = None
+    if comm_scope != "none":
+        unpaid_q = cq(user, {"commission_paid": {"$ne": True}, "status": {"$nin": ["annule", "litige", "non_financable"]}})
+        if comm_scope == "own":
+            unpaid_q.update(_own_sales_filter(user))
+        if period != "year":
+            unpaid_q["sale_date"] = {"$gte": start.isoformat(), "$lte": end.isoformat()}
+        else:
+            unpaid_q["sale_date"] = {"$regex": f"^{start.year}"}
+    unpaid_fut = db.sales.find(unpaid_q, {"_id": 0, "amount": 1, "commission_rate": 1, "commission_rate_2": 1, "is_de": 1, "commercial_2": 1, "commercial": 1, "commercial_user_id": 1, "commercial_2_user_id": 1}).to_list(5000) if unpaid_q is not None else None
+    ot_scope = perm_scope(user, "overtime", "view")
+    date_prefix = f"^{start.strftime('%Y-%m')}" if period != "year" else f"^{start.year}"
+    pending_ot_fut = None
+    if ot_scope != "none":
+        ot_q = cq(user, {"status": {"$ne": "approved"}, "date": {"$regex": date_prefix}})
+        if ot_scope == "own":
+            ot_q["technician_name"] = user.get("name") or "__none__"
+        pending_ot_fut = db.overtime.find(ot_q, {"_id": 0, "hours": 1}).to_list(5000)
+    recent_q = cq(user)
+    if sales_scope == "own":
+        recent_q.update(_own_sales_filter(user))
+    recent_q["status"] = {"$nin": ["annule", "litige"]}
+    recent_fut = db.sales.find(recent_q, {"_id": 0}).sort("created_at", -1).to_list(6)
+    clients_scope = perm_scope(user, "clients", "view")
+    async def _clients_count_for_dashboard():
+        if clients_scope == "all":
+            return await db.clients.count_documents(cq(user))
+        if clients_scope == "own":
+            ids = await _commercial_client_ids(user)
+            return await db.clients.count_documents(cq(user, {"id": {"$in": ids}})) if ids else 0
+        return 0
+    clients_count_fut = asyncio.ensure_future(_clients_count_for_dashboard())
     act_projects = await db.projects.find(act_q, {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1, "duration_days": 1}).to_list(5000)
     sale_ids_act = list({p.get("sale_id") for p in act_projects if p.get("sale_id")})
     sale_amounts: dict = {}
@@ -4616,18 +4653,9 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     }
 
     # Commissions to validate — scoped by commissions.view perm
-    unpaid = []
+    unpaid = await unpaid_fut if unpaid_fut is not None else []
     comm_val = 0.0
-    if comm_scope != "none":
-        # iter99 : source unique = sale_date (règle identique sur toutes les pages : Dashboard, Ventes, Commissions, Rapport)
-        cq_ = cq(user, {"commission_paid": {"$ne": True}, "status": {"$nin": ["annule", "litige", "non_financable"]}})
-        if comm_scope == "own":
-            cq_.update(_own_sales_filter(user))
-        if period != "year":
-            cq_["sale_date"] = {"$gte": start.isoformat(), "$lte": end.isoformat()}
-        else:
-            cq_["sale_date"] = {"$regex": f"^{start.year}"}
-        unpaid = await db.sales.find(cq_, {"_id": 0, "amount": 1, "commission_rate": 1, "commission_rate_2": 1, "is_de": 1, "commercial_2": 1, "commercial": 1, "commercial_user_id": 1, "commercial_2_user_id": 1}).to_list(5000)
+    if unpaid:
         def _commission_for(s):
             amt = float(s.get("amount") or 0)
             r1 = float(s.get("commission_rate") if s.get("commission_rate") is not None else 0)
@@ -4647,14 +4675,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             return amt * 0.5 * r1 + amt * 0.5 * r2
         comm_val = sum(_commission_for(s) for s in unpaid)
 
-    date_prefix = f"^{start.strftime('%Y-%m')}" if period != "year" else f"^{start.year}"
-    ot_scope = perm_scope(user, "overtime", "view")
-    pending_ot: List[dict] = []
-    if ot_scope != "none":
-        ot_q = cq(user, {"status": {"$ne": "approved"}, "date": {"$regex": date_prefix}})
-        if ot_scope == "own":
-            ot_q["technician_name"] = user.get("name") or "__none__"
-        pending_ot = await db.overtime.find(ot_q, {"_id": 0, "hours": 1}).to_list(5000)
+    pending_ot = await pending_ot_fut if pending_ot_fut is not None else []
     ot_h = round(sum(float(e.get("hours") or 0) for e in pending_ot), 2)
 
     alerts = []
@@ -4665,15 +4686,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     if len(unpaid) > 0 and has_perm(user, "commissions", "edit"):
         alerts.append({"key": "commissions", "label": f"{len(unpaid)} commission{'s' if len(unpaid) > 1 else ''} à valider", "count": len(unpaid), "href": "/commissions"})
 
-    recent_q = cq(user)
-    if sales_scope == "own":
-        # iter60 : même logique que _agg — cohérence CA / recent_sales garantie
-        recent_q.update(_own_sales_filter(user))
-    # iter122 : les ventes annulées / en litige ne figurent PAS dans "Ventes récentes"
-    # (widget destiné aux ventes actives récentes ; les annulées restent visibles dans
-    # la page Ventes filtrée). Cohérent avec le CA affiché "hors annulé & litige".
-    recent_q["status"] = {"$nin": ["annule", "litige"]}
-    recent = await db.sales.find(recent_q, {"_id": 0}).sort("created_at", -1).to_list(6)
+    recent = await recent_fut
     # Enrich with client_name
     if recent:
         client_ids = list({s.get("client_id") for s in recent if s.get("client_id")})
@@ -4681,20 +4694,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
         for s in recent:
             s["client_name"] = (clients_map.get(s.get("client_id")) or {}).get("name", "")
 
-    # Clients count: respect clients scope
-    clients_scope = perm_scope(user, "clients", "view")
-    if clients_scope == "all":
-        clients_count = await db.clients.count_documents(cq(user))
-    elif clients_scope == "own":
-        # iter98 : compter uniquement les clients qui existent réellement (exclut les orphelins
-        # dont la vente référence un client_id supprimé) — cohérence avec la page /clients.
-        ids = await _commercial_client_ids(user)
-        if ids:
-            clients_count = await db.clients.count_documents(cq(user, {"id": {"$in": ids}}))
-        else:
-            clients_count = 0
-    else:
-        clients_count = 0
+    clients_count = await clients_count_fut
 
     payload = {
         "period": period,

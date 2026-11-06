@@ -47,9 +47,9 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
       ))}
       {period === "custom" && (
         <div className="flex items-center gap-1 ml-1">
-          <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-8 w-36" data-testid="prospect-period-from" />
+          <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} aria-label="Date de début" className="h-8 w-36" data-testid="prospect-period-from" />
           <span className="text-xs text-slate-400">au</span>
-          <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-36" data-testid="prospect-period-to" />
+          <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} aria-label="Date de fin" className="h-8 w-36" data-testid="prospect-period-to" />
         </div>
       )}
       <span className="text-xs text-slate-500 ml-1" data-testid="prospect-period-count">{label} — {count} client{count > 1 ? "s" : ""}</span>
@@ -109,7 +109,7 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase }) {
           <div key={x.name} className={`rounded-xl border p-4 flex flex-col gap-3 transition-transform hover:-translate-y-0.5 ${i === 0 ? "border-amber-200 bg-amber-50/40" : "border-slate-200 bg-white"}`} data-testid={`prospect-ca-row-${x.name}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="font-semibold text-slate-900 truncate">{x.name}</span>
-              <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${i === 0 ? "bg-amber-400 text-white" : "bg-slate-100 text-slate-600"}`}>#{i + 1}</span>
+              <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${i === 0 ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-600"}`}>#{i + 1}</span>
             </div>
             <div className="flex items-end justify-between gap-2">
               <div data-testid={`prospect-count-${x.name}`}>
@@ -212,7 +212,7 @@ function ComMonthCell({ row, editable, onSaved }) {
   };
   return (
     <Select value={cm} onValueChange={change}>
-      <SelectTrigger className={`h-8 w-36 text-xs ${moved ? "border-amber-300 text-amber-800" : ""}`} data-testid={`prospect-com-month-${row.id}`}><SelectValue /></SelectTrigger>
+      <SelectTrigger className={`h-8 w-36 text-xs ${moved ? "border-amber-300 text-amber-800" : ""}`} aria-label={`Mois de commission ${row.client_name || row.id}`} data-testid={`prospect-com-month-${row.id}`}><SelectValue /></SelectTrigger>
       <SelectContent>
         {monthOptions((row.sale_date || "").slice(0, 7)).map((m) => (<SelectItem key={m} value={m}>{monthLabel(m)}</SelectItem>))}
       </SelectContent>
@@ -236,10 +236,11 @@ function CommissionCell({ row, editable, onSaved }) {
     <div className="flex items-center justify-end gap-1.5">
       <Input type="number" min={0} step="10" value={val} onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter" && dirty) save(); }}
+        aria-label={`Commission prospecteur ${row.client_name || row.id}`}
         className="h-8 w-24 text-right" data-testid={`prospect-commission-input-${row.id}`} />
       <span className="text-xs text-slate-400">€</span>
       {dirty && (
-        <button type="button" onClick={save} className="h-8 w-8 grid place-items-center rounded-md bg-slate-900 text-white hover:bg-slate-700 transition-colors" data-testid={`prospect-commission-save-${row.id}`}><Check size={14} /></button>
+        <button type="button" onClick={save} aria-label={`Enregistrer la commission de ${row.client_name || row.id}`} className="h-8 w-8 grid place-items-center rounded-md bg-slate-900 text-white hover:bg-slate-700 transition-colors" data-testid={`prospect-commission-save-${row.id}`}><Check size={14} /></button>
       )}
     </div>
   );
@@ -399,11 +400,11 @@ export default function Prospecteur() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client, une ville…" className="pl-9" data-testid="prospect-search" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client, une ville…" aria-label="Rechercher un prospect" className="pl-9" data-testid="prospect-search" />
         </div>
         {isManager && (
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="sm:w-64" data-testid="prospect-filter"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="sm:w-64" aria-label="Filtrer par prospecteur" data-testid="prospect-filter"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tous les prospecteurs</SelectItem>
               {prospecteurs.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}{p.role === "responsable_prospecteur" ? " (Responsable)" : ""}</SelectItem>))}

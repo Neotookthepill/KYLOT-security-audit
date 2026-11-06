@@ -27,7 +27,7 @@ function StatusDot({ status }) {
 }
 
 // iter65 : cellule éditable pour override manuel d'une valeur auto-calculée
-function OverrideCell({ value, autoValue, override, onSave, onRevert, canEdit, testId, tone = "default", extraLink = null }) {
+function OverrideCell({ value, autoValue, override, onSave, onRevert, canEdit, testId, tone = "default", extraLink = null, label = "" }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(value ?? 0));
   const [saving, setSaving] = useState(false);
@@ -68,6 +68,7 @@ function OverrideCell({ value, autoValue, override, onSave, onRevert, canEdit, t
           }}
           autoFocus
           className="w-20 h-7 text-right text-sm px-2"
+          aria-label={label || `Valeur ${testId || "stock"}`}
           data-testid={`${testId}-input`}
         />
         <button
@@ -213,7 +214,7 @@ function ProductNameCell({ row, canRename, onRename, testId }) {
   );
 }
 
-function NumberEditor({ value, onCommit, testId, disabled }) {
+function NumberEditor({ value, onCommit, testId, disabled, label = "" }) {
   const [val, setVal] = useState(String(value ?? 0));
   const [saving, setSaving] = useState(false);
   useEffect(() => { setVal(String(value ?? 0)); }, [value]);
@@ -245,6 +246,7 @@ function NumberEditor({ value, onCommit, testId, disabled }) {
         onBlur={() => commit(val)}
         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
         className="w-16 h-7 text-center text-sm px-1"
+        aria-label={label || `Quantité ${testId || "stock"}`}
         disabled={disabled || saving}
         data-testid={testId}
       />
@@ -724,7 +726,7 @@ export default function Stock() {
         <div className="p-4 border-b border-slate-200 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
             <Search size={16} className="text-slate-400" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un produit…" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" data-testid="stock-search" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un produit…" aria-label="Rechercher un produit" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" data-testid="stock-search" />
             {loading && <Loader2 size={14} className="animate-spin text-slate-400" />}
           </div>
         </div>
@@ -747,25 +749,25 @@ export default function Stock() {
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div className="rounded-lg bg-slate-50 p-2.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Stock physique</p>
-                  <NumberEditor value={r.stock_disponible} onCommit={(n) => updateField(r, { stock_disponible: n })} disabled={!canEdit} testId={`m-stock-dispo-${r.product_key}`} />
+                  <NumberEditor value={r.stock_disponible} onCommit={(n) => updateField(r, { stock_disponible: n })} disabled={!canEdit} testId={`m-stock-dispo-${r.product_key}`} label={`Stock physique ${r.product_name}`} />
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Besoin chantiers</p>
                   <OverrideCell value={r.besoin} autoValue={r.besoin_auto ?? r.besoin} override={(r.manual_overrides || {}).besoin} canEdit={canEdit && !!r.id}
-                    onSave={(n) => saveOverride(r, "besoin", n)} onRevert={() => revertOverride(r, "besoin")} testId={`m-stock-besoin-${r.product_key}`} tone="besoin"
+                    onSave={(n) => saveOverride(r, "besoin", n)} onRevert={() => revertOverride(r, "besoin")} testId={`m-stock-besoin-${r.product_key}`} tone="besoin" label={`Besoin chantiers ${r.product_name}`}
                     extraLink={!(r.manual_overrides || {}).besoin && r.besoin > 0 ? () => openDetail(r) : null} />
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">À commander</p>
                   <OverrideCell value={r.reste_a_commander} autoValue={r.reste_a_commander_auto ?? r.reste_a_commander} override={(r.manual_overrides || {}).reste_a_commander} canEdit={canEdit && !!r.id}
-                    onSave={(n) => saveOverride(r, "reste_a_commander", n)} onRevert={() => revertOverride(r, "reste_a_commander")} testId={`m-stock-reste-${r.product_key}`} tone="reste" />
+                    onSave={(n) => saveOverride(r, "reste_a_commander", n)} onRevert={() => revertOverride(r, "reste_a_commander")} testId={`m-stock-reste-${r.product_key}`} tone="reste" label={`À commander ${r.product_name}`} />
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Alerte si ≤</p>
                   <Input type="number" min="0" defaultValue={r.low_stock_threshold ?? 2}
                     onBlur={(e) => { const n = Math.max(0, parseInt(e.target.value, 10) || 0); if (n !== (r.low_stock_threshold ?? 2)) updateField(r, { low_stock_threshold: n }); }}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                    className="h-8 w-20 text-center text-sm bg-white" disabled={!canEdit} data-testid={`m-stock-threshold-${r.product_key}`} />
+                    className="h-8 w-20 text-center text-sm bg-white" aria-label={`Seuil d'alerte ${r.product_name}`} disabled={!canEdit} data-testid={`m-stock-threshold-${r.product_key}`} />
                 </div>
               </div>
             </div>
@@ -810,6 +812,7 @@ export default function Stock() {
                       onCommit={(n) => updateField(r, { stock_disponible: n })}
                       disabled={!canEdit}
                       testId={`stock-dispo-${r.product_key}`}
+                      label={`Stock physique ${r.product_name}`}
                     />
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -826,6 +829,7 @@ export default function Stock() {
                           onRevert={() => revertOverride(r, "besoin")}
                           testId={`stock-besoin-${r.product_key}`}
                           tone="besoin"
+                          label={`Besoin chantiers ${r.product_name}`}
                           extraLink={!ov && r.besoin > 0 ? () => openDetail(r) : null}
                         />
                       );
@@ -841,6 +845,7 @@ export default function Stock() {
                       onRevert={() => revertOverride(r, "reste_a_commander")}
                       testId={`stock-reste-${r.product_key}`}
                       tone="reste"
+                      label={`À commander ${r.product_name}`}
                     />
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -855,6 +860,7 @@ export default function Stock() {
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                         className="w-14 h-7 text-center text-sm px-1"
+                        aria-label={`Seuil d'alerte ${r.product_name}`}
                         disabled={!canEdit}
                         data-testid={`stock-threshold-${r.product_key}`}
                       />
@@ -883,7 +889,7 @@ export default function Stock() {
       <p className="text-[11px] text-slate-500 mt-4">
         <strong>Formules :</strong> À&nbsp;commander = max(0, Besoin − Stock physique).
         Les produits ne sont <strong>jamais</strong> déduits du stock physique tant que le chantier n'est pas terminé.
-        La ligne devient <span className="text-red-600 font-medium">🔴 rouge</span> si un produit manque, <span className="text-amber-600 font-medium">🟠 orange</span> si partiellement couvert, <span className="text-emerald-600 font-medium">🟢 verte</span> si tout est couvert.
+        La ligne devient <span className="text-red-700 font-medium">🔴 rouge</span> si un produit manque, <span className="text-amber-700 font-medium">🟠 orange</span> si partiellement couvert, <span className="text-emerald-700 font-medium">🟢 verte</span> si tout est couvert.
         Un badge <AlertCircle size={10} className="inline text-amber-600" /> ambre signale un stock bas selon le seuil configuré par produit.
         {canEdit && (
           <> · <span className="inline-flex items-center gap-1 text-amber-700 font-medium"><Pencil size={10} />Override admin</span> : cliquez sur l'icône crayon d'une valeur calculée pour la remplacer manuellement, puis <RotateCcw size={10} className="inline" /> pour revenir au calcul automatique.</>
@@ -914,6 +920,7 @@ export default function Stock() {
                         value={it.qty}
                         onCommit={(n) => setHolderQty(it.sid, t.user_id, t.name, n, it.product_name)}
                         testId={`stock-per-tech-qty-${t.user_id}-${it.product_key}`}
+                        label={`Quantité de ${it.product_name} chez ${t.name}`}
                       />
                     </li>
                   ))}
