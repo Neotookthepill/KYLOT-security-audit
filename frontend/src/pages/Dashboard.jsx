@@ -199,6 +199,24 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
   );
 }
 
+const DASH_CACHE_PREFIX = "kylot_dashboard_snapshot_v1";
+function dashCacheKey(userId, period) {
+  return `${DASH_CACHE_PREFIX}:${userId || "anon"}:${period}`;
+}
+function readDashCache(userId, period) {
+  try {
+    const raw = sessionStorage.getItem(dashCacheKey(userId, period));
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed?.at || Date.now() - parsed.at > 5 * 60 * 1000) return null;
+    return parsed.data || null;
+  } catch (_) { return null; }
+}
+function writeDashCache(userId, period, data) {
+  try {
+    sessionStorage.setItem(dashCacheKey(userId, period), JSON.stringify({ at: Date.now(), data }));
+  } catch (_) {}
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -332,13 +350,16 @@ export default function Dashboard() {
   };
 
   const load = useCallback(async () => {
+    const cached = readDashCache(user?.id, period);
+    if (cached) setData(cached);
     setLoading(true);
     try {
       const r = await api.get(`/dashboard/executive?period=${period}`);
       setData(r.data);
-    } catch (_) { /* keep previous data */ }
+      writeDashCache(user?.id, period, r.data);
+    } catch (_) { /* keep previous/cached data */ }
     finally { setLoading(false); }
-  }, [period]);
+  }, [period, user?.id]);
   // iter53 : totaux société (secondaire) pour un commercial
   const loadCompanyCmp = useCallback(async () => {
     if (!isCommercial) { setCompanyCmp(null); return; }

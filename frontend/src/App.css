@@ -84,3 +84,35 @@
 }
 .qy-login input::placeholder { color: rgba(226, 232, 240, 0.45); }
 .qy-login label { color: rgba(226, 232, 240, 0.85); }
+
+/* Mobile — cibles tactiles et tables défilables */
+@media (max-width: 767px) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 999px;
+  }
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 999px;
+  }
+}
