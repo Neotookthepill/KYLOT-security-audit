@@ -422,7 +422,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
               <DialogTitle className="font-display text-2xl">{project.client_name}</DialogTitle>
-              <p className="text-sm text-slate-500">{project.service}</p>
+              <p className="text-sm text-slate-600">{project.service}</p>
             </div>
             {/* iter159 v3 : la pastille "Confirmé" est visible pour TOUS les rôles qui accèdent
                 à la fiche (technicien, sous-traitant, commercial, admin). Seuls admin/responsable/
@@ -462,14 +462,14 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               );
             })()}
           </div>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-500 pt-2">
+          <div className="flex flex-wrap gap-3 text-xs text-slate-600 pt-2">
             {project.client_phone && <PhoneNumbers value={project.client_phone} iconSize={11} className="text-xs" />}
             {project.client_address && <span className="flex items-center gap-1"><MapPin size={11}/> {project.client_address} {project.client_postal_code} {project.client_city}</span>}
           </div>
           {/* Commercial(s) : always visible (comes from the sale) */}
           {(project.commercial || project.commercial_2) && (
             <div className="flex flex-wrap items-center gap-2 pt-2" data-testid="project-commercial">
-              <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-slate-500"><UserCircle size={12} /> {project.is_de ? "Commerciaux" : "Commercial"}</span>
+              <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-slate-600"><UserCircle size={12} /> {project.is_de ? "Commerciaux" : "Commercial"}</span>
               {project.commercial && (
                 <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-800 text-xs px-2 py-0.5 font-medium">{project.commercial}</span>
               )}
@@ -511,14 +511,14 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             <div className="min-w-0">
               <Label>Durée (jours consécutifs)</Label>
               <Input type="number" min={1} value={form.duration_days || 1} onChange={(e) => setForm({ ...form, duration_days: e.target.value })} data-testid="project-duration" />
-              <p className="text-[11px] text-slate-500 mt-1">Nombre de jours d'affilée à partir de la date de début.</p>
+              <p className="text-[11px] text-slate-600 mt-1">Nombre de jours d'affilée à partir de la date de début.</p>
             </div>
           </div>
           {/* iter213 : jours supplémentaires non consécutifs (pause dans le chantier) */}
           {canEditPlan && (
             <div className="rounded-md border border-slate-200 p-3 bg-slate-50/40" data-testid="project-extra-dates">
               <Label className="text-sm">Jours supplémentaires (non consécutifs)</Label>
-              <p className="text-[11px] text-slate-500 mt-0.5 mb-2">Ajoutez ici les jours isolés qui font partie du chantier mais qui ne se suivent pas (ex : chantier lundi + mercredi + vendredi).</p>
+              <p className="text-[11px] text-slate-600 mt-0.5 mb-2">Ajoutez ici les jours isolés qui font partie du chantier mais qui ne se suivent pas (ex : chantier lundi + mercredi + vendredi).</p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Input type="date" value={newExtraDate} onChange={(e) => setNewExtraDate(e.target.value)} data-testid="project-extra-date-input" className="w-full sm:max-w-[200px]" />
                 <Button type="button" onClick={addExtraDate} disabled={!newExtraDate} size="sm" data-testid="project-extra-date-add" className="bg-slate-900 hover:bg-slate-800 text-white h-10 sm:h-9">
@@ -530,7 +530,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                   {form.extra_dates.map((d) => (
                     <span key={d} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-300 text-slate-800 text-xs px-2 py-1" data-testid={`project-extra-date-chip-${d}`}>
                       {new Date(d + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" })}
-                      <button type="button" onClick={() => removeExtraDate(d)} className="text-slate-400 hover:text-red-600" aria-label={`Retirer ${d}`} data-testid={`project-extra-date-remove-${d}`}>
+                      <button type="button" onClick={() => removeExtraDate(d)} className="text-slate-600 hover:text-red-600" aria-label={`Retirer ${d}`} data-testid={`project-extra-date-remove-${d}`}>
                         <X size={11} />
                       </button>
                     </span>
@@ -540,7 +540,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             </div>
           )}
           <div>
-            <Label>Techniciens & sous-traitants assignés {assignedList.length > 0 && <span className="text-xs text-slate-500 ml-1">({assignedList.length} sélectionné{assignedList.length > 1 ? "s" : ""})</span>}</Label>
+            <Label>Techniciens & sous-traitants assignés {assignedList.length > 0 && <span className="text-xs text-slate-600 ml-1">({assignedList.length} sélectionné{assignedList.length > 1 ? "s" : ""})</span>}</Label>
             {orphanAssignees.length > 0 && canEditPlan && (
               <div className="mt-1.5 mb-1.5 p-2 rounded-md bg-amber-50 border border-amber-200 flex flex-wrap gap-1.5" data-testid="project-tech-orphans">
                 <span className="text-[11px] text-amber-800 font-medium mr-1">Anciens techniciens :</span>
@@ -561,7 +561,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             )}
             {canEditPlan ? (
               <div className="mt-1.5 border border-slate-200 rounded-md p-3 max-h-56 overflow-y-auto space-y-1.5">
-                {assignables.length === 0 && <p className="text-xs text-slate-500 italic">Aucun technicien / sous-traitant. Ajoutez-en dans Utilisateurs → Équipe.</p>}
+                {assignables.length === 0 && <p className="text-xs text-slate-600 italic">Aucun technicien / sous-traitant. Ajoutez-en dans Utilisateurs → Équipe.</p>}
                 {assignables.map((t) => {
                   const isAssigned = assignedList.includes(t.name);
                   const excludedToday = contextDate && ((form.day_exclusions || {})[contextDate] || []).includes(t.name);
@@ -569,7 +569,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                   return (
                     <label key={t.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 rounded px-2 py-1" data-testid={`project-tech-${t.id}`}>
                       <Checkbox checked={effectivelyChecked} onCheckedChange={() => toggleTech(t.name)} data-testid={`project-tech-checkbox-${t.id}`} />
-                      <span className={`text-sm ${excludedToday ? "line-through text-slate-400" : ""}`}>{t.name}</span>
+                      <span className={`text-sm ${excludedToday ? "line-through text-slate-600" : ""}`}>{t.name}</span>
                       {excludedToday && contextDate && (
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5" title={`Retiré uniquement le ${contextDate}`}>Retiré ce jour</span>
                       )}
@@ -589,13 +589,13 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               </div>
             ) : (
               <div className="mt-1.5 flex flex-wrap gap-1.5" data-testid="project-tech-readonly">
-                {assignedList.length === 0 && <p className="text-xs text-slate-500 italic">Aucun technicien assigné.</p>}
+                {assignedList.length === 0 && <p className="text-xs text-slate-600 italic">Aucun technicien assigné.</p>}
                 {assignedList.map((n) => (
                   <span key={n} className="inline-flex items-center rounded-full bg-slate-100 text-slate-700 text-xs px-2 py-0.5">{n}</span>
                 ))}
               </div>
             )}
-            {canEditPlan && <p className="text-[11px] text-slate-500 mt-1">Cochez plusieurs personnes pour une double intervention. Les sous-traitants (S/T) sont assignables même sans compte email.</p>}
+            {canEditPlan && <p className="text-[11px] text-slate-600 mt-1">Cochez plusieurs personnes pour une double intervention. Les sous-traitants (S/T) sont assignables même sans compte email.</p>}
           </div>
           {/* Per-technician notes (private) */}
           <TechNotesSection projectId={project.id} assignedList={assignedList} />
@@ -603,7 +603,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             <div>
               <Label>Notes générales du chantier</Label>
               <Textarea rows={3} value={form.notes || ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="project-general-notes" />
-              <p className="text-[11px] text-slate-500 mt-1">Notes visibles par l'ensemble de l'équipe (contrairement aux notes individuelles ci-dessus).</p>
+              <p className="text-[11px] text-slate-600 mt-1">Notes visibles par l'ensemble de l'équipe (contrairement aux notes individuelles ci-dessus).</p>
             </div>
           ) : (form.notes && form.notes.trim() ? (
             <div>
@@ -611,7 +611,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               <div className="mt-1 rounded-md border border-slate-200 bg-slate-50 p-2.5 text-sm text-slate-700 whitespace-pre-wrap" data-testid="project-general-notes-readonly">
                 {form.notes}
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">Note laissée par l'équipe / la direction pour ce chantier.</p>
+              <p className="text-[11px] text-slate-600 mt-1">Note laissée par l'équipe / la direction pour ce chantier.</p>
             </div>
           ) : null)}
 
@@ -651,11 +651,11 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                 </div>
               )}
               {!canAddPhotos && (
-                <span className="text-[11px] text-slate-400 italic" data-testid="project-photo-readonly-hint">Lecture seule</span>
+                <span className="text-[11px] text-slate-600 italic" data-testid="project-photo-readonly-hint">Lecture seule</span>
               )}
             </div>
             {!canViewPhotos ? (
-              <p className="text-xs text-slate-500 italic border border-dashed border-slate-200 rounded-md p-3 text-center" data-testid="project-photo-hidden">Vous n'avez pas accès aux photos de ce chantier.</p>
+              <p className="text-xs text-slate-600 italic border border-dashed border-slate-200 rounded-md p-3 text-center" data-testid="project-photo-hidden">Vous n'avez pas accès aux photos de ce chantier.</p>
             ) : form.photos && form.photos.length > 0 ? (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {form.photos.map((p, idx) => {
@@ -688,7 +688,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                       {(addedBy || createdAt) && (
                         <div className="px-1.5 py-1 text-[10px] leading-tight text-slate-600 bg-white/95 border-t border-slate-100" data-testid={`project-photo-${idx}-meta`}>
                           {addedBy && <span className="font-medium text-slate-800 truncate block" title={addedBy}>{addedBy}</span>}
-                          {createdAt && <span className="text-slate-400" title={createdAt}>{fmtDateTime(createdAt)}</span>}
+                          {createdAt && <span className="text-slate-600" title={createdAt}>{fmtDateTime(createdAt)}</span>}
                         </div>
                       )}
                     </div>
@@ -696,7 +696,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                 })}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 italic border border-dashed border-slate-200 rounded-md p-3 text-center">Aucune photo. {canAddPhotos ? "Prenez ou choisissez des photos du chantier — la position GPS est enregistrée automatiquement." : "Les techniciens et administrateurs pourront en ajouter."}</p>
+              <p className="text-xs text-slate-600 italic border border-dashed border-slate-200 rounded-md p-3 text-center">Aucune photo. {canAddPhotos ? "Prenez ou choisissez des photos du chantier — la position GPS est enregistrée automatiquement." : "Les techniciens et administrateurs pourront en ajouter."}</p>
             )}
           </div>
         </div>
@@ -723,7 +723,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
         <DialogContent className="sm:max-w-md" data-testid="project-remove-choice-dialog">
           <DialogHeader>
             <DialogTitle>Retirer {removeChoiceOpen?.name || "cette personne"} du chantier</DialogTitle>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600">
               Ce chantier s'étale sur {projectDays.length} jours. Voulez-vous retirer <b>{removeChoiceOpen?.name}</b> uniquement pour un jour, ou pour l'intégralité du chantier ?
             </p>
           </DialogHeader>
@@ -752,13 +752,13 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       <Dialog open={completeOpen} onOpenChange={(v) => { if (!completing) setCompleteOpen(v); }}>        <DialogContent className="sm:max-w-md" data-testid="project-complete-dialog">
           <DialogHeader>
             <DialogTitle>Valider la fin du chantier</DialogTitle>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600">
               Le commercial en charge sera automatiquement notifié (in-app + email). Les photos et l'historique sont conservés.
             </p>
           </DialogHeader>
           <div className="space-y-3">
             <div className="text-xs text-slate-600 flex items-center gap-2">
-              <ImageIcon size={13} className="text-slate-400" />
+              <ImageIcon size={13} className="text-slate-600" />
               <span>{(form.photos || []).length} photo(s) attachée(s) au chantier.</span>
             </div>
             <div>
@@ -788,7 +788,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1.5">Le chantier passera en « terminé » uniquement quand toutes les journées seront validées.</p>
+                <p className="text-[11px] text-slate-600 mt-1.5">Le chantier passera en « terminé » uniquement quand toutes les journées seront validées.</p>
               </div>
             )}
           </div>

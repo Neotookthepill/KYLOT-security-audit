@@ -60,13 +60,13 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
         <div className="mt-4">
           <div className="flex items-center justify-between mb-3">
             <p className="overline">Historique des ventes</p>
-            <span className="text-xs text-slate-500">Total actif : <span className="font-semibold text-slate-900">{fmtEur(totalCA)}</span></span>
+            <span className="text-xs text-slate-600">Total actif : <span className="font-semibold text-slate-900">{fmtEur(totalCA)}</span></span>
           </div>
 
-          {loading && <p className="text-sm text-slate-500 py-6 text-center">Chargement…</p>}
+          {loading && <p className="text-sm text-slate-600 py-6 text-center">Chargement…</p>}
 
           {!loading && sales.length === 0 && (
-            <p className="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-200 rounded-lg">Aucune vente enregistrée pour ce client.</p>
+            <p className="text-sm text-slate-600 py-6 text-center border border-dashed border-slate-200 rounded-lg">Aucune vente enregistrée pour ce client.</p>
           )}
 
           <div className="space-y-2">
@@ -78,16 +78,16 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-slate-900">{s.sale_date}</span>
-                        {s.bdc && <span className="text-xs font-mono text-slate-500">· {s.bdc}</span>}
-                        {s.commercial && <span className="text-xs text-slate-500">· par {s.commercial}</span>}
+                        {s.bdc && <span className="text-xs font-mono text-slate-600">· {s.bdc}</span>}
+                        {s.commercial && <span className="text-xs text-slate-600">· par {s.commercial}</span>}
                       </div>
                       <div className="text-sm text-slate-700 mt-1">{s.service}</div>
-                      <div className="flex flex-wrap gap-3 text-xs text-slate-500 mt-2">
+                      <div className="flex flex-wrap gap-3 text-xs text-slate-600 mt-2">
                         <span>Règlement : <span className="font-medium text-slate-700">{formatPayment(s.payment_method, s.payment_installments)}</span></span>
                         {s.desired_intervention_date && <span>Intervention : <span className="font-medium text-slate-700">{s.desired_intervention_date}</span></span>}
                         <span>Comm. : <span className="font-medium text-slate-700">{formatRate(s.commission_rate)}</span></span>
                       </div>
-                      {s.notes && <div className="text-xs text-slate-500 mt-1.5 italic">« {s.notes} »</div>}
+                      {s.notes && <div className="text-xs text-slate-600 mt-1.5 italic">« {s.notes} »</div>}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="font-display text-lg font-semibold">{fmtEur(s.amount)}</div>
@@ -108,7 +108,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
             </Button>
           </div>
           {reinters.length === 0 && (
-            <p className="text-sm text-slate-500 py-4 text-center border border-dashed border-slate-200 rounded-lg">Aucune réintervention.</p>
+            <p className="text-sm text-slate-600 py-4 text-center border border-dashed border-slate-200 rounded-lg">Aucune réintervention.</p>
           )}
           <div className="space-y-2">
             {reinters.map((r) => (
@@ -120,7 +120,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
                         {r.status === "terminee" ? "Terminée" : "À faire"}
                       </Badge>
                       <span className="font-semibold text-slate-900">{r.scheduled_date}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}</span>
-                      {r.technician_name && <span className="text-xs text-slate-500">→ {r.technician_name}</span>}
+                      {r.technician_name && <span className="text-xs text-slate-600">→ {r.technician_name}</span>}
                     </div>
                     {r.note && <div className="text-sm text-slate-700 mt-1">{r.note}</div>}
                   </div>

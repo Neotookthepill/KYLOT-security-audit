@@ -662,11 +662,11 @@ export default function AIHelper() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
-        className="fixed bottom-5 right-5 z-40 hidden h-14 w-14 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:grid"
+        className="fixed bottom-20 right-4 z-40 grid h-12 w-12 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5 md:h-14 md:w-14"
         aria-label="Ouvrir l'assistant Qylot"
         title="Assistant Qylot"
       >
-        {open ? <X size={22} /> : <KiksAvatar size={56} ringed={false} className="!ring-0 !shadow-none" />}
+        {open ? <X size={22} /> : <KiksAvatar size={48} ringed={false} className="!ring-0 !shadow-none" />}
       </button>
 
       {open && (

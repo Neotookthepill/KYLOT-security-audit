@@ -31,7 +31,7 @@ function ColorPicker({ value, onChange, disabled }) {
           data-testid="status-color-btn"
         >
           <span className={`h-3.5 w-3.5 rounded-full ${STATUS_COLORS.find((c) => c.key === value)?.dot || "bg-slate-500"}`} />
-          <span className="text-[11px] text-slate-500 capitalize">{value}</span>
+          <span className="text-[11px] text-slate-600 capitalize">{value}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" side="bottom" align="start">
@@ -164,12 +164,12 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="status-manager-dialog">
         <DialogHeader>
           <DialogTitle>Gérer les statuts de vente</DialogTitle>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Glissez pour réordonner. Cliquez sur la pastille pour changer la couleur. Un statut système peut être désactivé et renommé mais pas supprimé.
           </p>
         </DialogHeader>
 
-        {loading && <div className="p-6 text-center text-slate-500"><Loader2 size={16} className="animate-spin inline mr-2" />Chargement…</div>}
+        {loading && <div className="p-6 text-center text-slate-600"><Loader2 size={16} className="animate-spin inline mr-2" />Chargement…</div>}
 
         {!loading && (
           <>
@@ -184,7 +184,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                   className={`flex flex-wrap items-center gap-2 p-2 rounded-md border transition ${dragging === idx ? "opacity-40" : ""} ${r.active === false ? "bg-slate-50 border-slate-200 opacity-70" : "bg-white border-slate-200 hover:border-slate-300"}`}
                   data-testid={`status-row-${r.value}`}
                 >
-                  <span className="text-slate-400 cursor-grab active:cursor-grabbing" title="Glisser pour déplacer">
+                  <span className="text-slate-600 cursor-grab active:cursor-grabbing" title="Glisser pour déplacer">
                     <GripVertical size={14} />
                   </span>
                   <ColorPicker value={r.color} onChange={(c) => updateRow(idx, { color: c })} />
@@ -198,16 +198,16 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                   {r.system ? (
                     <Badge variant="outline" className="text-[10px] shrink-0">Système</Badge>
                   ) : (
-                    <span className="text-[10px] text-slate-400 shrink-0">{r.value}</span>
+                    <span className="text-[10px] text-slate-600 shrink-0">{r.value}</span>
                   )}
                   {(usage[r.value] || 0) > 0 && (
-                    <span className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">{usage[r.value]} vente{usage[r.value] > 1 ? "s" : ""}</span>
+                    <span className="text-[10px] text-slate-600 shrink-0 whitespace-nowrap">{usage[r.value]} vente{usage[r.value] > 1 ? "s" : ""}</span>
                   )}
                   <div className="flex flex-wrap items-center gap-1 shrink-0 ml-auto">
                     <button
                       type="button"
                       onClick={() => updateRow(idx, { hides_from_projects: !r.hides_from_projects })}
-                      className={`h-8 px-2 rounded-md text-[10px] uppercase tracking-widest transition flex items-center gap-1 ${r.hides_from_projects ? "bg-red-100 text-red-800 border border-red-300" : "text-slate-400 hover:text-slate-800 hover:bg-slate-100 border border-transparent"}`}
+                      className={`h-8 px-2 rounded-md text-[10px] uppercase tracking-widest transition flex items-center gap-1 ${r.hides_from_projects ? "bg-red-100 text-red-800 border border-red-300" : "text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-transparent"}`}
                       title={r.hides_from_projects ? "Ce statut masque le chantier de Kanban/Planning — cliquer pour désactiver" : "Cliquer pour que ce statut masque automatiquement le chantier lié"}
                       data-testid={`status-hides-${r.value}`}
                     >
@@ -216,7 +216,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                     <button
                       type="button"
                       onClick={() => setRows((rs) => rs.map((x, i) => ({ ...x, default: i === idx })))}
-                      className={`h-8 px-2 rounded-md text-[10px] uppercase tracking-widest transition ${r.default ? "bg-emerald-100 text-emerald-800 border border-emerald-300" : "text-slate-400 hover:text-slate-800 hover:bg-slate-100"}`}
+                      className={`h-8 px-2 rounded-md text-[10px] uppercase tracking-widest transition ${r.default ? "bg-emerald-100 text-emerald-800 border border-emerald-300" : "text-slate-600 hover:text-slate-800 hover:bg-slate-100"}`}
                       title={r.default ? "Statut par défaut" : "Définir comme statut par défaut"}
                       data-testid={`status-default-${r.value}`}
                     >{r.default ? "Défaut ✓" : "Défaut"}</button>
@@ -230,7 +230,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
                       type="button"
                       onClick={() => removeRow(idx)}
                       disabled={r.system}
-                      className="h-8 w-8 grid place-items-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="h-8 w-8 grid place-items-center rounded-md text-slate-600 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed"
                       title={r.system ? "Statut système (non supprimable)" : (usage[r.value] || 0) > 0 ? `Supprimer (${usage[r.value]} ventes à réaffecter)` : "Supprimer"}
                       aria-label={`Supprimer le statut ${r.label || r.value}`}
                       data-testid={`status-remove-${r.value}`}
@@ -254,7 +254,7 @@ export default function StatusManagerDialog({ open, onOpenChange, onSaved }) {
             <div className="mt-4 border-t border-slate-200 pt-3">
               <p className="overline mb-2">Aperçu (statuts actifs)</p>
               <div className="flex flex-wrap gap-1.5" data-testid="status-preview">
-                {preview.length === 0 && <span className="text-xs text-slate-400 italic">Aucun statut actif</span>}
+                {preview.length === 0 && <span className="text-xs text-slate-600 italic">Aucun statut actif</span>}
                 {preview.map((r) => (
                   <Badge key={r.value} className={`${clsFromColor(r.color)} border-0`}>{r.label}</Badge>
                 ))}

@@ -158,6 +158,9 @@ export default function Clients() {
               <Button variant="outline" onClick={() => setBulkOpen(true)} data-testid="bulk-import-btn" className="hidden sm:inline-flex">
                 <Upload size={14} className="mr-1.5" /> Import copier-coller
               </Button>
+              <Button variant="outline" size="icon" className="sm:hidden" aria-label="Importer des clients" title="Importer des clients" onClick={() => setFileImportOpen(true)} data-testid="file-import-mobile-btn">
+                <Upload size={16} />
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="icon" className="sm:hidden" aria-label="Plus d’actions" data-testid="clients-more-actions">
