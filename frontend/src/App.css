@@ -115,4 +115,9 @@
     background: #94a3b8;
     border-radius: 999px;
   }
+  .qy-challenge-table th,
+  .qy-challenge-table td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 }
