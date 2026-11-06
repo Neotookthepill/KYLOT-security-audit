@@ -4419,11 +4419,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             q.update(_own_sales_filter(user))
         if _is_prospect_role(user):
             q.update(_prospect_sales_filter(user))
-        sales = await db.sales.find(q, {
-            "_id": 0, "amount": 1, "status": 1, "commission_rate": 1,
-            "commission_rate_2": 1, "commercial": 1, "commercial_2": 1,
-            "is_de": 1, "commercial_user_id": 1, "commercial_2_user_id": 1,
-        }).to_list(20000)
+        sales = await db.sales.find(q, {"_id": 0}).to_list(20000)
         ca = 0.0; count = 0; comm = 0.0; by_com = {}
         for s in sales:
             if s.get("status") in ("annule", "litige"):
@@ -4433,7 +4429,8 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             _add_ranking_share(by_com, s, amt)
         return {"ca": ca, "count": count, "commission_total": comm, "by_com": by_com}
 
-    cur, prev = await asyncio.gather(_agg(start, end), _agg(prev_start, prev_end))
+    cur = await _agg(start, end)
+    prev = await _agg(prev_start, prev_end)
 
     # iter67 : pour un commercial (scope 'own'), on veut afficher tout le classement société
     # → on ré-agrège les ventes SANS filtre 'own' pour le classement uniquement.
@@ -4456,8 +4453,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             return None
         return round(((cv - pv) / pv) * 100, 1)
 
-    team_task = asyncio.create_task(db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500))
-    team = await team_task
+    team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500)
     tmap = {t["name"]: float(t.get("objectif") or 0) for t in team}
     # iter199 — Fallback prénom accent-insensible : Théo Dudal / Anaïs Tran (users
     # sans team_member.objectif direct mais présents dans un team_member "Théo" / "Anaïs").
@@ -4556,11 +4552,9 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     # iter173 : exclure les chantiers annulés (cancelled=True) des KPI, cohérence
     # avec la vue Kanban qui filtre déjà `cancelled: {$ne: True}`.
     _proj_active = {**proj_q, "cancelled": {"$ne": True}}
-    to_schedule, in_progress, completed = await asyncio.gather(
-        db.projects.count_documents({**_proj_active, "status": "a_planifier"}),
-        db.projects.count_documents({**_proj_active, "status": "en_cours"}),
-        db.projects.count_documents({**_proj_active, "status": "termine"}),
-    )
+    to_schedule = await db.projects.count_documents({**_proj_active, "status": "a_planifier"})
+    in_progress = await db.projects.count_documents({**_proj_active, "status": "en_cours"})
+    completed = await db.projects.count_documents({**_proj_active, "status": "termine"})
 
     # --- Activité chantiers : aujourd'hui + semaine en cours (lundi -> dimanche) ---
     # Filter: projects with a real scheduled_date (YYYY-MM-DD), status != termine, and whose
