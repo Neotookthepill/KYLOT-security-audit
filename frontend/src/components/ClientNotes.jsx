@@ -46,7 +46,7 @@ export const ClientNotes = ({ clientId }) => {
           {busy ? <Loader2 size={14} className="animate-spin" /> : "Ajouter"}
         </Button>
       </div>
-      {notes.length === 0 && <p className="text-sm text-slate-500 py-4 text-center border border-dashed border-slate-200 rounded-lg mt-3">Aucune note.</p>}
+      {notes.length === 0 && <p className="text-sm text-slate-600 py-4 text-center border border-dashed border-slate-200 rounded-lg mt-3">Aucune note.</p>}
       <div className="space-y-2 mt-3">
         {notes.map((n) => (
           <div key={n.id} className="group border border-amber-100 bg-amber-50/40 rounded-lg p-3" data-testid={`client-note-${n.id}`}>
