@@ -58,7 +58,7 @@ export default function PerTechThresholdList({ globalThreshold }) {
         const usingGlobal = current === "" || current === null || current === undefined;
         const effective = usingGlobal ? (parseFloat(globalThreshold) || 30) : parseFloat(current);
         return (
-          <div key={t.id} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5" data-testid={`tech-threshold-row-${t.id}`}>
+          <div key={t.id} className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5" data-testid={`tech-threshold-row-${t.id}`}>
             <span className="flex-1 text-sm font-medium text-slate-800 truncate">{t.name}</span>
             <Input
               type="number"
@@ -67,10 +67,10 @@ export default function PerTechThresholdList({ globalThreshold }) {
               placeholder={`Global (${parseFloat(globalThreshold) || 30})`}
               value={current === null || current === undefined ? "" : current}
               onChange={(e) => setDirty((prev) => ({ ...prev, [t.id]: e.target.value }))}
-              className="h-8 w-28 text-center font-mono text-sm"
+              className="h-8 w-16 text-center font-mono text-sm sm:w-28"
               data-testid={`tech-threshold-input-${t.id}`}
             />
-            <span className="text-xs text-slate-500 w-24 tabular-nums">
+            <span className="w-16 text-[10px] text-slate-500 tabular-nums sm:w-24 sm:text-xs">
               → {effective} h/mois {usingGlobal && <em className="text-slate-400">(global)</em>}
             </span>
             <Button
