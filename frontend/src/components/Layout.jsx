@@ -140,7 +140,7 @@ export default function Layout() {
     >
       <div className={cn("flex items-center border-b border-white/[.08]", compact ? "justify-center px-2 py-5" : "gap-3 px-4 pt-6 pb-5")}>
         <div className="qy-brand-mark shrink-0">
-          {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1.5" /> : "Q"}
+          {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1.5" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />}
         </div>
         {!compact && (
           <div className="min-w-0">
@@ -273,7 +273,7 @@ export default function Layout() {
             <Menu size={20} />
           </button>
           <div className="flex min-w-0 items-center gap-2">
-            <span className="qy-brand-mark h-7 w-7 rounded-lg text-[15px]">Q</span>
+            {settings.logo ? <img src={settings.logo} alt="logo" className="qy-brand-mark h-7 w-7 rounded-lg object-contain p-0.5" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="qy-brand-mark h-7 w-7 rounded-lg object-contain" />}
             <div className="min-w-0 leading-tight">
               <div className="truncate font-display text-[15px] font-semibold tracking-[-.02em]">{appName}</div>
               <div className="truncate text-[9px] font-medium text-muted-foreground">{currentTitle}</div>

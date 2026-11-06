@@ -77,8 +77,8 @@ export default function Login() {
           <div className="pointer-events-none absolute -right-24 top-1/3 h-[380px] w-[380px] rounded-full border border-[#c8784e]/15" />
 
           <div className="relative flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f7f3e9] font-display text-2xl font-bold text-[#0b1220]" data-testid="login-logo">
-              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : "Q"}
+            <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#f7f3e9]" data-testid="login-logo">
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />}
             </div>
             <div>
               <div className="font-display text-[22px] font-semibold leading-none tracking-[-.02em]">{appName}</div>
@@ -113,7 +113,9 @@ export default function Login() {
         {/* Form panel */}
         <section className="flex min-h-screen flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#0b1220] font-display text-lg font-bold text-[#f7f3e9]">Q</div>
+            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg bg-[#0b1220]">
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg" alt="Qylot" className="h-full w-full object-contain" />}
+            </div>
             <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>
           </div>
 

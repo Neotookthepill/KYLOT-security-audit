@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 152 160" role="img" aria-labelledby="title">
+  <title id="title">Qylot</title>
+  <rect width="152" height="160" rx="30" fill="#f4efe5"/>
+  <g transform="translate(11 10) scale(.88)">
+    <path fill="#07111f" fill-rule="evenodd" d="M75 8C34 8 8 34 8 75C8 116 34 142 75 142C116 142 142 116 142 75C142 34 116 8 75 8ZM75 34C99 34 115 50 115 75C115 100 99 116 75 116C51 116 35 100 35 75C35 50 51 34 75 34Z"/>
+    <path fill="#df8758" d="M64 113C79 109 88 117 97 127C106 138 118 144 133 140C122 154 105 159 90 151C78 145 73 134 62 124Z"/>
+  </g>
+</svg>
