@@ -4456,8 +4456,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
             return None
         return round(((cv - pv) / pv) * 100, 1)
 
-    team_task = asyncio.create_task(db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500))
-    team = await team_task
+    team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500)
     tmap = {t["name"]: float(t.get("objectif") or 0) for t in team}
     # iter199 — Fallback prénom accent-insensible : Théo Dudal / Anaïs Tran (users
     # sans team_member.objectif direct mais présents dans un team_member "Théo" / "Anaïs").
