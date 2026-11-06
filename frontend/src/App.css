@@ -89,15 +89,15 @@
 @media (max-width: 767px) {
   button,
   [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 44px !important;
+    min-width: 44px !important;
     touch-action: manipulation;
   }
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 44px !important;
+    min-width: 44px !important;
   }
   .overflow-x-auto {
     -webkit-overflow-scrolling: touch;

@@ -244,7 +244,7 @@ export default function ChallengeWidget() {
             </div>
 
             <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto">
-              <table className="w-full min-w-[340px] text-sm">
+              <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left">
                   <tr>
                     <th className="px-3 py-2 overline whitespace-nowrap">Rang</th>
