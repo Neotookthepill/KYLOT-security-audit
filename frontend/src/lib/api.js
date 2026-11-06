@@ -103,7 +103,12 @@ api.interceptors.response.use(
     const publicAuthPage = typeof window !== "undefined"
       && ["/login", "/forgot-password", "/reset-password"].some((p) => window.location.pathname.startsWith(p));
     const publicAuthCall = /\/auth\/(login|register|forgot-password|reset-password)/.test(url);
-    if (status === 401 && !publicAuthCall && !publicAuthPage) {
+    const isAuthMe = /\/auth\/me/.test(url);
+    if (status === 401 && isAuthMe) {
+      // AuthContext décide lui-même du retry/redirect. Un 401 transitoire sur
+      // /auth/me au refresh ne doit pas expulser l'utilisateur avant la 2e tentative.
+      await clearExpiredSessionState();
+    } else if (status === 401 && !publicAuthCall && !publicAuthPage) {
       await clearExpiredSessionState();
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         // Preserve the current route to redirect after re-login (optional)

@@ -34,17 +34,29 @@ export function AuthProvider({ children }) {
     // an HttpOnly cookie that cannot be exfiltrated by frontend JavaScript.
     localStorage.removeItem("pylot_token");
     localStorage.removeItem("chantierpro_token");
-    api.get("/auth/me")
-      .then((r) => {
-        setOfflineIdentity(r.data?.id);
-        setUser(r.data);
-        syncOffline();
-      })
-      .catch(() => {
-        setOfflineIdentity(null);
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const bootstrap = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const r = await api.get("/auth/me");
+          if (cancelled) return;
+          setOfflineIdentity(r.data?.id);
+          setUser(r.data);
+          syncOffline();
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 450));
+            continue;
+          }
+          setOfflineIdentity(null);
+          setUser(null);
+        }
+      }
+    };
+    bootstrap().finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   // Live-refresh the current user's profile (permissions, role, name) every 20s
