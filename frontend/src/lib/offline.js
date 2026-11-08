@@ -204,6 +204,10 @@ export const resolveConflict = (choice) => { if (resolver) { resolver(choice); r
 let running = false;
 export const syncNow = async (send) => {
   if (running || !identity || !navigator.onLine) return;
+  // Le timer de 20 s ne doit pas afficher « Synchronisation en cours… »
+  // quand la file est vide : cela faisait clignoter la barre hors ligne.
+  const initialQueue = await getQueue();
+  if (!initialQueue.length) return;
   running = true;
   const syncIdentity = identity;
   const syncEpoch = identityEpoch;
