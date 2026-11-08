@@ -254,14 +254,14 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <div className="sticky top-0 hidden h-screen shrink-0 md:block">
-        <SidebarContent compact={collapsed} />
+        {SidebarContent({ compact: collapsed })}
       </div>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden" data-testid="mobile-drawer">
           <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={closeMobile} />
           <div className="absolute left-0 top-0 bottom-0 shadow-2xl">
-            <SidebarContent inDrawer />
+            {SidebarContent({ inDrawer: true })}
           </div>
         </div>
       )}

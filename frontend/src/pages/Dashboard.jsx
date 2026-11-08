@@ -219,6 +219,7 @@ function writeDashCache(userId, period, data) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const loadSeq = useRef(0);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [period, setPeriod] = useState("month");
@@ -350,15 +351,20 @@ export default function Dashboard() {
   };
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const cached = readDashCache(user?.id, period);
     if (cached) setData(cached);
+    else setData(null);
     setLoading(true);
     try {
       const r = await api.get(`/dashboard/executive?period=${period}`);
+      // Une réponse du mois précédent ne doit jamais écraser le mois courant
+      // si l'utilisateur change de période pendant la requête.
+      if (seq !== loadSeq.current) return;
       setData(r.data);
       writeDashCache(user?.id, period, r.data);
     } catch (_) { /* keep previous/cached data */ }
-    finally { setLoading(false); }
+    finally { if (seq === loadSeq.current) setLoading(false); }
   }, [period, user?.id]);
   // iter53 : totaux société (secondaire) pour un commercial
   const loadCompanyCmp = useCallback(async () => {
