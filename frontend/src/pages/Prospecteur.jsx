@@ -57,9 +57,12 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
   );
 }
 
-const comMonth = (r) => r.commission_month || r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
+const comMonth = (r) => {
+  const raw = r.commission_month || r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
+  return /^\d{4}-\d{2}$/.test(String(raw || "")) ? String(raw) : (r.sale_date || "").slice(0, 7);
+};
 const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-const monthLabel = (ym) => (ym ? `${MONTHS_FR[parseInt(ym.slice(5, 7), 10) - 1]} ${ym.slice(0, 4)}` : "—");
+const monthLabel = (ym) => (/^\d{4}-\d{2}$/.test(String(ym || "")) ? `${MONTHS_FR[parseInt(ym.slice(5, 7), 10) - 1]} ${ym.slice(0, 4)}` : "—");
 const monthOptions = (saleYm) => {
   const set = new Set();
   const now = new Date();

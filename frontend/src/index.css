@@ -550,3 +550,41 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 @media (min-width: 768px) and (max-width: 1439px) {
   .qy-sales-table-wrap { overflow-x: hidden; }
 }
+
+/* Mobile : garder le tableau de ventes en ligne, comme sur ordinateur.
+   Le tableau défile horizontalement au lieu d'être transformé en cartes. */
+@media (max-width: 767px) {
+  .qy-page .sales-table {
+    display: table;
+    table-layout: auto;
+    width: max-content;
+    min-width: 980px;
+  }
+  .qy-page .sales-table thead { display: table-header-group; }
+  .qy-page .sales-table tbody { display: table-row-group; }
+  .qy-page .sales-table tr {
+    display: table-row;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .qy-page .sales-table th,
+  .qy-page .sales-table td {
+    display: table-cell;
+    text-align: left;
+    vertical-align: top;
+    white-space: normal;
+    padding: .5rem .55rem !important;
+    border-bottom: 1px solid hsl(var(--border) / .55);
+    font-size: .78rem;
+  }
+  .qy-page .sales-table th { white-space: nowrap; }
+  .qy-page .sales-table td::before { display: none; content: none; }
+  .qy-page .sales-table th:nth-child(3), .qy-page .sales-table td:nth-child(3),
+  .qy-page .sales-table th:nth-child(10), .qy-page .sales-table td:nth-child(10),
+  .qy-page .sales-table th:nth-child(11), .qy-page .sales-table td:nth-child(11) {
+    display: table-cell;
+  }
+}
