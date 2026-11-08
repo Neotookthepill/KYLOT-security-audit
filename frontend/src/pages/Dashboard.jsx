@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
