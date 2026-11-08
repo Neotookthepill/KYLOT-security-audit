@@ -199,7 +199,7 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
   );
 }
 
-const DASH_CACHE_PREFIX = "kylot_dashboard_snapshot_v1";
+const DASH_CACHE_PREFIX = "kylot_dashboard_snapshot_v2";
 function dashCacheKey(userId, period) {
   return `${DASH_CACHE_PREFIX}:${userId || "anon"}:${period}`;
 }

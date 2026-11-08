@@ -33,8 +33,12 @@ const collectionOf = (path, method) => {
 };
 const idOf = (path) => { const last = path.split("/").pop(); return ID_RE.test(last || "") ? last : null; };
 export const cacheKey = (config) => {
+  // Ne pas perdre la query string : /dashboard/executive?period=month et
+  // ?period=prev doivent avoir deux entrées de cache distinctes.
+  const rawQuery = (config.url || "").split("?")[1] || "";
   const params = config.params ? JSON.stringify(config.params) : "";
-  return `${identity || "unauthenticated"} GET ${pathOf(config.url)}${params ? `?${params}` : ""}`;
+  const query = [rawQuery, params].filter(Boolean).join("&");
+  return `${identity || "unauthenticated"} GET ${pathOf(config.url)}${query ? `?${query}` : ""}`;
 };
 
 const clearCacheOnly = async () => {
