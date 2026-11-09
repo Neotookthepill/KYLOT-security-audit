@@ -395,7 +395,7 @@ export default function CalendarPage() {
                         // `termine` en base tant que le cycle vente n'est pas explicitement clôturé.
                         const dayDone = !!(p.days_done && p.days_done[p._cellDate]);
                         const baseStatus = p._totalDays > 1 && dayDone && p.status !== "termine" && p.status !== "encaisse" ? "termine" : p.status;
-                        const effectiveStatus = (p.sale_status === "argent_recupere") ? "encaisse" : baseStatus;
+                        const effectiveStatus = isSalePaid(p.sale_status) ? "encaisse" : baseStatus;
                         return (
                           <button
                             key={`${p.id}-${p._dayIndex}`}

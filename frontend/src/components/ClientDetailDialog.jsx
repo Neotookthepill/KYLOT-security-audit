@@ -34,7 +34,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
 
   if (!client) return null;
 
-  const active = sales.filter((s) => s.status !== "annule" && s.status !== "litige");
+  const active = sales.filter((s) => isSaleCountedInCA(s.status));
   const totalCA = active.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0);
 
   return (
