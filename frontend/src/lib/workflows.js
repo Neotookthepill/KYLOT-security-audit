@@ -9,16 +9,16 @@
  */
 
 export const SALE_PHASES = Object.freeze({
-  pending_finance: { label: "En attente financement", terminal: false, active: true, commissionable: false },
-  pending_schedule: { label: "À planifier", terminal: false, active: true, commissionable: true },
-  in_progress: { label: "En cours", terminal: false, active: true, commissionable: true },
-  work_done: { label: "Travaux terminés", terminal: false, active: true, commissionable: true },
-  pending_cheque: { label: "Chèque à récupérer", terminal: false, active: true, commissionable: true },
-  paid: { label: "Encaissé", terminal: true, active: false, commissionable: true },
-  dispute: { label: "Litige", terminal: true, active: false, commissionable: false },
-  cancelled: { label: "Annulé", terminal: true, active: false, commissionable: false },
-  non_financable: { label: "Non finançable", terminal: true, active: false, commissionable: false },
-  unknown: { label: "Statut personnalisé", terminal: false, active: true, commissionable: true },
+  pending_finance: { label: "En attente financement", terminal: false, active: true, commissionable: true, countsCA: true },
+  pending_schedule: { label: "À planifier", terminal: false, active: true, commissionable: true, countsCA: true },
+  in_progress: { label: "En cours", terminal: false, active: true, commissionable: true, countsCA: true },
+  work_done: { label: "Travaux terminés", terminal: false, active: true, commissionable: true, countsCA: true },
+  pending_cheque: { label: "Chèque à récupérer", terminal: false, active: true, commissionable: true, countsCA: true },
+  paid: { label: "Encaissé", terminal: true, active: false, commissionable: true, countsCA: true },
+  dispute: { label: "Litige", terminal: true, active: false, commissionable: false, countsCA: false },
+  cancelled: { label: "Annulé", terminal: true, active: false, commissionable: false, countsCA: false },
+  non_financable: { label: "Non finançable", terminal: true, active: false, commissionable: false, countsCA: true },
+  unknown: { label: "Statut personnalisé", terminal: false, active: true, commissionable: true, countsCA: true },
 });
 
 const DEFAULT_SALE_PHASE = Object.freeze({
@@ -50,6 +50,8 @@ export function salePhaseMeta(status, overrides) {
 export const isSaleActive = (status, overrides) => salePhaseMeta(status, overrides).active;
 export const isSaleTerminal = (status, overrides) => salePhaseMeta(status, overrides).terminal;
 export const isSaleCommissionable = (status, overrides) => salePhaseMeta(status, overrides).commissionable;
+export const isSaleCountedInCA = (status, overrides) => salePhaseMeta(status, overrides).countsCA;
+export const isSalePaid = (status) => salePhase(status) === "paid";
 
 /**
  * Le chantier a des états stables ; `cancelled` reste un champ séparé.

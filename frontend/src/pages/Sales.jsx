@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SALE_STATUSES, STATUS_MAP, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
+import { isSaleCountedInCA } from "@/lib/workflows";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -815,7 +816,7 @@ export default function Sales() {
           )}
         </div>
         {(queries.length > 0 || q.trim()) && (() => {
-          const act = filtered.filter((s) => s.status !== "annule" && s.status !== "litige");
+          const act = filtered.filter((s) => isSaleCountedInCA(s.status));
           return (
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-baseline gap-x-6 gap-y-1" data-testid="sales-search-summary">
               <span className="text-sm text-slate-600">Résultat de la recherche : <b className="text-slate-900" data-testid="sales-search-count">{pageTotal} vente{pageTotal > 1 ? "s" : ""}</b></span>
@@ -1163,7 +1164,7 @@ export default function Sales() {
                   {confirmDelete.amount ? <> ({fmtEur(confirmDelete.amount)})</> : null}
                   {confirmDelete.bdc ? <> · BDC <span className="font-mono text-xs">{confirmDelete.bdc}</span></> : null}.
                   <br />
-                  Cette action est <span className="font-semibold text-red-700">définitive</span> et supprimera aussi le chantier lié.
+                  Cette action est <span className="font-semibold text-red-700">définitive</span>. Si un chantier est lié, la suppression sera refusée : annulez la vente ou archivez-la pour conserver l'historique.
                 </>
               )}
             </AlertDialogDescription>

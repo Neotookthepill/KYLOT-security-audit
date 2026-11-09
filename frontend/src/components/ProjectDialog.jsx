@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import useTeam from "@/lib/useTeam";
 import { useAuth } from "@/contexts/AuthContext";
 import TechNotesSection from "@/components/TechNotesSection";
+import { salePhase } from "@/lib/workflows";
 
 function fileToBase64(file, maxW = 1600) {
   return new Promise((resolve, reject) => {
@@ -351,7 +352,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
   // commerciaux). Seul `encaisse` (argent récupéré, cycle clos) masque le bouton.
   // iter218 : idem si la vente liée est `argent_recupere` → cycle clos, on masque aussi.
   const isAdminLike = ["admin", "responsable", "super_admin"].includes(user?.role);
-  const saleClosed = form.sale_status === "argent_recupere";
+  const saleClosed = salePhase(form.sale_status) === "paid";
   const alreadyDone = isAdminLike
     ? (form.status === "encaisse" || saleClosed)
     : (form.status === "termine" || form.status === "encaisse" || saleClosed);

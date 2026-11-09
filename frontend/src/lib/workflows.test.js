@@ -4,6 +4,8 @@ import {
   isSaleActive,
   isSaleTerminal,
   isSaleCommissionable,
+  isSaleCountedInCA,
+  isSalePaid,
   projectState,
   canProjectTransition,
   commissionState,
@@ -23,6 +25,17 @@ describe("workflow contracts", () => {
 
   test("custom statuses can declare their phase without a code change", () => {
     expect(salePhase("en_attente_client", { en_attente_client: "pending_schedule" })).toBe("pending_schedule");
+  });
+
+  test("CA and commission capabilities preserve current business rules", () => {
+    expect(isSaleCountedInCA("en_cours")).toBe(true);
+    expect(isSaleCountedInCA("argent_recupere")).toBe(true);
+    expect(isSaleCountedInCA("annule")).toBe(false);
+    expect(isSaleCommissionable("attente_fi")).toBe(true);
+    expect(isSaleCommissionable("non_financable")).toBe(false);
+    expect(isSalePaid("argent_recupere")).toBe(true);
+    expect(isSalePaid("virement_recu")).toBe(true);
+    expect(isSalePaid("en_cours")).toBe(false);
   });
 
   test("active, terminal and commissionable are derived from the phase", () => {

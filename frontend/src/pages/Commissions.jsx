@@ -17,6 +17,7 @@ import InlineCell from "@/components/InlineCell";
 import BonusesProgress from "@/components/BonusesProgress";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import CommissionHistory from "@/components/CommissionHistory";
+import { isSaleCommissionable } from "@/lib/workflows";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 
@@ -254,7 +255,7 @@ export default function Commissions() {
     const matchesMonth = rowMonth === activeMonth;
     // iter205 : « non finançable » = pas de paiement possible → exclu des commissions
     // (au même titre que annulé et litige).
-    const commissionable = r.status !== "annule" && r.status !== "litige" && r.status !== "non_financable";
+    const commissionable = isSaleCommissionable(r.status);
     return matchesText && matchesCommercial && matchesMonth && commissionable;
   }), [rows, q, commercialFilter, activeMonth]);
 

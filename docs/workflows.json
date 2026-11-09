@@ -10,16 +10,16 @@
   },
   "sale": {
     "phases": {
-      "pending_finance": { "active": true, "terminal": false, "commissionable": false },
-      "pending_schedule": { "active": true, "terminal": false, "commissionable": true },
-      "in_progress": { "active": true, "terminal": false, "commissionable": true },
-      "work_done": { "active": true, "terminal": false, "commissionable": true },
-      "pending_cheque": { "active": true, "terminal": false, "commissionable": true },
-      "paid": { "active": false, "terminal": true, "commissionable": true },
-      "dispute": { "active": false, "terminal": true, "commissionable": false },
-      "cancelled": { "active": false, "terminal": true, "commissionable": false },
-      "non_financable": { "active": false, "terminal": true, "commissionable": false },
-      "unknown": { "active": true, "terminal": false, "commissionable": true }
+      "pending_finance": { "active": true, "terminal": false, "commissionable": true, "countsCA": true },
+      "pending_schedule": { "active": true, "terminal": false, "commissionable": true, "countsCA": true },
+      "in_progress": { "active": true, "terminal": false, "commissionable": true, "countsCA": true },
+      "work_done": { "active": true, "terminal": false, "commissionable": true, "countsCA": true },
+      "pending_cheque": { "active": true, "terminal": false, "commissionable": true, "countsCA": true },
+      "paid": { "active": false, "terminal": true, "commissionable": true, "countsCA": true },
+      "dispute": { "active": false, "terminal": true, "commissionable": false, "countsCA": false },
+      "cancelled": { "active": false, "terminal": true, "commissionable": false, "countsCA": false },
+      "non_financable": { "active": false, "terminal": true, "commissionable": false, "countsCA": true },
+      "unknown": { "active": true, "terminal": false, "commissionable": true, "countsCA": true }
     },
     "default_phase_by_status": {
       "attente_fi": "pending_finance",

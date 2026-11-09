@@ -609,7 +609,20 @@ Aucune régression fonctionnelle
 
 ---
 
-# 6. Conclusion
+# 6. Mise en œuvre — phase 1
+
+Branchement sans changement de comportement :
+
+```text
+Sales.jsx          : CA de recherche via isSaleCountedInCA
+Commissions.jsx    : éligibilité via isSaleCommissionable
+ProjectDialog.jsx  : vente encaissée via salePhase
+```
+
+Le message de suppression de vente est aligné sur la règle backend :
+un chantier lié bloque la suppression.
+
+# 7. Conclusion
 
 La meilleure décision n’est pas d’ajouter un moteur de state machine lourd.
 
