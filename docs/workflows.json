@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "contract": "qylot-workflows",
+  "updated_at": "2026-11-09",
+  "principles": {
+    "sale_statuses_configurable": true,
+    "rigid_sale_graph": false,
+    "backend_authority": true,
+    "derive_capabilities_from_phase": true
+  },
+  "sale": {
+    "phases": {
+      "pending_finance": { "active": true, "terminal": false, "commissionable": false },
+      "pending_schedule": { "active": true, "terminal": false, "commissionable": true },
+      "in_progress": { "active": true, "terminal": false, "commissionable": true },
+      "work_done": { "active": true, "terminal": false, "commissionable": true },
+      "pending_cheque": { "active": true, "terminal": false, "commissionable": true },
+      "paid": { "active": false, "terminal": true, "commissionable": true },
+      "dispute": { "active": false, "terminal": true, "commissionable": false },
+      "cancelled": { "active": false, "terminal": true, "commissionable": false },
+      "non_financable": { "active": false, "terminal": true, "commissionable": false },
+      "unknown": { "active": true, "terminal": false, "commissionable": true }
+    },
+    "default_phase_by_status": {
+      "attente_fi": "pending_finance",
+      "attente_prog": "pending_schedule",
+      "en_cours": "in_progress",
+      "chantier_fini": "work_done",
+      "commercial_cheque": "pending_cheque",
+      "argent_recupere": "paid",
+      "virement_recu": "paid",
+      "litige": "dispute",
+      "annule": "cancelled",
+      "non_financable": "non_financable"
+    },
+    "events": [
+      "SALE_STATUS_CHANGED",
+      "SALE_DELETED",
+      "SALE_RESTORED"
+    ]
+  },
+  "project": {
+    "states": ["a_planifier", "en_cours", "termine", "encaisse", "cancelled"],
+    "transitions": {
+      "a_planifier": ["en_cours", "cancelled"],
+      "en_cours": ["a_planifier", "termine", "cancelled"],
+      "termine": ["en_cours", "encaisse", "cancelled"],
+      "encaisse": [],
+      "cancelled": []
+    },
+    "events": [
+      "PROJECT_SCHEDULED",
+      "PROJECT_STARTED",
+      "PROJECT_COMPLETED",
+      "PROJECT_CANCELLED",
+      "PROJECT_RESTORED"
+    ]
+  },
+  "commission": {
+    "states": ["cancelled", "not_eligible", "deferred", "to_pay", "paid"],
+    "events": ["COMMISSION_DEFERRED", "COMMISSION_PAID", "COMMISSION_REOPENED"]
+  },
+  "challenge": {
+    "states": ["upcoming", "active", "closed", "archived"],
+    "events": ["CHALLENGE_STARTED", "CHALLENGE_CLOSED", "CHALLENGE_ARCHIVED"]
+  },
+  "sync": {
+    "states": ["idle", "pending", "offline", "syncing", "conflict", "error"],
+    "events": [
+      "QUEUE_ADDED",
+      "SYNC_STARTED",
+      "SYNC_SUCCEEDED",
+      "SYNC_FAILED",
+      "CONFLICT_FOUND",
+      "CONFLICT_RESOLVED"
+    ]
+  },
+  "auth": {
+    "states": ["loading", "anonymous", "mfa_required", "mfa_setup_required", "mfa_grace", "authenticated", "expired"],
+    "events": ["LOGIN_SUCCEEDED", "MFA_REQUIRED", "MFA_VERIFIED", "SESSION_EXPIRED", "LOGOUT"]
+  },
+  "form": {
+    "states": ["idle", "dirty", "submitting", "success", "error"],
+    "guards": {
+      "can_submit": "dirty && !submitting",
+      "can_close": "!submitting"
+    }
+  }
+}
