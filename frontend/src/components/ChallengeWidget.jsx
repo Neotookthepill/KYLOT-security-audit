@@ -55,6 +55,7 @@ export default function ChallengeWidget() {
   const [history, setHistory] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [closing, setClosing] = useState(false);
   const isAdmin = user?.role === "admin";
 
   const load = async () => {
@@ -158,14 +159,17 @@ export default function ChallengeWidget() {
   };
 
   const closeChallenge = async () => {
-    if (!data.challenge) return;
+    if (!data.challenge || closing) return;
     if (!window.confirm(`Clôturer « ${data.challenge.name} » ? Le classement sera figé.`)) return;
+    setClosing(true);
     try {
       await api.post(`/challenges/${data.challenge.id}/close`);
       toast.success("Challenge clôturé");
       await load();
     } catch (err) {
       toast.error(formatApiError(err));
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -198,7 +202,7 @@ export default function ChallengeWidget() {
               {ch ? (
                 <>
                   <Button variant="outline" size="sm" onClick={startEdit}><Pencil size={13} className="mr-1" /> Modifier</Button>
-                  <Button variant="outline" size="sm" onClick={closeChallenge}><XCircle size={13} className="mr-1" /> Clôturer</Button>
+                  <Button variant="outline" size="sm" onClick={closeChallenge} disabled={closing}><XCircle size={13} className="mr-1" /> {closing ? "Clôture…" : "Clôturer"}</Button>
                 </>
               ) : (
                 <>

@@ -42,6 +42,7 @@ function StatCard({ label, value, icon: Icon, testId }) {
 }
 
 export default function Commissions() {
+  const [patching, setPatching] = useState(false);
   const { user, can, loading: authLoading } = useAuth();
   const { commerciaux } = useTeam();
   const { settings } = useSettings();
@@ -194,12 +195,15 @@ export default function Commissions() {
   const removeRate = (r) => saveRates(rates.filter((x) => x !== r));
 
   const patchSale = async (sale_id, patch, {confirm} = {}) => {
+    if (patching) return;
     if (confirm && !window.confirm(confirm)) return;
+    setPatching(true);
     try {
       await api.put(`/sales/${sale_id}`, patch);
       toast.success("Modifié");
       load();
     } catch (err) { toast.error(formatApiError(err)); throw err; }
+    finally { setPatching(false); }
   };
 
   const monthTabs = useMemo(() => {
@@ -534,7 +538,7 @@ export default function Commissions() {
                     <td className="px-3 py-3 font-semibold whitespace-nowrap text-emerald-700 text-right" data-testid={`commission-amount-${r.sale_id}`}>{fmtEur(r.commission_amount)}</td>
                     <td className="px-3 py-3 whitespace-nowrap">
                       {canEditCommissions ? (
-                        <Select value={r.commission_month || currentMonth()} onValueChange={(v) => patchSale(r.sale_id, { commission_month: v })}>
+                        <Select value={r.commission_month || currentMonth()} disabled={patching} onValueChange={(v) => patchSale(r.sale_id, { commission_month: v })}>
                           <SelectTrigger className="h-8 w-40" aria-label={`Mois de paiement ${r.client_name || r.sale_id}`} data-testid={`commission-month-${r.sale_id}`}><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {paymentMonthOptions.map((o) => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
@@ -545,7 +549,7 @@ export default function Commissions() {
                       )}
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap">
-                      <InlineCell type="select" value={r.status || ""} options={statusOptions} disabled={!canEditCommissions}
+                      <InlineCell type="select" value={r.status || ""} options={statusOptions} disabled={!canEditCommissions || patching}
                         display={<Badge className={`${st?.cls || "bg-slate-200 text-slate-700"} border-0`} data-testid={`commission-status-${r.sale_id}`}>{st?.label || r.status}</Badge>}
                         onSave={(v) => patchSale(r.sale_id, { status: v })}
                         testId={`commission-status-edit-${r.sale_id}`} />
@@ -554,6 +558,7 @@ export default function Commissions() {
                       {canEditCommissions ? (
                         <button
                           onClick={() => patchSale(r.sale_id, { commission_paid: !r.commission_paid })}
+                          disabled={patching}
                           data-testid={`commission-paid-${r.sale_id}`}
                           className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${r.commission_paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                         >
