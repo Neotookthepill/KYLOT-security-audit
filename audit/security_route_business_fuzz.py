@@ -56,6 +56,8 @@ PUBLIC_API_ROUTES = {
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/mfa/verify"),
     ("POST", "/api/auth/logout"),
+    ("POST", "/api/auth/forgot-password"),
+    ("POST", "/api/auth/reset-password"),
     ("POST", "/api/cron/rappel-chantiers-j1"),
     ("POST", "/api/cron/bilan-mensuel"),
     ("POST", "/api/stripe/webhook"),

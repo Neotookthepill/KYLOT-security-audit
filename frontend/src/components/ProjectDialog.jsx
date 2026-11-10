@@ -300,12 +300,16 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       const gps = await getCurrentPosition();
       const b64s = await Promise.all(arr.map((f) => fileToBase64(f)));
       const takenAt = new Date().toISOString();
+      const requestId = (typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `photo-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const rich = b64s.map((src) => ({
         src,
         taken_at: takenAt,
         added_by: user?.name || user?.email || "?",
         added_by_id: user?.id,
         created_at: takenAt,
+        client_request_id: requestId,
         ...(gps ? { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy } : {}),
       }));
       const previous = form.photos || [];
@@ -314,7 +318,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       try {
         // Ajout atomique : n'envoie que les nouvelles photos. L'ancien PUT
         // renvoyait toute la liste et perdait les ajouts concurrents.
-        await api.post(`/projects/${project.id}/photos`, { photos: rich });
+        await api.post(`/projects/${project.id}/photos`, { photos: rich, client_request_id: requestId });
         toast.success(`${rich.length} photo(s) ajoutée(s)${gps ? " · position enregistrée" : ""}`);
       } catch (err) {
         // Ne pas laisser une photo affichée alors qu'elle n'est pas sauvegardée.

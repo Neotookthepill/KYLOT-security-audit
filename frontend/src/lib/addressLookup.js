@@ -6,16 +6,17 @@
 
 const clean = (value) => String(value || "").trim();
 
-async function search(query, type = "municipality") {
+async function search(query) {
   const q = clean(query);
   if (!q) return null;
   try {
-    const res = await fetch(
-      `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&type=${type}&limit=1`,
-    );
+    // Proxy serveur : garde-fou ALLOW_EXTERNAL_GEOCODING + aucune adresse
+    // complète n'est transmise, seulement un code postal ou une ville.
+    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.features?.[0]?.properties || null;
+    if (!data?.found) return null;
+    return { city: data.city, postcode: data.postal_code };
   } catch (_) {
     return null;
   }

@@ -194,6 +194,7 @@ def _validated_photo_entries(photos: Any, *, max_count: Optional[int] = None) ->
     allowed_metadata = {
         "taken_at", "created_at", "added_by", "added_by_id", "by_completion",
         "lat", "lng", "accuracy", "latitude", "longitude", "gps", "day",
+        "client_request_id",
     }
     for photo in photos:
         raw_source = photo if isinstance(photo, str) else (photo.get("src") if isinstance(photo, dict) else None)
@@ -1160,7 +1161,6 @@ class ProjectUpdate(BaseModel):
     priority: Optional[str] = Field(default=None, max_length=40)
     notes: Optional[str] = Field(default=None, max_length=5000)
     duration_days: Optional[int] = Field(default=None, ge=1, le=365)
-    photos: Optional[List[Union[str, dict]]] = Field(default=None, max_length=MAX_PHOTOS_PER_ENTITY)
 
     @field_validator("scheduled_date")
     @classmethod
@@ -1383,10 +1383,40 @@ async def login(data: LoginIn, response: Response, request: Request):
     set_auth_cookie(response, token)
     return {**_auth_response(u, token), **mfa_state}
 
+PASSWORD_RESET_WINDOW_MIN = 15
+PASSWORD_RESET_EMAIL_MAX = 5
+PASSWORD_RESET_IP_MAX = 20
+
+
+async def _check_password_reset_rate(request: Request, email: str) -> bool:
+    """Rate-limit les demandes de reset par email et par IP, en base partagée."""
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=PASSWORD_RESET_WINDOW_MIN)
+    ip = (request.client.host if request.client else "") or "unknown"
+    await db.password_reset_attempts.delete_many({"expires_at": {"$lte": now}})
+    email_count = await db.password_reset_attempts.count_documents({
+        "email": email, "created_at": {"$gt": window_start},
+    })
+    ip_count = await db.password_reset_attempts.count_documents({
+        "ip": ip, "created_at": {"$gt": window_start},
+    })
+    if email_count >= PASSWORD_RESET_EMAIL_MAX or ip_count >= PASSWORD_RESET_IP_MAX:
+        return False
+    await db.password_reset_attempts.insert_one({
+        "email": email,
+        "ip": ip,
+        "created_at": now,
+        "expires_at": now + timedelta(minutes=PASSWORD_RESET_WINDOW_MIN * 2),
+    })
+    return True
+
+
 @api_router.post("/auth/forgot-password")
-async def forgot_password(data: ForgotPasswordIn):
+async def forgot_password(data: ForgotPasswordIn, request: Request):
     """Demande de réinitialisation. Réponse volontairement générique."""
     email = (data.email or "").strip().lower()
+    if not await _check_password_reset_rate(request, email):
+        raise HTTPException(status_code=429, detail="Trop de demandes. Réessayez dans quelques minutes.")
     user = await db.users.find_one({"email": email, "is_active": {"$ne": False}})
     if user:
         raw = secrets.token_urlsafe(32)
@@ -1420,9 +1450,13 @@ async def forgot_password(data: ForgotPasswordIn):
 async def reset_password(data: ResetPasswordIn):
     token_hash = hashlib.sha256((data.token or "").encode("utf-8")).hexdigest()
     now = datetime.now(timezone.utc)
-    record = await db.password_resets.find_one({
-        "token_hash": token_hash, "used": False, "expires_at": {"$gt": now},
-    })
+    # Consommation atomique : deux requêtes concurrentes ne peuvent pas utiliser
+    # le même token, même si elles arrivent exactement en même temps.
+    record = await db.password_resets.find_one_and_update(
+        {"token_hash": token_hash, "used": False, "expires_at": {"$gt": now}},
+        {"$set": {"used": True, "used_at": now}},
+        return_document=ReturnDocument.AFTER,
+    )
     if not record:
         raise HTTPException(status_code=400, detail="Lien invalide ou expiré")
     user = await db.users.find_one({"id": record["user_id"], "is_active": {"$ne": False}})
@@ -1433,7 +1467,6 @@ async def reset_password(data: ResetPasswordIn):
         {"id": user["id"]},
         {"$set": {"password_hash": hash_password(data.password), "token_epoch_ms": now_ms, "token_epoch": int(time.time())}},
     )
-    await db.password_resets.update_one({"_id": record["_id"]}, {"$set": {"used": True, "used_at": now}})
     await db.password_resets.delete_many({"user_id": user["id"], "used": False})
     return {"message": "Mot de passe mis à jour. Vous pouvez vous reconnecter."}
 
@@ -2040,7 +2073,7 @@ _GEO_SEM = asyncio.Semaphore(8)
 async def _geocode_fr(client_http, addr: str):
     async with _GEO_SEM:
         try:
-            r = await client_http.get("https://api-adresse.data.gouv.fr/search/", params={"q": addr, "limit": 1}, timeout=8)
+            r = await client_http.get("https://data.geopf.fr/geocodage/search/", params={"q": addr, "limit": 1}, timeout=8)
             feats = (r.json() or {}).get("features") or []
             if feats:
                 lng, lat = feats[0]["geometry"]["coordinates"]
@@ -2048,6 +2081,40 @@ async def _geocode_fr(client_http, addr: str):
         except Exception:
             logger.warning("Échec du géocodage externe", exc_info=True)
     return None
+
+
+@api_router.get("/geocode")
+async def geocode_city(q: str = Query(..., min_length=2, max_length=80), user: dict = Depends(get_current_user)):
+    """Complète code postal/ville via la Géoplateforme, sans exposer l'adresse complète."""
+    enabled = (os.environ.get("ALLOW_EXTERNAL_GEOCODING") or ("false" if _IS_PRODUCTION else "true")).strip().lower() in ("1", "true", "yes")
+    if not enabled:
+        raise HTTPException(status_code=503, detail="Géocodage externe désactivé")
+    value = q.strip()
+    if not re.fullmatch(r"(\d{5}|[A-Za-zÀ-ÿ' -]{2,80})", value):
+        raise HTTPException(status_code=422, detail="Recherche limitée à un code postal ou une ville")
+    async with httpx.AsyncClient() as hc:
+        async with _GEO_SEM:
+            try:
+                r = await hc.get(
+                    "https://data.geopf.fr/geocodage/search/",
+                    params={"q": value, "index": "address", "limit": 1},
+                    timeout=8,
+                )
+                if r.status_code != 200:
+                    return {"found": False}
+                feats = (r.json() or {}).get("features") or []
+                if not feats:
+                    return {"found": False}
+                props = feats[0].get("properties") or {}
+                return {
+                    "found": True,
+                    "city": props.get("city") or "",
+                    "postal_code": props.get("postcode") or "",
+                    "label": props.get("label") or "",
+                }
+            except Exception:
+                logger.warning("Échec du géocodage Géoplateforme", exc_info=True)
+                return {"found": False}
 
 
 @api_router.get("/clients/map")
@@ -3272,6 +3339,15 @@ async def update_sale(sid: str, data: SaleUpdate, user: dict = Depends(get_curre
     if scope == "own":
         q.update(_own_sales_filter(user))
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    # Les champs de commission ne doivent pas être modifiables avec seulement
+    # sales.edit : une permission personnalisée peut dissocier les deux droits.
+    financial_fields = {
+        "commission_rate", "commission_rate_2", "commission_type", "commission_type_2",
+        "discount_percent", "evolutive_ca_threshold", "evolutive_rate_below",
+        "evolutive_rate_above", "commission_paid", "commission_month", "prospecteur_commission",
+    }
+    if financial_fields.intersection(updates) and not has_perm(user, "commissions", "edit"):
+        raise HTTPException(status_code=403, detail="Permission commissions requise pour modifier ces champs.")
     if "status" in updates:
         await _require_active_sale_status(user, updates["status"])
     # iter41: auto-link commercial name → user id on update
@@ -3734,6 +3810,7 @@ async def _ensure_project_scope(user: dict, project: dict, resource: str = "proj
 class ProjectPhotosAppend(BaseModel):
     """Ajout atomique de nouvelles photos, sans renvoyer toute la liste."""
     photos: List[Union[str, dict]] = Field(min_length=1, max_length=MAX_PHOTOS_PER_ENTITY)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 @api_router.post("/projects/{pid}/photos")
@@ -3754,6 +3831,23 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
     new_photos = _validated_photo_entries(data.photos)
     if not new_photos:
         raise HTTPException(status_code=422, detail="Aucune photo valide")
+    if data.client_request_id:
+        already = await db.projects.find_one(
+            cq(user, {"id": pid, "photos.client_request_id": data.client_request_id}),
+            {"_id": 0, "photos": 1},
+        )
+        if already:
+            return {"ok": True, "duplicate": True, "added": 0, "photo_count": len(already.get("photos") or [])}
+    existing_srcs = {
+        (p.get("src") if isinstance(p, dict) else p)
+        for p in (exists.get("photos") or []) if p
+    }
+    new_photos = [
+        p for p in new_photos
+        if (p.get("src") if isinstance(p, dict) else p) not in existing_srcs
+    ]
+    if not new_photos:
+        return {"ok": True, "duplicate": True, "added": 0, "photo_count": len(exists.get("photos") or [])}
     now = now_iso()
     uname = user.get("name") or user.get("email") or "?"
     uid = user.get("id")
@@ -3763,6 +3857,8 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
         item.setdefault("added_by", uname)
         item.setdefault("added_by_id", uid)
         item.setdefault("created_at", now)
+        if data.client_request_id:
+            item["client_request_id"] = data.client_request_id
         enriched.append(item)
     # Filtre atomique : refuse si l'ajout ferait dépasser la limite.
     q = cq(user, {
@@ -3772,6 +3868,8 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
             MAX_PHOTOS_PER_ENTITY - len(enriched),
         ]},
     })
+    if data.client_request_id:
+        q["photos.client_request_id"] = {"$ne": data.client_request_id}
     updated = await db.projects.find_one_and_update(
         q,
         {"$push": {"photos": {"$each": enriched}}},
@@ -3852,47 +3950,6 @@ async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get
     #   - un ajout de photo nécessite has_perm(user, "photos", "add")
     #   - toute nouvelle photo est enrichie de {added_by, added_by_id, created_at} si absent
     #   - la view des photos suit has_perm(user, "photos", "view") (défaut True)
-    if "photos" in updates:
-        new_list = updates["photos"] or []
-        old_list = exists.get("photos") or []
-        if len(new_list) > MAX_PHOTOS_PER_ENTITY:
-            raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
-        # Normalise l'ancien en dicts pour comparer facilement
-        def _src(p):
-            if isinstance(p, str): return p
-            if isinstance(p, dict): return p.get("src") or p.get("url") or ""
-            return ""
-        old_srcs = {_src(p) for p in old_list if _src(p)}
-        new_srcs = {_src(p) for p in new_list if _src(p)}
-        added = [p for p in new_list if _src(p) and _src(p) not in old_srcs]
-        removed = [src for src in old_srcs if src not in new_srcs]
-        if (added or removed) and not has_perm(user, "photos", "add"):
-            raise HTTPException(status_code=403, detail="Vous n'avez pas la permission d'ajouter ou de supprimer des photos de ce chantier.")
-        validated_added = _validated_photo_entries(added, max_count=MAX_PHOTOS_PER_ENTITY)
-        validated_by_src = {_src(p): p for p in validated_added}
-        # Enrichit chaque nouvelle photo avec la traçabilité (sans écraser si déjà présent)
-        now = now_iso()
-        uname = user.get("name") or user.get("email") or "?"
-        uid = user.get("id")
-        enriched = []
-        for p in new_list:
-            src = _src(p)
-            if not src:
-                continue
-            if src in old_srcs:
-                # Photo existante : conserve son objet tel quel
-                # (retrouve l'ancien pour préserver les métadonnées)
-                match = next((o for o in old_list if _src(o) == src), p)
-                enriched.append(match if isinstance(match, dict) else {"src": src})
-            else:
-                safe_photo = validated_by_src.get(src)
-                base = dict(safe_photo) if isinstance(safe_photo, dict) else {"src": src}
-                base.setdefault("src", src)
-                base.setdefault("added_by", uname)
-                base.setdefault("added_by_id", uid)
-                base.setdefault("created_at", now)
-                enriched.append(base)
-        updates["photos"] = enriched
     # Techniciens cannot re-assign a chantier to someone else
     if user.get("role") in ("technicien", "sous_traitant"):
         updates.pop("assigned_to", None)
@@ -7784,10 +7841,10 @@ def _csv_line(values: List[Any]) -> str:
 @api_router.get("/export/clients.csv")
 async def export_clients(user: dict = Depends(get_current_user)):
     """Export clients avec adresse, code postal et ville séparés."""
-    check_perm(user, "clients", "view", "own")
+    # Export complet nominatif : réservé aux administrateurs, comme l'export ventes.
+    if user.get("role") not in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="Export réservé à l'administrateur")
     q = cq(user)
-    if perm_scope(user, "clients", "view") == "own":
-        q["id"] = {"$in": await _commercial_client_ids(user)}
 
     async def generate_clients_csv():
         yield _csv_line(["Nom / Prénom", "Téléphone", "Email", "Adresse", "Code postal", "Ville", "Notes"])
@@ -12148,13 +12205,16 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
         days_done[day] = {**completion, "day": day}
         remaining = [d for d in pdays if d not in days_done]
         if remaining:
-            await db.projects.update_one(cq(user, {"id": pid}), {"$set": {"photos": all_photos, "days_done": days_done}})
+            partial_update = {"$set": {"days_done": days_done}}
+            if new_photos:
+                partial_update["$push"] = {"photos": {"$each": new_photos}}
+            await db.projects.update_one(cq(user, {"id": pid}), partial_update)
             return {"ok": True, "partial": True, "day": day, "remaining": remaining, "days_done": list(days_done.keys()), "notified": 0}
         extra_set["days_done"] = days_done
-    await db.projects.update_one(
-        cq(user, {"id": pid}),
-        {"$set": {"status": "termine", "photos": all_photos, "completion": completion, **extra_set}},
-    )
+    final_update = {"$set": {"status": "termine", "completion": completion, **extra_set}}
+    if new_photos:
+        final_update["$push"] = {"photos": {"$each": new_photos}}
+    await db.projects.update_one(cq(user, {"id": pid}), final_update)
     # iter159 : email au commercial quand le chantier passe en "À encaisser" (termine)
     try:
         _p_after = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})

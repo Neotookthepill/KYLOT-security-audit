@@ -151,7 +151,7 @@ export default function Clients() {
           <p className="page-subtitle">Appelez, qualifiez et retrouvez l’historique de chaque client.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {can("clients", "view") && (
+          {user?.role === "admin" && (
             <Button variant="outline" onClick={() => downloadApiFile("/export/clients.csv", "clients.csv")} data-testid="export-clients-btn" className="hidden sm:inline-flex">
               Exporter CSV
             </Button>
@@ -177,7 +177,7 @@ export default function Clients() {
                   <DropdownMenuLabel>Importer des clients</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => setFileImportOpen(true)}>Importer un fichier</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setBulkOpen(true)}>Import copier-coller</DropdownMenuItem>
-                  {can("clients", "view") && <DropdownMenuItem onClick={() => downloadApiFile("/export/clients.csv", "clients.csv")}>Exporter CSV</DropdownMenuItem>}
+                  {user?.role === "admin" && <DropdownMenuItem onClick={() => downloadApiFile("/export/clients.csv", "clients.csv")}>Exporter CSV</DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Dialog open={open} onOpenChange={setOpen}>
