@@ -18,7 +18,7 @@ const api = axios.create({
 // 3 à 4 fois au même moment (5–7 s perçues sur une connexion Render froide).
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 const ok = (config, data, statusText) => ({ data, status: 200, statusText, headers: {}, config, request: {} });
-const GET_CACHE_TTL = 15000;
+const GET_CACHE_TTL = 1000;
 const DYNAMIC_GET_CACHE_TTL = 1000;
 const staticGet = (url) => /^\/(settings|sale-statuses|client-categories)(\?|$)/.test(url || "");
 // Cache uniquement pour absorber les doubles appels et un retour immédiat.
