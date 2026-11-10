@@ -24,8 +24,18 @@ case "${ENVIRONMENT:-}" in
 esac
 
 PORT=${PORT:-8000}
+# Render injecte WEB_CONCURRENCY=1 par défaut. Deux workers permettent de
+# supporter les pics de requêtes sans reset de connexion, dans la limite mémoire.
+WORKERS=${WEB_CONCURRENCY:-1}
+case "$WORKERS" in
+  ''|*[!0-9]*) echo "WEB_CONCURRENCY must be a positive integer" >&2; exit 1 ;;
+esac
+if [ "$WORKERS" -lt 1 ] || [ "$WORKERS" -gt 4 ]; then
+  echo "WEB_CONCURRENCY must be between 1 and 4" >&2
+  exit 1
+fi
 exec python -m uvicorn backend.server:app \
   --host 0.0.0.0 \
   --port "$PORT" \
-  --workers 1 \
+  --workers "$WORKERS" \
   --no-access-log
