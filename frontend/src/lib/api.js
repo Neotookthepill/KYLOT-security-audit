@@ -24,7 +24,7 @@ const staticGet = (url) => /^\/(settings|sale-statuses|client-categories)(\?|$)/
 // Cache uniquement pour absorber les doubles appels et un retour immédiat.
 // 1 seconde maximum : un autre utilisateur ne peut pas rester invisible 5 s.
 // Toute écriture locale vide le cache immédiatement.
-const dynamicGet = (url) => /^\/(sales|clients|projects|stock|audit|commissions|prospects|prospection|events|absences|off-duty|overtime|challenges|notifications|dashboard|reinterventions|users|team)(\?|$)/.test(url || "");
+const dynamicGet = (url) => /^\/(sales|clients|projects|stock|audit|prospects|prospection|events|absences|off-duty|overtime|challenges|notifications|dashboard|reinterventions|users|team)(\?|$)/.test(url || "");
 const cacheableGet = (url) => staticGet(url) || dynamicGet(url);
 const memoryGet = new Map();
 const pendingGet = new Map();
