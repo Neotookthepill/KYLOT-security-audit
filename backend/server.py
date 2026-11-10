@@ -3879,6 +3879,11 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
     })
     if data.client_request_id:
         q["photos.client_request_id"] = {"$ne": data.client_request_id}
+    q["$nor"] = [
+        {"photos.src": (p.get("src") if isinstance(p, dict) else p)}
+        for p in enriched
+        if (p.get("src") if isinstance(p, dict) else p)
+    ]
     updated = await db.projects.find_one_and_update(
         q,
         {"$push": {"photos": {"$each": enriched}}},
@@ -10417,6 +10422,8 @@ async def on_startup():
     await db.kiks_pending.create_index("expires_at", expireAfterSeconds=0)
     await db.login_attempts.create_index("expires_at", expireAfterSeconds=0)
     await db.login_source_attempts.create_index("expires_at", expireAfterSeconds=0)
+    await db.password_reset_limits.create_index("expires_at", expireAfterSeconds=0)
+    await db.password_resets.create_index("expires_at", expireAfterSeconds=0)
     await db.client_import_batches.create_index("expires_at", expireAfterSeconds=0)
     await db.ai_rate_limits.create_index("expires_at", expireAfterSeconds=0)
     # Index composés de lecture : le company_id seul ne suffit pas pour les
@@ -12235,6 +12242,10 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
                 {"$size": {"$ifNull": ["$photos", []]}},
                 MAX_PHOTOS_PER_ENTITY - len(new_photos),
             ]}
+            day_q["$nor"] = [
+                {"photos.src": (p.get("src") if isinstance(p, dict) else p)}
+                for p in new_photos
+            ]
             day_update["$push"] = {"photos": {"$each": new_photos}}
         day_result = await db.projects.update_one(day_q, day_update)
         if day_result.matched_count == 0:
@@ -12251,6 +12262,10 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
             {"$size": {"$ifNull": ["$photos", []]}},
             MAX_PHOTOS_PER_ENTITY - len(new_photos),
         ]}
+        final_q["$nor"] = [
+            {"photos.src": (p.get("src") if isinstance(p, dict) else p)}
+            for p in new_photos
+        ]
         final_update["$push"] = {"photos": {"$each": new_photos}}
     final_result = await db.projects.update_one(final_q, final_update)
     if final_result.matched_count == 0:
