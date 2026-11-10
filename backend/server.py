@@ -3785,6 +3785,43 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
     return {"ok": True, "added": len(enriched), "photo_count": len(updated.get("photos") or [])}
 
 
+class ProjectPhotoRemove(BaseModel):
+    src: str = Field(min_length=10, max_length=12_000_000)
+
+
+@api_router.post("/projects/{pid}/photos/remove")
+async def remove_project_photo(pid: str, data: ProjectPhotoRemove, user: dict = Depends(get_current_user)):
+    """Supprime une photo par sa source, sans réécrire toute la liste.
+
+    Le PUT historique pouvait supprimer une photo ajoutée entre-temps par un
+    autre utilisateur. Ce $pull ne touche que la photo ciblée.
+    """
+    check_perm(user, "projects", "edit")
+    if not has_perm(user, "photos", "add"):
+        raise HTTPException(status_code=403, detail="Vous n'avez pas la permission de modifier les photos de ce chantier.")
+    exists = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
+    if not exists:
+        raise HTTPException(status_code=404, detail="Chantier introuvable")
+    await _ensure_project_scope(user, exists)
+    src = data.src
+    updated = await db.projects.find_one_and_update(
+        cq(user, {"id": pid, "photos.src": src}),
+        {"$pull": {"photos": {"src": src}}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        # compatibilité avec les anciennes photos stockées comme chaînes
+        updated = await db.projects.find_one_and_update(
+            cq(user, {"id": pid, "photos": src}),
+            {"$pull": {"photos": src}},
+            return_document=ReturnDocument.AFTER,
+        )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Photo introuvable")
+    await log_audit(user, "update", "project_photos", pid, after={"removed": 1})
+    return {"ok": True, "photo_count": len(updated.get("photos") or [])}
+
+
 @api_router.put("/projects/{pid}")
 async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get_current_user)):
     check_perm(user, "projects", "edit")

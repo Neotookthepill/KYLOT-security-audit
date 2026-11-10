@@ -252,7 +252,6 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
         assigned_to: toList(form.assigned_to),
         duration_days: Number(form.duration_days) || 1,
         notes: form.notes,
-        photos: form.photos,
         day_exclusions: form.day_exclusions || {},
         extra_dates: Array.isArray(form.extra_dates) ? form.extra_dates.filter(Boolean) : [],
       });
@@ -335,10 +334,19 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       toast.error("Vous n'avez pas la permission de modifier les photos.");
       return;
     }
-    const next = form.photos.filter((_, i) => i !== idx);
+    const previous = form.photos || [];
+    const removed = previous[idx];
+    const src = typeof removed === "string" ? removed : removed?.src;
+    if (!src) return;
+    const next = previous.filter((_, i) => i !== idx);
     setForm({ ...form, photos: next });
-    try { await api.put(`/projects/${project.id}`, { photos: next }); }
-    catch (err) { toast.error(formatApiError(err)); }
+    try {
+      // Suppression atomique : ne réécrit pas la liste entière.
+      await api.post(`/projects/${project.id}/photos/remove`, { src });
+    } catch (err) {
+      setForm((prev) => ({ ...prev, photos: previous }));
+      toast.error(formatApiError(err));
+    }
   };
 
   // Chantier terminé workflow (iter37) — plain consts (no hook after early return)
