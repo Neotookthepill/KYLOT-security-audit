@@ -24,7 +24,7 @@ const staticGet = (url) => /^\/(settings|team|sale-statuses|users|client-categor
 // Les listes métier changent peu pendant une navigation. Un cache mémoire très
 // court rend les retours arrière instantanés sans servir des données périmées
 // après une mutation (clearApiGetCache est appelé sur toute écriture).
-const dynamicGet = (url) => /^\/(sales|clients|projects|stock|audit|commissions|prospects|prospection|events|absences|off-duty|overtime|challenges|notifications)(\?|$)/.test(url || "");
+const dynamicGet = (url) => /^\/(sales|clients|projects|stock|audit|commissions|prospects|prospection|events|absences|off-duty|overtime|challenges|notifications|dashboard|reinterventions)(\?|$)/.test(url || "");
 const cacheableGet = (url) => staticGet(url) || dynamicGet(url);
 const memoryGet = new Map();
 const pendingGet = new Map();
