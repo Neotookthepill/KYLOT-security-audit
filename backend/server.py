@@ -1161,6 +1161,7 @@ class ProjectUpdate(BaseModel):
     priority: Optional[str] = Field(default=None, max_length=40)
     notes: Optional[str] = Field(default=None, max_length=5000)
     duration_days: Optional[int] = Field(default=None, ge=1, le=365)
+    photos: Optional[List[Union[str, dict]]] = Field(default=None, max_length=MAX_PHOTOS_PER_ENTITY)
 
     @field_validator("scheduled_date")
     @classmethod
@@ -3934,6 +3935,13 @@ async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get
         raise HTTPException(status_code=404, detail="Chantier introuvable")
     await _ensure_project_scope(user, exists)
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    if "photos" in updates:
+        # Valide d'abord (ex: javascript: → 422), puis impose la route atomique.
+        _validated_photo_entries(updates["photos"])
+        raise HTTPException(
+            status_code=400,
+            detail="Utilisez les routes dédiées /projects/{pid}/photos et /photos/remove.",
+        )
     # iter154 : dès qu'une date de programmation est renseignée sur un chantier « À planifier »,
     # il passe automatiquement en « En cours ». L'admin peut toujours forcer un statut explicite
     # dans le même PUT (updates["status"] est prioritaire).
