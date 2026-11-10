@@ -170,6 +170,7 @@ class InputAndTransportChecks(unittest.TestCase):
         expected = {
             ("POST", "/auth/register"), ("POST", "/auth/login"), ("POST", "/auth/logout"),
             ("POST", "/auth/mfa/verify"),
+            ("POST", "/auth/forgot-password"), ("POST", "/auth/reset-password"),
             ("POST", "/cron/rappel-chantiers-j1"), ("POST", "/cron/bilan-mensuel"),
             ("POST", "/stripe/webhook"),
             ("GET", "/health"), ("GET", "/healthz"), ("GET", "/api/health"), ("GET", "/api/healthz"),
