@@ -3730,6 +3730,61 @@ async def _ensure_project_scope(user: dict, project: dict, resource: str = "proj
             raise HTTPException(status_code=404, detail="Chantier introuvable")
 
 
+class ProjectPhotosAppend(BaseModel):
+    """Ajout atomique de nouvelles photos, sans renvoyer toute la liste."""
+    photos: List[Union[str, dict]] = Field(min_length=1, max_length=MAX_PHOTOS_PER_ENTITY)
+
+
+@api_router.post("/projects/{pid}/photos")
+async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict = Depends(get_current_user)):
+    """Ajoute uniquement les nouvelles photos avec un $push atomique.
+
+    Le PUT /projects/{pid} historique remplace toute la liste : deux techniciens
+    qui ajoutent en même temps se perdaient mutuellement. Cette route est la
+    seule utilisée par l'UI pour un ajout.
+    """
+    check_perm(user, "projects", "edit")
+    if not has_perm(user, "photos", "add"):
+        raise HTTPException(status_code=403, detail="Vous n'avez pas la permission d'ajouter des photos à ce chantier.")
+    exists = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
+    if not exists:
+        raise HTTPException(status_code=404, detail="Chantier introuvable")
+    await _ensure_project_scope(user, exists)
+    new_photos = _validated_photo_entries(data.photos)
+    if not new_photos:
+        raise HTTPException(status_code=422, detail="Aucune photo valide")
+    now = now_iso()
+    uname = user.get("name") or user.get("email") or "?"
+    uid = user.get("id")
+    enriched = []
+    for photo in new_photos:
+        item = photo if isinstance(photo, dict) else {"src": photo}
+        item.setdefault("added_by", uname)
+        item.setdefault("added_by_id", uid)
+        item.setdefault("created_at", now)
+        enriched.append(item)
+    # Filtre atomique : refuse si l'ajout ferait dépasser la limite.
+    q = cq(user, {
+        "id": pid,
+        "$expr": {"$lte": [
+            {"$size": {"$ifNull": ["$photos", []]}},
+            MAX_PHOTOS_PER_ENTITY - len(enriched),
+        ]},
+    })
+    updated = await db.projects.find_one_and_update(
+        q,
+        {"$push": {"photos": {"$each": enriched}}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        current = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0, "photos": 1})
+        if current and len(current.get("photos") or []) + len(enriched) > MAX_PHOTOS_PER_ENTITY:
+            raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
+        raise HTTPException(status_code=409, detail="Le chantier a changé pendant l'ajout. Réessayez.")
+    await log_audit(user, "update", "project_photos", pid, after={"added": len(enriched)})
+    return {"ok": True, "added": len(enriched), "photo_count": len(updated.get("photos") or [])}
+
+
 @api_router.put("/projects/{pid}")
 async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get_current_user)):
     check_perm(user, "projects", "edit")

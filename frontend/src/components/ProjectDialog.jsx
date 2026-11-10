@@ -309,10 +309,19 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
         created_at: takenAt,
         ...(gps ? { lat: gps.lat, lng: gps.lng, accuracy: gps.accuracy } : {}),
       }));
-      const next = [...(form.photos || []), ...rich];
+      const previous = form.photos || [];
+      const next = [...previous, ...rich];
       setForm({ ...form, photos: next });
-      await api.put(`/projects/${project.id}`, { photos: next });
-      toast.success(`${rich.length} photo(s) ajoutée(s)${gps ? " · position enregistrée" : ""}`);
+      try {
+        // Ajout atomique : n'envoie que les nouvelles photos. L'ancien PUT
+        // renvoyait toute la liste et perdait les ajouts concurrents.
+        await api.post(`/projects/${project.id}/photos`, { photos: rich });
+        toast.success(`${rich.length} photo(s) ajoutée(s)${gps ? " · position enregistrée" : ""}`);
+      } catch (err) {
+        // Ne pas laisser une photo affichée alors qu'elle n'est pas sauvegardée.
+        setForm((prev) => ({ ...prev, photos: previous }));
+        throw err;
+      }
     } catch (err) { toast.error(formatApiError(err) || "Erreur upload"); }
     finally {
       setUploading(false);
