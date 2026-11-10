@@ -19,7 +19,13 @@ const api = axios.create({
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 const ok = (config, data, statusText) => ({ data, status: 200, statusText, headers: {}, config, request: {} });
 const GET_CACHE_TTL = 15000;
+const DYNAMIC_GET_CACHE_TTL = 5000;
 const staticGet = (url) => /^\/(settings|team|sale-statuses|users|client-categories|dashboard\/executive)(\?|$)/.test(url || "");
+// Les listes métier changent peu pendant une navigation. Un cache mémoire très
+// court rend les retours arrière instantanés sans servir des données périmées
+// après une mutation (clearApiGetCache est appelé sur toute écriture).
+const dynamicGet = (url) => /^\/(sales|clients|projects|stock|audit|commissions|prospects|prospection|events|absences|off-duty|overtime|challenges|notifications)(\?|$)/.test(url || "");
+const cacheableGet = (url) => staticGet(url) || dynamicGet(url);
 const memoryGet = new Map();
 const pendingGet = new Map();
 export const clearApiGetCache = () => { memoryGet.clear(); pendingGet.clear(); };
@@ -30,16 +36,17 @@ api.defaults.adapter = async (config) => {
   if (method === "get") {
     const k = cacheKey(config);
     const memo = memoryGet.get(k);
-    if (staticGet(config.url) && memo && Date.now() - memo.ts < GET_CACHE_TTL && (!config.responseType || config.responseType === "json")) {
+    const ttl = staticGet(config.url) ? GET_CACHE_TTL : DYNAMIC_GET_CACHE_TTL;
+    if (cacheableGet(config.url) && memo && Date.now() - memo.ts < ttl && (!config.responseType || config.responseType === "json")) {
       return ok(config, memo.data, "OK (cache mémoire)");
     }
-    if (staticGet(config.url) && pendingGet.has(k)) return pendingGet.get(k);
+    if (cacheableGet(config.url) && pendingGet.has(k)) return pendingGet.get(k);
     const request = (async () => {
       try {
         const r = await baseAdapter(config);
         if (r.status === 200 && (!config.responseType || config.responseType === "json")) {
           writeCache(k, r.data);
-          if (staticGet(config.url)) memoryGet.set(k, { data: r.data, ts: Date.now() });
+          if (cacheableGet(config.url)) memoryGet.set(k, { data: r.data, ts: Date.now() });
         }
         return r;
       } catch (e) {
@@ -51,7 +58,7 @@ api.defaults.adapter = async (config) => {
         pendingGet.delete(k);
       }
     })();
-    if (staticGet(config.url)) pendingGet.set(k, request);
+    if (cacheableGet(config.url)) pendingGet.set(k, request);
     return request;
   }
   if (navigator.onLine) {
