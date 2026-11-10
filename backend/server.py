@@ -4582,6 +4582,8 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     prev_start = date(prev_first.year, prev_first.month, 1)
     prev_end = date(prev_first.year, prev_first.month, monthrange(prev_first.year, prev_first.month)[1])
 
+    status_caps = await _sale_status_capabilities(user)
+
     async def _agg(a, b):
         q = cq(user, {"sale_date": {"$gte": a.isoformat(), "$lte": b.isoformat()}})
         if sales_scope == "own":
@@ -4597,7 +4599,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
         }).to_list(20000)
         ca = 0.0; count = 0; comm = 0.0; by_com = {}
         for s in sales:
-            if s.get("status") in ("annule", "litige"):
+            if not status_caps.get(s.get("status"), {}).get("countsCA", False):
                 continue
             amt = float(s.get("amount") or 0); rate = float(s.get("commission_rate") if s.get("commission_rate") is not None else 0)
             ca += amt; count += 1; comm += amt * rate
@@ -6342,7 +6344,8 @@ async def dashboard_annual(year: int = Query(..., ge=2000, le=2100), user: dict 
         q.update(_own_sales_filter(user))
     if _is_prospect_role(user):
         q.update(_prospect_sales_filter(user))
-    sales = await db.sales.find(q, {"_id": 0, "amount": 1, "sale_date": 1, "commercial": 1, "commercial_2": 1, "commercial_user_id": 1, "commercial_2_user_id": 1, "is_de": 1}).to_list(20000)
+    status_caps = await _sale_status_capabilities(user)
+    sales = await db.sales.find(q, {"_id": 0, "amount": 1, "sale_date": 1, "commercial": 1, "commercial_2": 1, "commercial_user_id": 1, "commercial_2_user_id": 1, "is_de": 1, "status": 1}).to_list(20000)
     # Résolution id → nom canonique (nom du user si connu, sinon le champ texte du sale)
     all_uids = list({s.get(k) for s in sales for k in ("commercial_user_id", "commercial_2_user_id") if s.get(k)})
     users_by_id = {}
@@ -6361,6 +6364,8 @@ async def dashboard_annual(year: int = Query(..., ge=2000, le=2100), user: dict 
         return sale.get(name_slot) or ""
 
     for s in sales:
+        if not status_caps.get(s.get("status"), {}).get("countsCA", False):
+            continue
         d = (s.get("sale_date") or "")
         try:
             m = int(d[5:7])
@@ -6916,6 +6921,8 @@ async def list_commissions(user: dict = Depends(get_current_user)):
     if scope == "own":
         q.update(_own_sales_filter(user))
     sales = await db.sales.find(q, {"_id": 0}).sort("sale_date", -1).to_list(5000)
+    status_caps = await _sale_status_capabilities(user)
+    sales = [s for s in sales if status_caps.get(s.get("status"), {}).get("commissionable", False)]
     ids = list({s["client_id"] for s in sales})
     clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
     cmap = {c["id"]: c for c in clients}
@@ -12513,6 +12520,33 @@ def _resolve_statuses(s: dict) -> List[dict]:
         if d["value"] not in seen:
             out.append({**d, "active": False, "default": False})
     return out
+
+
+SALE_STATUS_CAPABILITIES = {
+    "attente_fi": {"countsCA": True, "commissionable": True},
+    "attente_prog": {"countsCA": True, "commissionable": True},
+    "en_cours": {"countsCA": True, "commissionable": True},
+    "chantier_fini": {"countsCA": True, "commissionable": True},
+    "commercial_cheque": {"countsCA": True, "commissionable": True},
+    "argent_recupere": {"countsCA": True, "commissionable": True},
+    "virement_recu": {"countsCA": True, "commissionable": True},
+    "litige": {"countsCA": False, "commissionable": False},
+    "annule": {"countsCA": False, "commissionable": False},
+    "non_financable": {"countsCA": True, "commissionable": False},
+}
+
+
+async def _sale_status_capabilities(user: dict) -> dict:
+    """Capacités explicites ; un statut personnalisé inconnu est fermé par défaut."""
+    s = await db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}) or {}
+    configured = _resolve_statuses(s)
+    allowed = {st.get("value") for st in configured if st.get("active", True)}
+    caps = {}
+    for value, cap in SALE_STATUS_CAPABILITIES.items():
+        if value in allowed:
+            caps[value] = cap
+    # Les valeurs inconnues restent absentes → countsCA/commissionable false.
+    return caps
 
 
 async def _get_hiding_status_values(user: dict) -> set:
