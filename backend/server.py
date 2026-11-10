@@ -1390,25 +1390,33 @@ PASSWORD_RESET_IP_MAX = 20
 
 
 async def _check_password_reset_rate(request: Request, email: str) -> bool:
-    """Rate-limit les demandes de reset par email et par IP, en base partagée."""
+    """Rate-limit atomique par email et par source, sans stocker l'IP en clair."""
     now = datetime.now(timezone.utc)
-    window_start = now - timedelta(minutes=PASSWORD_RESET_WINDOW_MIN)
-    ip = (request.client.host if request.client else "") or "unknown"
-    await db.password_reset_attempts.delete_many({"expires_at": {"$lte": now}})
-    email_count = await db.password_reset_attempts.count_documents({
-        "email": email, "created_at": {"$gt": window_start},
-    })
-    ip_count = await db.password_reset_attempts.count_documents({
-        "ip": ip, "created_at": {"$gt": window_start},
-    })
-    if email_count >= PASSWORD_RESET_EMAIL_MAX or ip_count >= PASSWORD_RESET_IP_MAX:
+    window = PASSWORD_RESET_WINDOW_MIN * 60
+    bucket = int(now.timestamp()) // window
+    source = _login_source(request)
+    email_digest = _hmac.new(
+        JWT_SECRET.encode("utf-8"), f"reset-email:{email}".encode("utf-8"), hashlib.sha256,
+    ).hexdigest()
+    expires = now + timedelta(minutes=PASSWORD_RESET_WINDOW_MIN * 2)
+
+    async def incr(key: str) -> int:
+        doc = await db.password_reset_limits.find_one_and_update(
+            {"_id": key},
+            {
+                "$inc": {"count": 1},
+                "$set": {"expires_at": expires},
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+        return int((doc or {}).get("count") or 0)
+
+    email_count = await incr(f"email:{email_digest}:{bucket}")
+    ip_count = await incr(f"source:{source}:{bucket}")
+    if email_count > PASSWORD_RESET_EMAIL_MAX or ip_count > PASSWORD_RESET_IP_MAX:
         return False
-    await db.password_reset_attempts.insert_one({
-        "email": email,
-        "ip": ip,
-        "created_at": now,
-        "expires_at": now + timedelta(minutes=PASSWORD_RESET_WINDOW_MIN * 2),
-    })
     return True
 
 
@@ -9973,11 +9981,19 @@ async def close_challenge(cid: str, user: dict = Depends(require_admin)):
         "closed_by": user["id"],
         "ranking": ranking,
     }
-    await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {
-        "status": "closed", "closed_at": snapshot["closed_at"],
-        "closed_by": user["id"], "results_snapshot": snapshot,
-    }})
-    return {"ok": True, "challenge": _challenge_public({**challenge, **snapshot, "status": "closed"})}
+    # La condition status=active est dans l'écriture : deux clôtures
+    # simultanées ne peuvent pas produire deux instantanés.
+    updated = await db.challenges.find_one_and_update(
+        cq(user, {"id": cid, "status": "active"}),
+        {"$set": {
+            "status": "closed", "closed_at": snapshot["closed_at"],
+            "closed_by": user["id"], "results_snapshot": snapshot,
+        }},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated:
+        raise HTTPException(status_code=409, detail="Challenge déjà clôturé")
+    return {"ok": True, "challenge": _challenge_public(updated)}
 
 
 @api_router.post("/challenges/{cid}/archive")
@@ -12209,20 +12225,36 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
             raise HTTPException(status_code=400, detail="Choisissez la journée d'intervention à valider")
         if day > today_paris:
             raise HTTPException(status_code=400, detail="Impossible de valider une intervention qui n'a pas encore eu lieu")
-        days_done = dict(project.get("days_done") or {})
-        days_done[day] = {**completion, "day": day}
-        remaining = [d for d in pdays if d not in days_done]
+        # Écriture atomique d'une seule journée : deux techniciens qui valident
+        # deux jours en même temps ne peuvent plus écraser la validation adverse.
+        day_key = f"days_done.{day}"
+        day_update = {"$set": {day_key: {**completion, "day": day}}}
+        day_q = cq(user, {"id": pid})
+        if new_photos:
+            day_q["$expr"] = {"$lte": [
+                {"$size": {"$ifNull": ["$photos", []]}},
+                MAX_PHOTOS_PER_ENTITY - len(new_photos),
+            ]}
+            day_update["$push"] = {"photos": {"$each": new_photos}}
+        day_result = await db.projects.update_one(day_q, day_update)
+        if day_result.matched_count == 0:
+            raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
+        current = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0, "days_done": 1})
+        current_days = dict((current or {}).get("days_done") or {})
+        remaining = [d for d in pdays if d not in current_days]
         if remaining:
-            partial_update = {"$set": {"days_done": days_done}}
-            if new_photos:
-                partial_update["$push"] = {"photos": {"$each": new_photos}}
-            await db.projects.update_one(cq(user, {"id": pid}), partial_update)
-            return {"ok": True, "partial": True, "day": day, "remaining": remaining, "days_done": list(days_done.keys()), "notified": 0}
-        extra_set["days_done"] = days_done
+            return {"ok": True, "partial": True, "day": day, "remaining": remaining, "days_done": list(current_days.keys()), "notified": 0}
     final_update = {"$set": {"status": "termine", "completion": completion, **extra_set}}
+    final_q = cq(user, {"id": pid})
     if new_photos:
+        final_q["$expr"] = {"$lte": [
+            {"$size": {"$ifNull": ["$photos", []]}},
+            MAX_PHOTOS_PER_ENTITY - len(new_photos),
+        ]}
         final_update["$push"] = {"photos": {"$each": new_photos}}
-    await db.projects.update_one(cq(user, {"id": pid}), final_update)
+    final_result = await db.projects.update_one(final_q, final_update)
+    if final_result.matched_count == 0:
+        raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
     # iter159 : email au commercial quand le chantier passe en "À encaisser" (termine)
     try:
         _p_after = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})

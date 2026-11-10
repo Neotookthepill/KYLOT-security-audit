@@ -43,7 +43,9 @@ services:
       - key: ALLOW_EXTERNAL_AI
         value: "false"
       - key: ALLOW_EXTERNAL_GEOCODING
-        value: "false"
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "2"
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD

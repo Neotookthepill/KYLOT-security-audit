@@ -18,7 +18,7 @@ export const SALE_PHASES = Object.freeze({
   dispute: { label: "Litige", terminal: true, active: false, commissionable: false, countsCA: false },
   cancelled: { label: "Annulé", terminal: true, active: false, commissionable: false, countsCA: false },
   non_financable: { label: "Non finançable", terminal: true, active: false, commissionable: false, countsCA: true },
-  unknown: { label: "Statut personnalisé", terminal: false, active: true, commissionable: true, countsCA: true },
+  unknown: { label: "Statut personnalisé", terminal: false, active: false, commissionable: false, countsCA: false },
 });
 
 const DEFAULT_SALE_PHASE = Object.freeze({

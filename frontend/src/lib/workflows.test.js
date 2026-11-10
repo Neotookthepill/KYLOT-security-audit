@@ -21,6 +21,8 @@ describe("workflow contracts", () => {
     expect(salePhase("en_cours")).toBe("in_progress");
     expect(salePhase("annule")).toBe("cancelled");
     expect(salePhase("custom_status")).toBe("unknown");
+    expect(isSaleCountedInCA("custom_status")).toBe(false);
+    expect(isSaleCommissionable("custom_status")).toBe(false);
   });
 
   test("custom statuses can declare their phase without a code change", () => {
