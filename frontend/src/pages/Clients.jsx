@@ -1,7 +1,7 @@
 import PhoneNumbers from "@/components/PhoneNumbers";
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import api, { formatApiError } from "@/lib/api";
+import api, { downloadApiFile, formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import BulkImportClientsDialog from "@/components/BulkImportClientsDialog";
 import ImportClientsFileDialog from "@/components/ImportClientsFileDialog";
 import ClientCategoryManagerDialog from "@/components/ClientCategoryManagerDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { lookupCityFromPostalCode, lookupPostalCodeFromCity, mapsUrl } from "@/lib/addressLookup";
 
 const PAGE_SIZE = 100;
 const clientPageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 15 : PAGE_SIZE);
@@ -150,6 +151,11 @@ export default function Clients() {
           <p className="page-subtitle">Appelez, qualifiez et retrouvez l’historique de chaque client.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {can("clients", "view") && (
+            <Button variant="outline" onClick={() => downloadApiFile("/export/clients.csv", "clients.csv")} data-testid="export-clients-btn" className="hidden sm:inline-flex">
+              Exporter CSV
+            </Button>
+          )}
           {can("clients", "create") && (
             <>
               <Button variant="outline" onClick={() => setFileImportOpen(true)} data-testid="file-import-btn" className="hidden sm:inline-flex">
@@ -171,6 +177,7 @@ export default function Clients() {
                   <DropdownMenuLabel>Importer des clients</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => setFileImportOpen(true)}>Importer un fichier</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setBulkOpen(true)}>Import copier-coller</DropdownMenuItem>
+                  {can("clients", "view") && <DropdownMenuItem onClick={() => downloadApiFile("/export/clients.csv", "clients.csv")}>Exporter CSV</DropdownMenuItem>}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Dialog open={open} onOpenChange={setOpen}>
@@ -183,8 +190,8 @@ export default function Clients() {
                     <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
                     <div><Label>Adresse</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
                     <div className="grid grid-cols-[120px_1fr] gap-2">
-                      <div><Label>Code postal</Label><Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} /></div>
-                      <div><Label>Ville</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+                      <div><Label>Code postal</Label><Input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} onBlur={async (e) => { const city = await lookupCityFromPostalCode(e.target.value); if (city) setForm((prev) => ({ ...prev, city })); }} /></div>
+                      <div><Label>Ville</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} onBlur={async (e) => { if (!form.postal_code) { const cp = await lookupPostalCodeFromCity(e.target.value); if (cp) setForm((prev) => ({ ...prev, postal_code: cp })); } }} /></div>
                     </div>
                     <div><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                   </div>
@@ -296,7 +303,13 @@ export default function Clients() {
                     </button>
                   </td>
                   <td className="px-5 py-3"><PhoneNumbers value={c.phone} iconSize={11} className="text-xs" /></td>
-                  <td className="px-5 py-3 text-slate-600">{c.address}</td>
+                  <td className="px-5 py-3 text-slate-600">
+                    {mapsUrl(c.address, c.postal_code, c.city) ? (
+                      <a href={mapsUrl(c.address, c.postal_code, c.city)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline" title="Ouvrir dans Maps">
+                        {c.address || "—"}
+                      </a>
+                    ) : (c.address || "—")}
+                  </td>
                   <td className="px-5 py-3">{c.postal_code}</td>
                   <td className="px-5 py-3">{c.city}</td>
                   <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>

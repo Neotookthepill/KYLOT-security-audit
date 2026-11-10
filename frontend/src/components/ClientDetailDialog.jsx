@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, MapPin, FileText, RefreshCw } from "lucide-react";
 import PhoneNumbers from "@/components/PhoneNumbers";
 import { STATUS_MAP, formatPayment, formatRate } from "@/lib/saleConstants";
+import { mapsUrl } from "@/lib/addressLookup";
 import ReinterventionDialog from "@/components/ReinterventionDialog";
 import { ClientNotes } from "@/components/ClientNotes";
 
@@ -47,7 +48,14 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
             {client.phone && <PhoneNumbers value={client.phone} iconSize={13} className="text-sm" />}
             {client.email && <span className="flex items-center gap-1.5"><Mail size={13} /> {client.email}</span>}
             {(client.address || client.city) && (
-              <span className="flex items-center gap-1.5"><MapPin size={13} /> {client.address} {client.postal_code} {client.city}</span>
+              <span className="flex items-center gap-1.5">
+                <MapPin size={13} />
+                {mapsUrl(client.address, client.postal_code, client.city) ? (
+                  <a href={mapsUrl(client.address, client.postal_code, client.city)} target="_blank" rel="noreferrer" className="hover:underline" title="Ouvrir dans Maps">
+                    {client.address} {client.postal_code} {client.city}
+                  </a>
+                ) : (client.address || client.postal_code || client.city || "")}
+              </span>
             )}
           </div>
           {client.notes && (

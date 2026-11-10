@@ -7781,6 +7781,30 @@ def _csv_line(values: List[Any]) -> str:
     csv.writer(buffer, delimiter=";").writerow([_csv_safe_cell(v) for v in values])
     return buffer.getvalue()
 
+@api_router.get("/export/clients.csv")
+async def export_clients(user: dict = Depends(get_current_user)):
+    """Export clients avec adresse, code postal et ville séparés."""
+    check_perm(user, "clients", "view", "own")
+    q = cq(user)
+    if perm_scope(user, "clients", "view") == "own":
+        q["id"] = {"$in": await _commercial_client_ids(user)}
+
+    async def generate_clients_csv():
+        yield _csv_line(["Nom / Prénom", "Téléphone", "Email", "Adresse", "Code postal", "Ville", "Notes"])
+        async for c in db.clients.find(q, {"_id": 0}).sort("name", 1):
+            yield _csv_line([
+                c.get("name", ""), c.get("phone", ""), c.get("email", ""),
+                c.get("address", ""), c.get("postal_code", ""), c.get("city", ""),
+                c.get("notes", ""),
+            ])
+
+    return StreamingResponse(
+        generate_clients_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=clients.csv"},
+    )
+
+
 @api_router.get("/export/sales.csv")
 async def export_sales(user: dict = Depends(get_current_user)):
     # iter155b : export CSV réservé aux admins/super_admins uniquement.

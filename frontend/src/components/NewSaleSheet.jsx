@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { isSaleCountedInCA } from "@/lib/workflows";
+import { lookupCityFromPostalCode, lookupPostalCodeFromCity } from "@/lib/addressLookup";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
 } from "@/components/ui/sheet";
@@ -373,8 +374,8 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
                 <Input placeholder="Téléphone" value={newClient.phone} onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })} data-testid="new-client-phone" />
                 <Input placeholder="Adresse" value={newClient.address} onChange={(e) => setNewClient({ ...newClient, address: e.target.value })} data-testid="new-client-address" />
                 <div className="grid grid-cols-[110px_1fr] gap-2">
-                  <Input placeholder="Code postal" value={newClient.postal_code} onChange={(e) => setNewClient({ ...newClient, postal_code: e.target.value })} data-testid="new-client-postal" />
-                  <Input placeholder="Ville" value={newClient.city} onChange={(e) => setNewClient({ ...newClient, city: e.target.value })} data-testid="new-client-city" />
+                  <Input placeholder="Code postal" value={newClient.postal_code} onChange={(e) => setNewClient({ ...newClient, postal_code: e.target.value })} onBlur={async (e) => { const city = await lookupCityFromPostalCode(e.target.value); if (city) setNewClient((prev) => ({ ...prev, city })); }} data-testid="new-client-postal" />
+                  <Input placeholder="Ville" value={newClient.city} onChange={(e) => setNewClient({ ...newClient, city: e.target.value })} onBlur={async (e) => { if (!newClient.postal_code) { const cp = await lookupPostalCodeFromCity(e.target.value); if (cp) setNewClient((prev) => ({ ...prev, postal_code: cp })); } }} data-testid="new-client-city" />
                 </div>
                 <Input placeholder="Email (optionnel)" value={newClient.email} onChange={(e) => setNewClient({ ...newClient, email: e.target.value })} />
               </div>

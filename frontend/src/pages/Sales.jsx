@@ -402,6 +402,9 @@ export default function Sales() {
     setObjectif(r.data.objectif_ca || 0);
     setObjectifYear(r.data.objectif_ca_year ?? null);
   };
+  const reloadTeamAndObjectif = async () => {
+    await Promise.all([reloadTeam(), loadObjectif()]);
+  };
   useEffect(() => {
     if (authLoading || !user?.id) return;
     loadObjectif(); loadUnmatched();
@@ -1139,7 +1142,7 @@ export default function Sales() {
               </tr>
             </thead>
             <tbody>
-              {stats.byCommercial.map((c) => (<CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} onObjectifSaved={reloadTeam} />))}
+              {stats.byCommercial.map((c) => (<CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} onObjectifSaved={reloadTeamAndObjectif} />))}
             </tbody>
           </table>
         </div>
