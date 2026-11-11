@@ -408,8 +408,10 @@ export default function Sales() {
   useEffect(() => {
     if (authLoading || !user?.id) return;
     loadObjectif(); loadUnmatched();
-    // iter162 : trigger idempotent server-side pour émettre les notifs "Jour J" (14 jours écoulés)
-    try { api.post("/sales/check-attente-14j").catch(() => {}); } catch (_) {}
+    // iter162 : endpoint réservé aux managers ; ne pas le déclencher pour un commercial.
+    if (["admin", "responsable", "super_admin"].includes(user?.role)) {
+      try { api.post("/sales/check-attente-14j").catch(() => {}); } catch (_) {}
+    }
     const onFocus = () => { load(0); loadUnmatched(); };
     const onVis = () => { if (document.visibilityState === "visible") load(0); };
     // iter101 : refresh live quand une vente est modifiée/supprimée/créée depuis n'importe où
