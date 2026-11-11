@@ -416,7 +416,7 @@ export default function HeuresSup() {
             <span>Total mois : <span className="font-display text-base font-semibold text-slate-900">{data.grand_total}h</span></span>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="text-sm border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/60">

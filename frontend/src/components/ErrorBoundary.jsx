@@ -119,7 +119,7 @@ export function AppErrorFallback({ message, reset }) {
           <button
             type="button"
             onClick={reportBug}
-            className="w-full h-9 rounded-lg text-[11px] text-slate-400 hover:text-slate-700 transition inline-flex items-center justify-center gap-1.5"
+            className="w-full h-9 rounded-lg text-[11px] text-slate-600 hover:text-slate-800 transition inline-flex items-center justify-center gap-1.5"
             data-testid="app-error-report"
           >
             {copied ? (

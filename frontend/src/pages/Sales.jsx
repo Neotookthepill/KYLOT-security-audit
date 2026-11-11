@@ -828,7 +828,7 @@ export default function Sales() {
             </div>
           );
         })()}
-        <div className="qy-sales-table-wrap overflow-x-auto">
+        <div className="qy-sales-table-wrap overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau des ventes">
           <table className="w-full text-sm sales-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
@@ -1125,7 +1125,7 @@ export default function Sales() {
             <span className="flex items-center gap-1"><Banknote size={12} /> Financement</span>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">

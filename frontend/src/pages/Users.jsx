@@ -136,7 +136,7 @@ export default function Users() {
       </div>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">

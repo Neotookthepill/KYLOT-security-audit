@@ -275,7 +275,7 @@ export default function Clients() {
           <Search size={16} className="text-slate-400" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher un client" className="border-0 shadow-none focus-visible:ring-0 h-9 px-0" />
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="w-full text-sm clients-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">

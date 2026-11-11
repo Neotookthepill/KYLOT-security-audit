@@ -369,7 +369,7 @@ export default function Prospecteur() {
       {isManager && singleMonth && deferredRows.length > 0 && (
         <Card className="p-5 border-amber-200 bg-amber-50/30 shadow-sm" data-testid="prospect-deferred-detail">
           <p className="overline text-amber-800">Détail des commissions reportées</p>
-          <div className="overflow-x-auto mt-3">
+          <div className="overflow-x-auto mt-3" tabIndex={0} role="region" aria-label="Tableau défilant">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-amber-200">

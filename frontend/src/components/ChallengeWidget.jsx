@@ -247,7 +247,7 @@ export default function ChallengeWidget() {
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto">
+            <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
               <table className="qy-challenge-table w-full text-sm">
                 <thead className="bg-slate-50 text-left">
                   <tr>

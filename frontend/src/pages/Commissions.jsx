@@ -357,7 +357,7 @@ export default function Commissions() {
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 overflow-x-auto">
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Filtres défilants">
         {isAdmin && (
           <button
             onClick={() => bumpPastMonths(1)}
@@ -462,7 +462,7 @@ export default function Commissions() {
             </div>
           )}
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">

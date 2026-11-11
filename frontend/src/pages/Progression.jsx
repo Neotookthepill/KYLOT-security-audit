@@ -15,7 +15,7 @@ function AnnualChart({ monthly, objectifMonthly, height = 90 }) {
   const gap = 4;
   const w = (barW + gap) * 12;
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
       <svg width={w} height={height + 22} className="block">
         {objectifMonthly > 0 && (
           <line

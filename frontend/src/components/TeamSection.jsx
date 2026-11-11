@@ -155,7 +155,7 @@ function CommercialList({ members, onChanged }) {
             Visibilités par commercial
             <span className="ml-auto text-slate-400 font-normal normal-case tracking-normal">CA société {recapStats.ca}/{safeMembers.length} · Objectif {recapStats.objectif}/{safeMembers.length} · % {recapStats.progress}/{safeMembers.length} · Classement {recapStats.ranking}/{safeMembers.length}</span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-slate-500 border-b border-slate-200">

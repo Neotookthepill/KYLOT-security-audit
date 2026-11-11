@@ -99,7 +99,7 @@ export default function CommissionHistory() {
         ) : data.commercials.length === 0 ? (
           <div className="p-10 text-center text-slate-500 text-sm">Aucune prime sur la période sélectionnée.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b border-slate-200 bg-slate-50/60">
