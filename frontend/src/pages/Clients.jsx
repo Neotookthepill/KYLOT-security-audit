@@ -35,7 +35,7 @@ const CAT_COLORS = {
 const clsFor = (color, active) => (CAT_COLORS[color] || CAT_COLORS.slate)[active ? "active" : "chip"];
 
 export default function Clients() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState([]);
   const [categories, setCategories] = useState([]);
