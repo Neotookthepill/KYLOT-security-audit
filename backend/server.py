@@ -6252,6 +6252,7 @@ async def delete_team_member(tid: str, user: dict = Depends(require_admin)):
 async def _compute_monthly_report(prefix: str, user: dict) -> dict:
     """Shared logic used by both JSON endpoint and PDF endpoint."""
     sales = await db.sales.find(cq(user, {"sale_date": {"$regex": f"^{prefix}"}}), {"_id": 0}).to_list(10000)
+    status_caps = await _sale_status_capabilities(user)
     team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500)
     names = [t["name"] for t in team]
     for s in sales:
@@ -6308,7 +6309,7 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
                 b["cancelled_count"] += 1
             elif status == "litige":
                 b["litige_count"] += 1
-            else:
+            elif status_caps.get(status, {}).get("countsCA", False):
                 b["active_count"] += 1
                 b["ca_total"] += amount * ca_share
                 b["commission_total"] += amount * ca_share * comm_rate
