@@ -11388,27 +11388,69 @@ def _holder_get(holders: list, user_id: str) -> Optional[dict]:
     return None
 
 
-async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int = 5):
+async def _stock_flush_outbox(sid: str, user: dict) -> None:
+    """Projette les mouvements embarqués dans le stock vers l'historique.
+
+    L'événement est écrit dans le même document que la quantité. Si l'insertion
+    dans `stock_movements` échoue, il reste dans `pending_stock_movements` et
+    sera rejoué à la prochaine lecture/mutation : aucune mutation n'est perdue.
+    """
+    row = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0, "pending_stock_movements": 1})
+    pending = list((row or {}).get("pending_stock_movements") or [])
+    for movement in pending:
+        mid = movement.get("id")
+        if not mid:
+            continue
+        try:
+            already = await db.stock_movements.find_one(cq(user, {"id": mid}), {"_id": 0, "id": 1})
+            if not already:
+                await db.stock_movements.insert_one(movement.copy())
+            await db.stock.update_one(
+                cq(user, {"id": sid, "pending_stock_movements.id": mid}),
+                {"$pull": {"pending_stock_movements": {"id": mid}}},
+            )
+        except Exception:
+            logger.exception("Échec de projection du mouvement stock %s", mid)
+            return
+
+
+async def _stock_flush_all_pending(user: dict) -> None:
+    """Rejoue les outbox stock restés en attente (lecture ou réparation)."""
+    rows = await db.stock.find(
+        cq(user, {"pending_stock_movements.0": {"$exists": True}}),
+        {"_id": 0, "id": 1},
+    ).to_list(500)
+    for row in rows:
+        await _stock_flush_outbox(row["id"], user)
+
+
+async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int = 5,
+                                 movement_factory=None):
     """Retry a stock mutation when another worker changed the row meanwhile.
 
-    Legacy rows have no `_rev`; the first successful mutation creates it. The
-    revision predicate makes the read/compute/write sequence safe across
-    processes without requiring a multi-document transaction.
+    Le mouvement éventuel est ajouté au même document via `$push` puis projeté
+    vers `stock_movements`. La quantité et l'événement ne peuvent donc pas être
+    séparés par un crash entre les deux écritures.
     """
     for _ in range(attempts):
         row = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
         if not row:
             raise HTTPException(status_code=404, detail="Ligne stock introuvable")
         updates, context = mutate(row)
+        movement = movement_factory(row, updates, context) if movement_factory else None
         revision = row.get("_rev")
         query = cq(user, {"id": sid})
         query["_rev"] = revision if revision is not None else {"$exists": False}
-        result = await db.stock.update_one(
-            query,
-            {"$set": updates, "$inc": {"_rev": 1}},
-        )
+        update_doc = {"$set": updates, "$inc": {"_rev": 1}}
+        if movement:
+            update_doc["$push"] = {"pending_stock_movements": movement}
+        result = await db.stock.update_one(query, update_doc)
         if result.modified_count == 1:
+            if movement:
+                await _stock_flush_outbox(sid, user)
             updated = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
+            if updated:
+                updated.pop("pending_stock_movements", None)
             return updated, context, row
     raise HTTPException(status_code=409, detail="Stock modifié simultanément — recommencez l'opération")
 
@@ -11439,7 +11481,7 @@ async def stock_catalog(user: dict = Depends(get_current_user)):
     """iter89 : liste allégée id+product_name du catalogue Stock — accessible à tout user avec stock.view.
     Utilisée par le technicien pour ajouter un produit à son stock personnel."""
     _stock_rbac_check(user)
-    rows = await db.stock.find(cq(user), {"_id": 0, "id": 1, "product_name": 1}).sort("product_name", 1).to_list(2000)
+    rows = await db.stock.find(cq(user, {"deleted_at": {"$exists": False}}), {"_id": 0, "id": 1, "product_name": 1}).sort("product_name", 1).to_list(2000)
     return [{"id": r.get("id"), "product_name": r.get("product_name") or ""} for r in rows if r.get("id")]
 
 
@@ -11451,6 +11493,7 @@ async def list_stock(
 ):
     # iter68 : accès piloté par permission stock.view (indépendant des Ventes / du rôle).
     _stock_rbac_check(user)
+    await _stock_flush_all_pending(user)
     # 1) Aggregate needs from active projects (a_planifier, en_cours). Fallback: sales when no prestations on project yet.
     # iter58 : filtre de date sur scheduled_date (from_date <= sched <= until) — optionnel
     needs: dict = {}  # key -> {name, qty}
@@ -11488,7 +11531,7 @@ async def list_stock(
             needs[k]["qty"] += qty
 
     # 2) Load stock rows for this company
-    rows = await db.stock.find(cq(user), {"_id": 0}).to_list(2000)
+    rows = await db.stock.find(cq(user, {"deleted_at": {"$exists": False}}), {"_id": 0}).to_list(2000)
     by_key = {r.get("product_key"): r for r in rows if r.get("product_key")}
 
     # iter57 : "géré en stock = existe dans le catalogue Stock". On ne compte donc
@@ -11788,10 +11831,11 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
             "created_by_technician": True,
             "_rev": 0,
         }, user)
+        mv = _log_movement(company_id_of(user), key, name, user, "tech_create", 0, None, None, None, "Produit créé par technicien")
+        doc["pending_stock_movements"] = [mv]
         try:
             await db.stock.insert_one(doc.copy())
-            mv = _log_movement(company_id_of(user), key, name, user, "tech_create", 0, None, None, None, "Produit créé par technicien")
-            await db.stock_movements.insert_one(mv.copy())
+            await _stock_flush_outbox(sid, user)
         except DuplicateKeyError:
             # Another worker created the same normalized product between our
             # lookup and insert. Continue on that canonical row.
@@ -11813,9 +11857,9 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
             holders.append({"user_id": my_uid, "name": my_name, "qty": qty})
         return ({"holders": holders, "updated_at": now_iso(), "updated_by": my_uid}, {})
 
-    updated, _, _ = await _stock_compare_and_set(sid, user, mutate)
-    mv = _log_movement(company_id_of(user), key, name, user, "adjust", qty, None, my_uid, None, "Ajout technicien")
-    await db.stock_movements.insert_one(mv.copy())
+    def movement_factory(_row, _updates, _context):
+        return _log_movement(company_id_of(user), key, name, user, "adjust", qty, None, my_uid, None, "Ajout technicien")
+    updated, _, _ = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
     await log_audit(user, "tech_create_and_hold", "stock", sid, after={"product_name": name, "qty": qty})
     return updated
 
@@ -11881,7 +11925,7 @@ async def rename_stock_product(sid: str, data: StockRenameIn, user: dict = Depen
         (`created_by_technician=True` et `created_by == user.id`).
     Effet : met à jour `product_name` + `product_key`. Refuse la collision.
     """
-    row = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
+    row = await db.stock.find_one(cq(user, {"id": sid, "deleted_at": {"$exists": False}}), {"_id": 0})
     if not row:
         raise HTTPException(status_code=404, detail="Ligne stock introuvable")
     if not _is_manager(user):
@@ -11972,15 +12016,18 @@ async def receive_stock(sid: str, data: StockReceive, user: dict = Depends(get_c
             "updated_at": now_iso(), "updated_by": user["id"],
         }, {"qty": qty})
 
-    updated, context, previous = await _stock_compare_and_set(sid, user, mutate)
-    qty = int(context.get("qty") or 0)
-    if qty:
-        mv = _log_movement(
+    def movement_factory(previous, _updates, context):
+        qty = int(context.get("qty") or 0)
+        if not qty:
+            return None
+        return _log_movement(
             company_id_of(user), previous.get("product_key"),
             previous.get("product_name") or "", user, "receive", qty,
             None, None, None, "Réception de commande",
         )
-        await db.stock_movements.insert_one(mv.copy())
+    updated, context, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    qty = int(context.get("qty") or 0)
+    if qty:
         await log_audit(user, "stock_receive", "stock", sid, after={"qty": qty})
     return updated
 
@@ -11990,22 +12037,21 @@ async def delete_stock(sid: str, user: dict = Depends(get_current_user)):
     if not _is_manager(user):
         raise HTTPException(status_code=403, detail="Accès refusé")
     before = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
-    if not before:
+    if not before or before.get("deleted_at"):
         raise HTTPException(status_code=404, detail="Ligne stock introuvable")
     if _holders_total(before.get("holders") or []) > 0:
         raise HTTPException(status_code=409, detail="Ce produit est détenu par un ou plusieurs utilisateurs ; transférez ou remettez le stock à zéro avant suppression.")
-    r = await db.stock.delete_one(cq(user, {"id": sid}))
-    if r.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Ligne stock introuvable")
-    mv = _log_movement(
-        company_id_of(user), before.get("product_key"),
-        before.get("product_name") or "", user, "delete", 0,
-        None, None, None, "Suppression de la ligne stock",
-    )
-    await db.stock_movements.insert_one(mv.copy())
+    def mutate(row):
+        return ({"deleted_at": now_iso(), "updated_at": now_iso(), "updated_by": user["id"]}, {})
+    def movement_factory(previous, _updates, _context):
+        return _log_movement(
+            company_id_of(user), previous.get("product_key"),
+            previous.get("product_name") or "", user, "delete", 0,
+            None, None, None, "Suppression logique de la ligne stock",
+        )
+    await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
     await log_audit(user, "stock_delete", "stock", sid, before=before)
     return {"ok": True}
-
 
 # ============ iter57 : Stock multi-emplacements (holders) ============
 
@@ -12054,11 +12100,11 @@ async def set_stock_holder(sid: str, data: StockHolderIn, user: dict = Depends(g
             "delta": int(data.quantity) - prev,
         })
 
-    updated, context, previous = await _stock_compare_and_set(sid, user, mutate)
-    mv = _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
-                       user, "set", context["delta"], None, data.user_id, None,
-                       f"Attribution → {target_name}")
-    await db.stock_movements.insert_one(mv.copy())
+    def movement_factory(previous, _updates, context):
+        return _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
+                             user, "set", context["delta"], None, data.user_id, None,
+                             f"Attribution → {target_name}")
+    updated, context, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
     await log_audit(user, "stock_set_holder", "stock", sid, after={"user_id": data.user_id, "qty": data.quantity})
     return updated
 
@@ -12125,11 +12171,11 @@ async def transfer_stock(sid: str, data: StockTransferIn, user: dict = Depends(g
             "updated_at": now_iso(), "updated_by": user["id"],
         }, {})
 
-    updated, _, previous = await _stock_compare_and_set(sid, user, mutate)
-    mv = _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
-                       user, "transfer", qty, data.from_user_id, data.to_user_id, None,
-                       f"Transfert {qty} unités")
-    await db.stock_movements.insert_one(mv.copy())
+    def movement_factory(previous, _updates, _context):
+        return _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
+                             user, "transfer", qty, data.from_user_id, data.to_user_id, None,
+                             f"Transfert {qty} unités")
+    updated, _, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
     await log_audit(user, "stock_transfer", "stock", sid,
                     after={"qty": qty, "from": data.from_user_id or "depot", "to": data.to_user_id or "depot"})
     return updated
@@ -12163,14 +12209,14 @@ async def adjust_holder_stock(sid: str, data: StockAdjustIn, user: dict = Depend
             "updated_at": now_iso(), "updated_by": user["id"],
         }, {})
 
-    updated, _, previous = await _stock_compare_and_set(sid, user, mutate)
     action = "in" if data.delta > 0 else "out"
-    mv = _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
-                       user, action, data.delta,
-                       user["id"] if data.delta < 0 else None,
-                       user["id"] if data.delta > 0 else None,
-                       data.project_id, data.note or "")
-    await db.stock_movements.insert_one(mv.copy())
+    def movement_factory(previous, _updates, _context):
+        return _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
+                             user, action, data.delta,
+                             user["id"] if data.delta < 0 else None,
+                             user["id"] if data.delta > 0 else None,
+                             data.project_id, data.note or "")
+    updated, _, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
     await log_audit(user, f"stock_{action}", "stock", sid, after={"delta": data.delta, "project_id": data.project_id})
     return updated
 
@@ -12181,6 +12227,7 @@ async def list_stock_movements(product_key: Optional[str] = Query(None, max_leng
                                 user: dict = Depends(get_current_user)):
     """Historique des mouvements (RBAC : technicien voit uniquement les siens)."""
     _stock_rbac_check(user)
+    await _stock_flush_all_pending(user)
     q = cq(user)
     if product_key:
         q["product_key"] = _norm_product_key(product_key)
