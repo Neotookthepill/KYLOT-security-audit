@@ -88,7 +88,31 @@ class CaConsistencyTests(unittest.TestCase):
         self.assertEqual(report.json()["totals"]["active_count"], 1)
         self.assertEqual(report.json()["totals"]["sources"]["R1"], 1)
         self.assertEqual(report.json()["totals"]["commission_total"], 10.0)
+        # Le "à valider" ne doit compter que les statuts commissionnables,
+        # comme la page Commissions — pas les statuts personnalisés exclus.
+        self.assertEqual(dash.json()["commissions"]["to_validate_count"], 1)
+        self.assertEqual(dash.json()["commissions"]["to_validate_amount"], 10.0)
+        self.assertEqual(len(commissions.json()), 1)
         self.assertAlmostEqual(sum(float(r.get("commission_amount") or 0) for r in commissions.json()), 10.0, places=2)
+
+
+    def test_dashboard_commission_total_matches_report_for_de_sale(self):
+        asyncio.run(self.db.sales.insert_one({
+            "id": "sale-de", "company_id": "company-ca", "client_id": "c", "amount": 1000,
+            "status": "en_cours", "sale_date": self.month_start, "commercial": "A",
+            "commercial_2": "B", "is_de": True, "commission_rate": 0.2,
+            "commission_rate_2": 0.1, "service": "Test", "source": "R1",
+        }))
+        dash = self.client.get("/api/dashboard/executive?period=month", headers=self.headers)
+        report = self.client.get(f"/api/reports/monthly?month={self.month_start[:7]}", headers=self.headers)
+        commissions = self.client.get("/api/commissions", headers=self.headers)
+        self.assertEqual(dash.status_code, 200, dash.text)
+        self.assertEqual(report.status_code, 200, report.text)
+        self.assertEqual(commissions.status_code, 200, commissions.text)
+        expected = 160.0
+        self.assertAlmostEqual(dash.json()["commissions"]["total"], expected, places=2)
+        self.assertAlmostEqual(report.json()["totals"]["commission_total"], expected, places=2)
+        self.assertAlmostEqual(sum(r["commission_amount"] for r in commissions.json()), expected, places=2)
 
     def test_previous_month_and_status_transition_are_consistent(self):
         today = datetime.now(ZoneInfo("Europe/Paris")).date()

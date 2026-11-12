@@ -4713,8 +4713,16 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
         for s in sales:
             if not status_caps.get(s.get("status"), {}).get("countsCA", False):
                 continue
-            amt = float(s.get("amount") or 0); rate = float(s.get("commission_rate") if s.get("commission_rate") is not None else 0)
-            ca += amt; count += 1; comm += amt * rate
+            amt = float(s.get("amount") or 0)
+            rate_1 = float(s.get("commission_rate") if s.get("commission_rate") is not None else 0)
+            commercial_2 = (s.get("commercial_2") or "").strip()
+            is_de = bool(s.get("is_de")) and bool(commercial_2) and commercial_2 != (s.get("commercial") or "").strip()
+            if is_de:
+                rate_2 = float(s.get("commission_rate_2") if s.get("commission_rate_2") is not None else rate_1)
+                comm += amt * 0.5 * rate_1 + amt * 0.5 * rate_2
+            else:
+                comm += amt * rate_1
+            ca += amt; count += 1
             _add_ranking_share(by_com, s, amt)
         return {"ca": ca, "count": count, "commission_total": comm, "by_com": by_com}
 
@@ -4861,7 +4869,17 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     )
     unpaid_q = None
     if comm_scope != "none":
-        unpaid_q = cq(user, {"commission_paid": {"$ne": True}, "status": {"$nin": ["annule", "litige", "non_financable"]}})
+        # Le dashboard doit compter exactement les statuts que la page Commissions
+        # considère comme commissionnables. Sinon un statut personnalisé non
+        # commissionnable (ex. stat_mtllrgv5) gonfle le "à valider" au-delà du total.
+        commissionable_statuses = [
+            status for status, caps in status_caps.items()
+            if caps.get("commissionable", False)
+        ]
+        unpaid_q = cq(user, {
+            "commission_paid": {"$ne": True},
+            "status": {"$in": commissionable_statuses},
+        })
         if comm_scope == "own":
             unpaid_q.update(_own_sales_filter(user))
         if period != "year":

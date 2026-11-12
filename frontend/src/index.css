@@ -478,6 +478,9 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 /* Les widgets d'une même rangée remplissent la hauteur : évite les trous visuels. */
 .qy-dashboard [data-testid^="widget-"] { display: flex; flex-direction: column; height: 100%; }
 .qy-dashboard [data-testid^="widget-"] > * { flex: 1; }
+/* Les cartes de synthèse ne doivent pas être étirées par une rangée de graphiques. */
+.qy-dashboard [data-testid="dashboard-commissions"],
+.qy-dashboard [data-testid="dashboard-overtime"] { flex: 0 0 auto !important; }
 
 /* Le panneau de connexion reste clair même si le thème applicatif est sombre. */
 .qy-login-field, .dark .qy-login-field {

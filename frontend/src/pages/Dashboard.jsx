@@ -667,14 +667,14 @@ export default function Dashboard() {
       </Card>
     ),
     commissions: () => (
-      <Card className="p-5 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/commissions")} data-testid="dashboard-commissions">
+      <Card className="p-4 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/commissions")} data-testid="dashboard-commissions">
         <div className="flex items-start justify-between">
           <div>
             <p className="overline">Commissions du mois</p>
             <p className="font-display text-3xl font-semibold tracking-tight mt-2">{fmtEur(data?.commissions?.total)}</p>
-            <p className="text-xs text-slate-500 mt-1"><span className={data?.commissions?.to_validate_count > 0 ? "text-amber-700 font-medium" : ""}>{data?.commissions?.to_validate_count || 0} à valider</span>{data?.commissions?.to_validate_count > 0 && <> · {fmtEur(data?.commissions?.to_validate_amount)}</>}</p>
+            <p className="text-xs text-slate-500 mt-1"><span className={data?.commissions?.to_validate_count > 0 ? "text-slate-700 font-semibold" : ""}>{data?.commissions?.to_validate_count || 0} à valider</span>{data?.commissions?.to_validate_count > 0 && <> · {fmtEur(data?.commissions?.to_validate_amount)}</>}</p>
           </div>
-          <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center"><Percent size={18} /></div>
+          <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center"><Percent size={16} /></div>
         </div>
       </Card>
     ),
