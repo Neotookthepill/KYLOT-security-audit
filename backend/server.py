@@ -10593,6 +10593,11 @@ async def on_startup():
     await db.audit_log.create_index([("company_id", 1), ("at", -1)])
     await db.audit_log.create_index("at_dt", expireAfterSeconds=AUDIT_RETENTION_DAYS * 86400)
     await db.stock_movements.create_index([("company_id", 1), ("at", -1)])
+    try:
+        await db.stock_movements.create_index("id", unique=True, sparse=True)
+    except Exception:
+        # Existing duplicates must not prevent the whole service from starting.
+        logger.warning("Index unique stock_movements.id non créé (doublons existants)", exc_info=True)
     await db.payment_transactions.create_index([("company_id", 1), ("user_id", 1)])
     for collection_name in TENANT_COLLECTIONS:
         await db[collection_name].create_index("company_id")
@@ -11310,6 +11315,7 @@ async def delete_event(eid: str, user: dict = Depends(get_current_user), notify:
 
 class StockUpsert(BaseModel):
     product_name: str = Field(min_length=1, max_length=200)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     stock_disponible: Optional[int] = Field(default=None, ge=0, le=100000)
     commande_en_cours: Optional[int] = Field(default=None, ge=0, le=100000)
     # iter75 : seuil d'alerte stock bas — configurable par produit (défaut 2, désactivable via 0)
@@ -11317,6 +11323,7 @@ class StockUpsert(BaseModel):
 
 class StockReceive(BaseModel):
     quantity: Optional[int] = Field(default=None, ge=1, le=100000, description="Quantité reçue; défaut = commande_en_cours")
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockRenameIn(BaseModel):
@@ -11363,18 +11370,21 @@ class StockHolderIn(BaseModel):
     user_id: str = Field(min_length=1, max_length=128)
     name: Optional[str] = Field(default=None, max_length=120)
     quantity: int = Field(ge=0, le=100000)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockTransferIn(BaseModel):
     from_user_id: Optional[str] = Field(default=None, min_length=1, max_length=128)  # None = dépôt société
     to_user_id: Optional[str] = Field(default=None, min_length=1, max_length=128)    # None = dépôt société
     quantity: int = Field(ge=1, le=100000)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockAdjustIn(BaseModel):
     delta: int = Field(ge=-10_000, le=10_000)  # +N entrée, -N sortie (technicien sur son propre stock)
     project_id: Optional[str] = Field(default=None, max_length=128)
     note: Optional[str] = Field(default="", max_length=1000)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 def _holders_total(holders: list) -> int:
@@ -11404,7 +11414,11 @@ async def _stock_flush_outbox(sid: str, user: dict) -> None:
         try:
             already = await db.stock_movements.find_one(cq(user, {"id": mid}), {"_id": 0, "id": 1})
             if not already:
-                await db.stock_movements.insert_one(movement.copy())
+                try:
+                    await db.stock_movements.insert_one(movement.copy())
+                except DuplicateKeyError:
+                    # Un autre worker a déjà projeté le même événement.
+                    pass
             await db.stock.update_one(
                 cq(user, {"id": sid, "pending_stock_movements.id": mid}),
                 {"$pull": {"pending_stock_movements": {"id": mid}}},
@@ -11425,7 +11439,7 @@ async def _stock_flush_all_pending(user: dict) -> None:
 
 
 async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int = 5,
-                                 movement_factory=None):
+                                 movement_factory=None, idempotency_key: Optional[str] = None):
     """Retry a stock mutation when another worker changed the row meanwhile.
 
     Le mouvement éventuel est ajouté au même document via `$push` puis projeté
@@ -11433,15 +11447,21 @@ async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int 
     séparés par un crash entre les deux écritures.
     """
     for _ in range(attempts):
-        row = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
+        row = await db.stock.find_one(cq(user, {"id": sid, "deleted_at": {"$exists": False}}), {"_id": 0})
         if not row:
             raise HTTPException(status_code=404, detail="Ligne stock introuvable")
+        if idempotency_key and idempotency_key in (row.get("applied_stock_requests") or []):
+            row.pop("pending_stock_movements", None)
+            return row, {}, row
         updates, context = mutate(row)
         movement = movement_factory(row, updates, context) if movement_factory else None
         revision = row.get("_rev")
-        query = cq(user, {"id": sid})
+        query = cq(user, {"id": sid, "deleted_at": {"$exists": False}})
         query["_rev"] = revision if revision is not None else {"$exists": False}
         update_doc = {"$set": updates, "$inc": {"_rev": 1}}
+        if idempotency_key:
+            query["applied_stock_requests"] = {"$ne": idempotency_key}
+            update_doc["$addToSet"] = {"applied_stock_requests": idempotency_key}
         if movement:
             update_doc["$push"] = {"pending_stock_movements": movement}
         result = await db.stock.update_one(query, update_doc)
@@ -11452,6 +11472,11 @@ async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int 
             if updated:
                 updated.pop("pending_stock_movements", None)
             return updated, context, row
+    if idempotency_key:
+        current = await db.stock.find_one(cq(user, {"id": sid, "deleted_at": {"$exists": False}}), {"_id": 0})
+        if current and idempotency_key in (current.get("applied_stock_requests") or []):
+            current.pop("pending_stock_movements", None)
+            return current, {}, current
     raise HTTPException(status_code=409, detail="Stock modifié simultanément — recommencez l'opération")
 
 
@@ -11792,6 +11817,7 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
 class TechStockCreateIn(BaseModel):
     product_name: str = Field(min_length=1, max_length=120)
     qty: int = Field(ge=1, le=100000)
+    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 @api_router.post("/stock/tech-create-and-hold")
@@ -11814,7 +11840,7 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
     key = _norm_product_key(name)
     qty = int(data.qty)
     now = now_iso()
-    existing = await db.stock.find_one(cq(user, {"product_key": key}), {"_id": 0})
+    existing = await db.stock.find_one(cq(user, {"product_key": key, "deleted_at": {"$exists": False}}), {"_id": 0})
     if existing:
         sid = existing["id"]
     else:
@@ -11830,6 +11856,7 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
             "updated_at": now,
             "created_by_technician": True,
             "_rev": 0,
+            "applied_stock_requests": [data.client_request_id] if data.client_request_id else [],
         }, user)
         mv = _log_movement(company_id_of(user), key, name, user, "tech_create", 0, None, None, None, "Produit créé par technicien")
         doc["pending_stock_movements"] = [mv]
@@ -11859,7 +11886,10 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
 
     def movement_factory(_row, _updates, _context):
         return _log_movement(company_id_of(user), key, name, user, "adjust", qty, None, my_uid, None, "Ajout technicien")
-    updated, _, _ = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    updated, _, _ = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     await log_audit(user, "tech_create_and_hold", "stock", sid, after={"product_name": name, "qty": qty})
     return updated
 
@@ -11872,7 +11902,10 @@ async def upsert_stock(data: StockUpsert, user: dict = Depends(get_current_user)
     if not name:
         raise HTTPException(status_code=400, detail="Nom produit requis")
     key = _norm_product_key(name)
-    existing = await db.stock.find_one(cq(user, {"product_key": key}), {"_id": 0})
+    existing = await db.stock.find_one(cq(user, {"product_key": key, "deleted_at": {"$exists": False}}), {"_id": 0})
+    archived = await db.stock.find_one(cq(user, {"product_key": key, "deleted_at": {"$exists": True}}), {"_id": 0, "id": 1})
+    if archived and not existing:
+        raise HTTPException(status_code=409, detail="Ce produit a été supprimé logiquement ; renommez-le ou restaurez-le explicitement.")
     now = now_iso()
     updates = {"product_name": name, "product_key": key, "updated_at": now, "updated_by": user["id"]}
     if data.stock_disponible is not None:
@@ -11883,11 +11916,24 @@ async def upsert_stock(data: StockUpsert, user: dict = Depends(get_current_user)
     if getattr(data, "low_stock_threshold", None) is not None:
         updates["low_stock_threshold"] = max(0, int(data.low_stock_threshold))
     if existing:
-        # Mise à jour optimiste : deux managers qui modifient le même produit
-        # ne doivent pas écraser silencieusement la quantité de l'autre.
+        old_stock = int(existing.get("stock_disponible") or 0)
+        old_order = int(existing.get("commande_en_cours") or 0)
         def _mutate(_row):
             return updates, None
-        updated, _, _ = await _stock_compare_and_set(existing["id"], user, _mutate)
+        def _movement(previous, _updates, _context):
+            new_stock = int(updates.get("stock_disponible", previous.get("stock_disponible") or 0))
+            delta = new_stock - int(previous.get("stock_disponible") or 0)
+            if not delta and updates.get("commande_en_cours") is None:
+                return None
+            return _log_movement(
+                company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
+                user, "adjust", delta, None, None, None,
+                f"Mise à jour stock (commande {old_order}→{updates.get('commande_en_cours', old_order)})",
+            )
+        updated, _, _ = await _stock_compare_and_set(
+            existing["id"], user, _mutate, movement_factory=_movement,
+            idempotency_key=data.client_request_id,
+        )
         return updated
     doc = with_company({
         "id": str(uuid.uuid4()),
@@ -11899,20 +11945,19 @@ async def upsert_stock(data: StockUpsert, user: dict = Depends(get_current_user)
         "created_at": now,
         "updated_at": now,
         "_rev": 0,
+        "applied_stock_requests": [data.client_request_id] if data.client_request_id else [],
     }, user)
+    create_mv = _log_movement(company_id_of(user), key, name, user, "create", int(data.stock_disponible or 0), None, None, None, "Création produit stock")
+    doc["pending_stock_movements"] = [create_mv]
     try:
         await db.stock.insert_one(doc.copy())
+        await _stock_flush_outbox(doc["id"], user)
     except DuplicateKeyError:
-        # A concurrent request created the normalized product first. Apply this
-        # request to that canonical row instead of returning a server error.
+        # Concurrent creation or archived row with the same normalized key.
         existing = await db.stock.find_one(cq(user, {"product_key": key}), {"_id": 0})
-        if not existing:
-            raise
-        await db.stock.update_one(
-            cq(user, {"id": existing["id"]}),
-            {"$set": updates, "$inc": {"_rev": 1}},
-        )
-        return await db.stock.find_one(cq(user, {"id": existing["id"]}), {"_id": 0})
+        if existing and not existing.get("deleted_at"):
+            return await db.stock.find_one(cq(user, {"id": existing["id"]}), {"_id": 0})
+        raise HTTPException(status_code=409, detail="Produit en conflit ; renommez ou restaurez explicitement.")
     return doc
 
 
@@ -12025,7 +12070,10 @@ async def receive_stock(sid: str, data: StockReceive, user: dict = Depends(get_c
             previous.get("product_name") or "", user, "receive", qty,
             None, None, None, "Réception de commande",
         )
-    updated, context, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    updated, context, previous = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     qty = int(context.get("qty") or 0)
     if qty:
         await log_audit(user, "stock_receive", "stock", sid, after={"qty": qty})
@@ -12104,7 +12152,10 @@ async def set_stock_holder(sid: str, data: StockHolderIn, user: dict = Depends(g
         return _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
                              user, "set", context["delta"], None, data.user_id, None,
                              f"Attribution → {target_name}")
-    updated, context, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    updated, context, previous = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     await log_audit(user, "stock_set_holder", "stock", sid, after={"user_id": data.user_id, "qty": data.quantity})
     return updated
 
@@ -12175,7 +12226,10 @@ async def transfer_stock(sid: str, data: StockTransferIn, user: dict = Depends(g
         return _log_movement(company_id_of(user), previous.get("product_key"), previous.get("product_name") or "",
                              user, "transfer", qty, data.from_user_id, data.to_user_id, None,
                              f"Transfert {qty} unités")
-    updated, _, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    updated, _, previous = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     await log_audit(user, "stock_transfer", "stock", sid,
                     after={"qty": qty, "from": data.from_user_id or "depot", "to": data.to_user_id or "depot"})
     return updated
@@ -12216,7 +12270,10 @@ async def adjust_holder_stock(sid: str, data: StockAdjustIn, user: dict = Depend
                              user["id"] if data.delta < 0 else None,
                              user["id"] if data.delta > 0 else None,
                              data.project_id, data.note or "")
-    updated, _, previous = await _stock_compare_and_set(sid, user, mutate, movement_factory=movement_factory)
+    updated, _, previous = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     await log_audit(user, f"stock_{action}", "stock", sid, after={"delta": data.delta, "project_id": data.project_id})
     return updated
 

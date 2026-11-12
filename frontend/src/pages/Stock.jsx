@@ -263,6 +263,12 @@ function NumberEditor({ value, onCommit, testId, disabled, label = "" }) {
   );
 }
 
+const stockRequestId = () => (
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `stock-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+);
+
 export default function Stock() {
   const { user } = useAuth();
   const isTechnicien = user?.role === "technicien";
@@ -333,7 +339,7 @@ export default function Stock() {
 
   const updateField = async (row, patch) => {
     try {
-      await api.post("/stock", { product_name: row.product_name, ...patch });
+      await api.post("/stock", { product_name: row.product_name, ...patch, client_request_id: stockRequestId() });
       await load();
     } catch (err) { toast.error(formatApiError(err)); throw err; }
   };
@@ -341,7 +347,7 @@ export default function Stock() {
   const receive = async (row) => {
     if (!row.id || (row.commande_en_cours || 0) <= 0) return;
     try {
-      await api.post(`/stock/${row.id}/receive`, {});
+      await api.post(`/stock/${row.id}/receive`, { client_request_id: stockRequestId() });
       toast.success(`+${row.commande_en_cours} ${row.product_name} reçu(s)`);
       load();
     } catch (err) { toast.error(formatApiError(err)); }
@@ -420,11 +426,11 @@ export default function Stock() {
         // iter127 : le technicien crée un produit qui n'est pas encore dans le catalogue
         const name = (addNewName || "").trim();
         if (!name) return toast.error("Nom du produit requis");
-        await api.post("/stock/tech-create-and-hold", { product_name: name, qty });
+        await api.post("/stock/tech-create-and-hold", { product_name: name, qty, client_request_id: stockRequestId() });
         toast.success(`+${qty} ${name} ajouté(s) à votre stock (nouveau produit)`);
       } else {
         if (!addSid) return toast.error("Choisissez un produit");
-        await api.post(`/stock/${addSid}/holder-adjust`, { delta: qty });
+        await api.post(`/stock/${addSid}/holder-adjust`, { delta: qty, client_request_id: stockRequestId() });
         const p = catalog.find((c) => c.id === addSid);
         toast.success(`+${qty} ${p?.product_name || ""} ajouté(s) à votre stock`);
       }
@@ -440,7 +446,7 @@ export default function Stock() {
     const delta = Math.round(newQty - (row.qty || 0));
     if (delta === 0) return;
     try {
-      await api.post(`/stock/${row.id}/holder-adjust`, { delta });
+      await api.post(`/stock/${row.id}/holder-adjust`, { delta, client_request_id: stockRequestId() });
       toast.success(delta > 0 ? `+${delta} enregistré(s) sur ${row.product_name}` : `${delta} enregistré(s) sur ${row.product_name}`);
       await load();
     } catch (err) { toast.error(formatApiError(err)); }
@@ -462,7 +468,7 @@ export default function Stock() {
   // iter82 : admin fixe la quantité d'un holder (technicien) directement depuis la section groupée.
   const setHolderQty = async (sid, userId, name, quantity, productName) => {
     try {
-      await api.post(`/stock/${sid}/holder`, { user_id: userId, name, quantity: Math.max(0, Math.round(quantity)) });
+      await api.post(`/stock/${sid}/holder`, { user_id: userId, name, quantity: Math.max(0, Math.round(quantity)), client_request_id: stockRequestId() });
       toast.success(`${productName} · ${name} → ${quantity}`);
       await load();
     } catch (err) { toast.error(formatApiError(err)); }

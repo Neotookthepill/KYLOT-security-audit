@@ -74,6 +74,36 @@ class StockOutboxTests(unittest.TestCase):
         row = asyncio.run(self.db.stock.find_one({"id": "stock-1"}, {"_id": 0, "pending_stock_movements": 1}))
         self.assertEqual(row.get("pending_stock_movements") or [], [])
 
+    def test_same_request_id_is_idempotent(self):
+        def mutate(row):
+            return ({"stock_disponible": int(row.get("stock_disponible") or 0) + 5}, {"qty": 5})
+
+        def movement_factory(previous, _updates, _context):
+            return server._log_movement(
+                "stock-company", previous.get("product_key"), previous.get("product_name") or "",
+                self.user, "receive", 5, None, None, None, "Réception idempotente",
+            )
+
+        first, _, _ = asyncio.run(server._stock_compare_and_set(
+            "stock-1", self.user, mutate, movement_factory=movement_factory,
+            idempotency_key="stock-request-123",
+        ))
+        second, _, _ = asyncio.run(server._stock_compare_and_set(
+            "stock-1", self.user, mutate, movement_factory=movement_factory,
+            idempotency_key="stock-request-123",
+        ))
+        self.assertEqual(first["stock_disponible"], 15)
+        self.assertEqual(second["stock_disponible"], 15)
+        self.assertEqual(asyncio.run(self.db.stock_movements.count_documents({})), 1)
+
+    def test_deleted_stock_cannot_be_mutated(self):
+        asyncio.run(self.db.stock.update_one({"id": "stock-1"}, {"$set": {"deleted_at": "2026-11-12T00:00:00Z"}}))
+        with self.assertRaises(Exception) as error:
+            asyncio.run(server._stock_compare_and_set(
+                "stock-1", self.user, lambda row: ({"stock_disponible": 99}, {}),
+            ))
+        self.assertEqual(getattr(error.exception, "status_code", None), 404)
+
 
 if __name__ == "__main__":
     unittest.main()
