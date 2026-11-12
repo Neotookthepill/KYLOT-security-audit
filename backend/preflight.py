@@ -135,6 +135,12 @@ def validate_config(env: Mapping[str, str]) -> ValidationResult:
         elif production and enabled and name == "ALLOW_EXTERNAL_GEOCODING":
             warnings.append("ALLOW_EXTERNAL_GEOCODING is enabled; client addresses will be sent to a third party")
 
+    mfa_enforce = _parse_bool(_value(env, "MFA_ENFORCE_ADMINS"))
+    if mfa_enforce is None:
+        errors.append("MFA_ENFORCE_ADMINS must be a boolean")
+    elif production and not mfa_enforce:
+        errors.append("MFA_ENFORCE_ADMINS must be true in production")
+
     external_ai = _parse_bool(_value(env, "ALLOW_EXTERNAL_AI"))
     if external_ai is None:
         errors.append("ALLOW_EXTERNAL_AI must be a boolean")

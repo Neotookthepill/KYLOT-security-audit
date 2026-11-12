@@ -19,6 +19,7 @@ import bcrypt
 import hmac as _hmac
 import hashlib
 import httpx
+import zipfile
 import stripe
 import segno
 import re
@@ -119,6 +120,13 @@ MAX_IMPORT_ROWS = int(os.environ.get("MAX_IMPORT_ROWS", "5000"))
 MAX_IMPORT_COLUMNS = int(os.environ.get("MAX_IMPORT_COLUMNS", "100"))
 MAX_IMPORT_CELL_CHARS = int(os.environ.get("MAX_IMPORT_CELL_CHARS", "10000"))
 IMPORT_BATCH_TTL_MINUTES = int(os.environ.get("IMPORT_BATCH_TTL_MINUTES", "30"))
+MAX_XLSX_UNCOMPRESSED_BYTES = int(os.environ.get("MAX_XLSX_UNCOMPRESSED_BYTES", str(64 * 1024 * 1024)))
+MAX_XLSX_ENTRIES = int(os.environ.get("MAX_XLSX_ENTRIES", "2000"))
+MAX_XLSX_RATIO = int(os.environ.get("MAX_XLSX_RATIO", "200"))
+MAX_PDF_PAGE_PIXELS = int(os.environ.get("MAX_PDF_PAGE_PIXELS", "20000000"))
+MAX_PDF_TOTAL_PIXELS = int(os.environ.get("MAX_PDF_TOTAL_PIXELS", "60000000"))
+MAX_PDF_DIMENSION = int(os.environ.get("MAX_PDF_DIMENSION", "10000"))
+MAX_IMAGE_PIXELS = int(os.environ.get("MAX_IMAGE_PIXELS", "40000000"))
 
 
 def _external_ai_enabled() -> bool:
@@ -364,16 +372,21 @@ async def _mfa_code_matches(user: dict, code: str) -> tuple[bool, bool]:
     secret = user.get("mfa_secret") or ""
     if secret and _verify_totp(secret, code):
         return True, False
-    remaining = []
-    used = False
+    # Revendication atomique du hash exact : deux requêtes concurrentes qui
+    # présentent le même code de récupération ne peuvent pas créer deux sessions.
+    matched = None
     for hashed in user.get("mfa_recovery_codes") or []:
-        if not used and verify_password(code.upper(), hashed):
-            used = True
-            continue
-        remaining.append(hashed)
-    if used:
-        await db.users.update_one({"id": user["id"]}, {"$set": {"mfa_recovery_codes": remaining}})
-        return True, True
+        if verify_password(code.upper(), hashed):
+            matched = hashed
+            break
+    if matched:
+        result = await db.users.update_one(
+            {"id": user["id"], "mfa_recovery_codes": matched},
+            {"$pull": {"mfa_recovery_codes": matched}},
+        )
+        if result.modified_count == 1:
+            return True, True
+        return False, False
     return False, False
 
 
@@ -2436,7 +2449,59 @@ def _read_csv_bytes(raw: bytes) -> List[List[str]]:
     return rows
 
 
+def _validate_xlsx_bounds(raw: bytes) -> None:
+    """Refuse les classeurs ZIP qui dépassent les budgets décompressés."""
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Fichier Excel trop volumineux")
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            infos = archive.infolist()
+            if len(infos) > MAX_XLSX_ENTRIES:
+                raise HTTPException(status_code=413, detail="Classeur Excel trop complexe")
+            total = sum(int(info.file_size or 0) for info in infos)
+            if total > MAX_XLSX_UNCOMPRESSED_BYTES:
+                raise HTTPException(status_code=413, detail="Contenu Excel décompressé trop volumineux")
+            if total > len(raw) * MAX_XLSX_RATIO:
+                raise HTTPException(status_code=413, detail="Ratio de compression Excel suspect")
+            names = [(info.filename or "").lower() for info in infos]
+            if any(name.endswith(("vbaproject.bin", ".xlsm", ".exe", ".dll")) for name in names):
+                raise HTTPException(status_code=413, detail="Macros ou binaires Excel refusés")
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Fichier Excel invalide")
+
+
+def _check_pdf_render_budget(doc, dpi: int) -> None:
+    """Borne les pixels rendus avant toute conversion PDF → image."""
+    total = 0
+    for page in doc:
+        width = float(page.rect.width) * dpi / 72.0
+        height = float(page.rect.height) * dpi / 72.0
+        if width > MAX_PDF_DIMENSION or height > MAX_PDF_DIMENSION:
+            raise HTTPException(status_code=413, detail="Page PDF trop grande")
+        pixels = int(width * height)
+        if pixels > MAX_PDF_PAGE_PIXELS:
+            raise HTTPException(status_code=413, detail="Page PDF trop lourde à rendre")
+        total += pixels
+        if total > MAX_PDF_TOTAL_PIXELS:
+            raise HTTPException(status_code=413, detail="PDF trop lourd à rendre")
+
+
+def _validate_image_dimensions(raw: bytes) -> None:
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(raw)) as image:
+            width, height = image.size
+            if width > MAX_PDF_DIMENSION or height > MAX_PDF_DIMENSION or width * height > MAX_IMAGE_PIXELS:
+                raise HTTPException(status_code=413, detail="Image trop grande")
+    except HTTPException:
+        raise
+    except Exception:
+        # HEIC ou format non décodable localement : la limite d'octets reste appliquée.
+        return
+
+
 def _read_xlsx_bytes(raw: bytes) -> List[List[str]]:
+    _validate_xlsx_bounds(raw)
     try:
         import openpyxl  # type: ignore
     except ImportError:
@@ -2770,6 +2835,7 @@ async def parse_client_pdf(file: UploadFile = File(...), user: dict = Depends(ge
             if doc.page_count > MAX_PDF_PAGES:
                 doc.close()
                 raise HTTPException(status_code=413, detail=f"PDF trop long (max {MAX_PDF_PAGES} pages)")
+            _check_pdf_render_budget(doc, 240)
             # Limite : 3 premières pages suffisent pour l'en-tête client
             for i, page in enumerate(doc):
                 if i >= 3:
@@ -2784,6 +2850,7 @@ async def parse_client_pdf(file: UploadFile = File(...), user: dict = Depends(ge
             logger.exception("Unreadable client import PDF")
             raise HTTPException(status_code=400, detail="PDF illisible")
     elif mime.startswith("image/") or fname.endswith((".png", ".jpg", ".jpeg", ".webp", ".heic")):
+        _validate_image_dimensions(raw)
         images_b64.append(base64.b64encode(raw).decode("utf-8"))
     else:
         raise HTTPException(status_code=400, detail="Format non supporté (PDF ou image)")
@@ -5248,28 +5315,36 @@ async def kiks_act(data: KiksActIn, user: dict = Depends(get_current_user)):
     from datetime import date as _date, timedelta as _td
 
     if act == "search_client":
+        check_perm(user, "clients", "view", "own")
         qtxt = (p.get("query") or "").strip()
         if not qtxt: return {"kind": "answer", "text": "Quel client cherchez-vous ?"}
         rx = {"$regex": _re.escape(qtxt), "$options": "i"}
-        q = cq(user, {"$or": [{"name": rx}, {"phone": rx}, {"email": rx}, {"city": rx}]})
-        if perm_scope(user, "clients", "view") == "own":
-            ids = await _commercial_client_ids(user)
-            q["id"] = {"$in": ids}
+        scope_q = await _client_scope_query(user)
+        q = {"$and": [scope_q, {"$or": [{"name": rx}, {"phone": rx}, {"email": rx}, {"city": rx}]}]}
         docs = await db.clients.find(q, {"_id": 0, "id": 1, "name": 1, "city": 1, "phone": 1}).limit(8).to_list(8)
         return {"kind": "result", "text": f"{len(docs)} client(s) trouvé(s).", "results": {"clients": docs}}
 
     if act == "list_projects_by_status":
+        check_perm(user, "projects", "view", "own")
         status = (p.get("status") or "a_planifier").lower()
         if status not in ("a_planifier", "en_cours", "termine"):
             status = "a_planifier"
         q = cq(user, {"status": status, "cancelled": {"$ne": True}})
         if user.get("role") in ("technicien", "sous_traitant"):
             q["assigned_to"] = {"$regex": _re.escape(user.get("name") or ""), "$options": "i"}
+        elif _is_prospect_role(user):
+            q["sale_id"] = {"$in": (await _prospect_ids(user))[0]}
+        elif perm_scope(user, "projects", "view") == "own":
+            client_ids = await _commercial_client_ids(user)
+            sale_ids = await _own_sale_ids(user)
+            q["$or"] = [{"client_id": {"$in": client_ids}}, {"sale_id": {"$in": sale_ids}}]
         docs = await db.projects.find(q, {"_id": 0, "id": 1, "client_name": 1, "scheduled_date": 1, "assigned_to": 1, "city": 1}).sort("scheduled_date", 1).limit(20).to_list(20)
         label = {"a_planifier": "À planifier", "en_cours": "PROG", "termine": "À encaisser"}[status]
         return {"kind": "result", "text": f"{len(docs)} chantier(s) « {label} »", "results": {"projects": docs}}
 
     if act == "list_reinterventions_date":
+        if not _is_prospect_role(user):
+            check_perm(user, "planning", "view", "own")
         d = (p.get("date") or "today").lower()
         if d == "today": d_iso = _date.today().isoformat()
         elif d == "tomorrow": d_iso = (_date.today() + _td(days=1)).isoformat()
@@ -5278,16 +5353,26 @@ async def kiks_act(data: KiksActIn, user: dict = Depends(get_current_user)):
             except Exception: d_iso = _date.today().isoformat()
         q = cq(user, {"scheduled_date": d_iso})
         if user.get("role") in ("technicien", "sous_traitant"):
-            q["assigned_to"] = {"$regex": _re.escape(user.get("name") or ""), "$options": "i"}
+            q["technician_name"] = {"$regex": _re.escape(user.get("name") or ""), "$options": "i"}
+        elif user.get("role") == "commercial":
+            q["client_id"] = {"$in": await _commercial_client_ids(user)}
+        elif user.get("role") == "comptable":
+            q["id"] = "__none__"
+        elif _is_prospect_role(user):
+            q["client_id"] = {"$in": (await _prospect_ids(user))[1]}
         docs = await db.reinterventions.find(q, {"_id": 0, "id": 1, "client_name": 1, "reason": 1, "assigned_to": 1}).limit(20).to_list(20)
         return {"kind": "result", "text": f"{len(docs)} intervention(s) le {d_iso}", "results": {"reinterventions": docs}}
 
     if act == "search_sale":
+        check_perm(user, "sales", "view", "own")
         qtxt = (p.get("query") or "").strip()
         rx = {"$regex": _re.escape(qtxt), "$options": "i"}
-        q = cq(user, {"$or": [{"client_name": rx}, {"service": rx}, {"bdc": rx}, {"commercial": rx}]})
+        scope_q = cq(user)
         if perm_scope(user, "sales", "view") == "own":
-            q.update(_own_sales_filter(user))
+            scope_q.update(_own_sales_filter(user))
+        if _is_prospect_role(user):
+            scope_q.update(_prospect_sales_filter(user))
+        q = {"$and": [scope_q, {"$or": [{"client_name": rx}, {"service": rx}, {"bdc": rx}, {"commercial": rx}]}]}
         docs = await db.sales.find(q, {"_id": 0, "id": 1, "client_name": 1, "service": 1, "amount": 1, "status": 1, "sale_date": 1, "commercial": 1}).sort("sale_date", -1).limit(10).to_list(10)
         return {"kind": "result", "text": f"{len(docs)} vente(s) trouvée(s).", "results": {"sales": docs}}
 
@@ -5402,6 +5487,7 @@ async def ai_chat_multipart(
                 if doc.page_count > MAX_PDF_PAGES:
                     doc.close()
                     raise HTTPException(status_code=413, detail=f"PDF trop long (max {MAX_PDF_PAGES} pages)")
+                _check_pdf_render_budget(doc, 180)
                 for page in doc:
                     pix = page.get_pixmap(dpi=180)
                     images_b64.append(base64.b64encode(pix.tobytes("png")).decode("utf-8"))
@@ -5412,6 +5498,7 @@ async def ai_chat_multipart(
                 logger.exception("Unreadable AI chat PDF")
                 raise HTTPException(status_code=400, detail="PDF illisible")
         elif mime.startswith("image/") or name.endswith((".png", ".jpg", ".jpeg", ".webp", ".heic")):
+            _validate_image_dimensions(raw)
             images_b64.append(base64.b64encode(raw).decode("utf-8"))
 
     try:
@@ -5981,6 +6068,7 @@ async def ai_analyze_devis(file: UploadFile = File(...), user: dict = Depends(ge
             if doc.page_count > MAX_PDF_PAGES:
                 doc.close()
                 raise HTTPException(status_code=413, detail=f"PDF trop long (max {MAX_PDF_PAGES} pages)")
+            _check_pdf_render_budget(doc, 240)
             for page in doc:
                 # iter203 : DPI 240 (au lieu de 180) → OCR nettement plus fiable
                 # sur les documents scannés / photocopiés (adresses, n° devis, chiffres).
@@ -5993,6 +6081,7 @@ async def ai_analyze_devis(file: UploadFile = File(...), user: dict = Depends(ge
             logger.exception("Unreadable quote PDF")
             raise HTTPException(status_code=400, detail="PDF illisible")
     elif mime.startswith("image/") or filename.endswith((".png", ".jpg", ".jpeg", ".webp", ".heic")):
+        _validate_image_dimensions(raw)
         images_b64.append(base64.b64encode(raw).decode("utf-8"))
     else:
         raise HTTPException(status_code=400, detail="Format non supporté (PDF ou image uniquement)")

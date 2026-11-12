@@ -18,6 +18,8 @@ def valid_production_env():
         "RUN_STARTUP_MIGRATIONS": "false",
         "EXPOSE_API_DOCS": "false",
         "ALLOW_EXTERNAL_GEOCODING": "false",
+        "MFA_ENFORCE_ADMINS": "true",
+        "MFA_GRACE_DAYS": "7",
         "COOKIE_SECURE": "true",
         "COOKIE_SAMESITE": "lax",
         "TRUST_PROXY_HEADERS": "false",
@@ -67,6 +69,12 @@ class PreflightTests(unittest.TestCase):
         env["EXPOSE_API_DOCS"] = "true"
         result = validate_config(env)
         self.assertTrue(any("EXPOSE_API_DOCS" in error for error in result.errors))
+
+    def test_rejects_disabled_admin_mfa_in_production(self):
+        env = valid_production_env()
+        env["MFA_ENFORCE_ADMINS"] = "false"
+        result = validate_config(env)
+        self.assertTrue(any("MFA_ENFORCE_ADMINS" in error for error in result.errors))
 
     def test_rejects_invalid_external_geocoding_flag(self):
         env = valid_production_env()

@@ -72,6 +72,8 @@ jobs:
       - run: python -m unittest backend.test_multiday_completion
       - run: python -m unittest backend.test_ca_consistency
       - run: python -m unittest backend.test_forms_import
+      - run: python -m unittest backend.test_kiks_rbac
+      - run: python -m unittest backend.test_file_bounds
       - name: Run adversarial, multi-tenant and bounded-scale security suites
         env:
           PYTHONPATH: .
@@ -104,6 +106,8 @@ jobs:
           ALLOW_TOKEN_RESPONSE: "false"
           RUN_STARTUP_MIGRATIONS: "false"
           EXPOSE_API_DOCS: "false"
+          MFA_ENFORCE_ADMINS: "true"
+          MFA_GRACE_DAYS: "7"
           COOKIE_SECURE: "true"
           COOKIE_SAMESITE: lax
           TRUST_PROXY_HEADERS: "false"
