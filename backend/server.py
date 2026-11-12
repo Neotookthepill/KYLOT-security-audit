@@ -1401,17 +1401,26 @@ async def _check_password_reset_rate(request: Request, email: str) -> bool:
     expires = now + timedelta(minutes=PASSWORD_RESET_WINDOW_MIN * 2)
 
     async def incr(key: str) -> int:
-        doc = await db.password_reset_limits.find_one_and_update(
-            {"_id": key},
-            {
-                "$inc": {"count": 1},
-                "$set": {"expires_at": expires},
-                "$setOnInsert": {"created_at": now},
-            },
-            upsert=True,
-            return_document=ReturnDocument.AFTER,
-        )
-        return int((doc or {}).get("count") or 0)
+        # Deux upserts simultanés du même compteur peuvent se heurter à l'index
+        # unique de _id. Le second réessaie alors sur le document créé par le
+        # premier, comme le fait déjà le limiteur de connexion.
+        for attempt in range(2):
+            try:
+                doc = await db.password_reset_limits.find_one_and_update(
+                    {"_id": key},
+                    {
+                        "$inc": {"count": 1},
+                        "$set": {"expires_at": expires},
+                        "$setOnInsert": {"created_at": now},
+                    },
+                    upsert=True,
+                    return_document=ReturnDocument.AFTER,
+                )
+                return int((doc or {}).get("count") or 0)
+            except DuplicateKeyError:
+                if attempt:
+                    raise
+        return PASSWORD_RESET_EMAIL_MAX + 1
 
     email_count = await incr(f"email:{email_digest}:{bucket}")
     ip_count = await incr(f"source:{source}:{bucket}")
@@ -12229,6 +12238,7 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
     }
     # Chantier multi-jours : chaque journée se valide séparément ; statut global « termine » seulement quand toutes le sont
     extra_set = {}
+    photos_written = False
     pdays = _project_days(project)
     today_paris = datetime.now(ZoneInfo("Europe/Paris")).date().isoformat()
     if len(pdays) == 1 and pdays[0] > today_paris:
@@ -12257,6 +12267,7 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
         day_result = await db.projects.update_one(day_q, day_update)
         if day_result.matched_count == 0:
             raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
+        photos_written = bool(new_photos)
         current = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0, "days_done": 1})
         current_days = dict((current or {}).get("days_done") or {})
         remaining = [d for d in pdays if d not in current_days]
@@ -12264,7 +12275,10 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
             return {"ok": True, "partial": True, "day": day, "remaining": remaining, "days_done": list(current_days.keys()), "notified": 0}
     final_update = {"$set": {"status": "termine", "completion": completion, **extra_set}}
     final_q = cq(user, {"id": pid})
-    if new_photos:
+    # En multi-jours, la dernière journée a déjà poussé ses photos dans l'écriture
+    # atomique de days_done.<date>. Les repousser ici ferait échouer le filtre
+    # anti-doublon et empêcherait le passage à « termine ».
+    if new_photos and not photos_written:
         final_q["$expr"] = {"$lte": [
             {"$size": {"$ifNull": ["$photos", []]}},
             MAX_PHOTOS_PER_ENTITY - len(new_photos),

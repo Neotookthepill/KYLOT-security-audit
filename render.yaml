@@ -42,6 +42,8 @@ services:
         value: "true"
       - key: ALLOW_EXTERNAL_AI
         value: "false"
+      # Décision explicite : géocodage public activé.
+      # Voir docs/geocoding-and-privacy.md pour les données transmises.
       - key: ALLOW_EXTERNAL_GEOCODING
         value: "true"
       - key: WEB_CONCURRENCY

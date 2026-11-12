@@ -54,7 +54,7 @@ Réglages obligatoires :
 - `EXPOSE_API_DOCS=false`
 - `COOKIE_SECURE=true`
 - `COOKIE_SAMESITE=lax` ; le mode `none` est refusé tant qu'une protection CSRF dédiée n'existe pas
-- `ALLOW_EXTERNAL_GEOCODING=false` sauf validation juridique explicite du transfert d'adresses au service tiers
+- `ALLOW_EXTERNAL_GEOCODING=true` pour l'autocomplétion et la carte ; décision documentée dans `docs/geocoding-and-privacy.md`. Passer à `false` si le client refuse le transfert au service public de géocodage.
 - `ALLOW_EXTERNAL_AI=false` par défaut ; activer seulement après validation du fournisseur, du contrat/DPA et de l'information des utilisateurs
 - `MAX_INLINE_IMAGE_BYTES=4194304` et `MAX_PHOTOS_PER_ENTITY=20` (adapter uniquement après test de charge)
 - `PHOTO_ALLOWED_HOSTS=` ou une liste explicite d'hôtes HTTPS approuvés ; une liste vide interdit les images distantes
