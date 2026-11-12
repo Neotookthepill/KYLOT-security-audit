@@ -97,9 +97,9 @@ export default function MonthlyReport() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes actives" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-emerald-50 text-emerald-700" />
+        <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes comptées CA" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-emerald-50 text-emerald-700" />
         <StatCard testId="report-stat-cancelled" icon={XCircle} label="Annulations" value={totals.cancelled_count} sub={totals.litige_count ? `+ ${totals.litige_count} en litige` : "sur le mois"} accent="bg-red-50 text-red-700" />
-        <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="hors annulé & litige" />
+        <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="statuts comptés dans le CA" />
         <StatCard testId="report-stat-comm" icon={Trophy} label="Commissions dues" value={fmtEur(totals.commission_total)} sub={topCommercial ? `Top : ${topCommercial.commercial}` : ""} accent="bg-amber-50 text-amber-700" />
       </div>
 
@@ -107,7 +107,7 @@ export default function MonthlyReport() {
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <div>
             <p className="font-display text-lg font-semibold">Détail par commercial</p>
-            <p className="text-xs text-slate-500 mt-0.5">Format d'exemple : <span className="font-mono">Theo — 8 R1 · 1 Assist · 3 Annulations</span></p>
+            <p className="text-xs text-slate-500 mt-0.5">Ventes : toutes les lignes. Sources : ventes comptées dans le CA. Exemple : <span className="font-mono">Theo — 8 R1 · 1 Assist · 3 Annulations</span></p>
           </div>
           {loading && <span className="text-xs text-slate-400">Chargement…</span>}
         </div>
@@ -116,7 +116,7 @@ export default function MonthlyReport() {
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline">Commercial</th>
-                <th className="px-3 py-3 overline text-right">Ventes</th>
+                <th className="px-3 py-3 overline text-right" title="Toutes les ventes du mois, y compris annulées et statuts non comptés">Ventes totales</th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px]">R1</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px]">Assist</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px]">CQ</span></th>

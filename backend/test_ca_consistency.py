@@ -49,13 +49,13 @@ class CaConsistencyTests(unittest.TestCase):
         asyncio.run(self.db.sales.insert_many([
             {"id": "sale-known", "company_id": "company-ca", "client_id": "c", "amount": 100,
              "status": "en_cours", "sale_date": today.isoformat(), "commercial": "Admin CA",
-             "service": "Test", "commission_rate": 0.10},
+             "service": "Test", "source": "R1", "commission_rate": 0.10},
             {"id": "sale-custom", "company_id": "company-ca", "client_id": "c", "amount": 50,
              "status": "custom_metier", "sale_date": today.isoformat(), "commercial": "Admin CA",
-             "service": "Test"},
+             "service": "Test", "source": "R1"},
             {"id": "sale-cancelled", "company_id": "company-ca", "client_id": "c", "amount": 25,
              "status": "annule", "sale_date": today.isoformat(), "commercial": "Admin CA",
-             "service": "Test"},
+             "service": "Test", "source": "R1"},
         ]))
 
     def tearDown(self):
@@ -82,7 +82,11 @@ class CaConsistencyTests(unittest.TestCase):
         # `count` conserve le nombre de lignes de la période ; le CA, lui, ne
         # compte que les statuts qui entrent dans le chiffre d’affaires.
         self.assertEqual(summary.json()["count"], 3)
+        self.assertEqual(summary.json()["ca_count"], 1)
         self.assertEqual(report.json()["totals"]["ca_total"], 100.0)
+        self.assertEqual(report.json()["totals"]["sales_count"], 3)
+        self.assertEqual(report.json()["totals"]["active_count"], 1)
+        self.assertEqual(report.json()["totals"]["sources"]["R1"], 1)
         self.assertEqual(report.json()["totals"]["commission_total"], 10.0)
         self.assertAlmostEqual(sum(float(r.get("commission_amount") or 0) for r in commissions.json()), 10.0, places=2)
 

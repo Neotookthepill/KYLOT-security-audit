@@ -714,7 +714,7 @@ export default function Sales() {
             <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-36" data-testid="sales-period-to" />
           </div>
         )}
-        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {summary.count} vente{summary.count > 1 ? "s" : ""}</span>
+        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {summary.count} vente{summary.count > 1 ? "s" : ""}{summary.ca_count != null ? ` · ${summary.ca_count} comptée${summary.ca_count > 1 ? "s" : ""} dans le CA` : ""}</span>
       </div>
 
       {/* Synthèse en haut : CA total / Objectif / % atteint (suit le filtre période) */}

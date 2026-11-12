@@ -3071,7 +3071,7 @@ async def sales_summary(
             elif payment:
                 bucket["comptant"] += 1
     by_commercial = sorted(grouped.values(), key=lambda x: x["ca"], reverse=True)
-    return {"count": len(rows), "total": round(total, 2), "by_commercial": by_commercial}
+    return {"count": len(rows), "ca_count": len(active), "total": round(total, 2), "by_commercial": by_commercial}
 
 
 @api_router.get("/sales")
@@ -6313,9 +6313,9 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
                 b["active_count"] += 1
                 b["ca_total"] += amount * ca_share
                 b["commission_total"] += amount * ca_share * comm_rate
-            src = s.get("source") or ""
-            if src in b["sources"]:
-                b["sources"][src] += 1
+                src = s.get("source") or ""
+                if src in b["sources"]:
+                    b["sources"][src] += 1
 
     rows = sorted(per_commercial.values(), key=lambda r: r["ca_total"], reverse=True)
     totals = {
