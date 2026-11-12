@@ -3038,7 +3038,11 @@ async def sales_summary(
         "commercial_2": 1, "is_de": 1, "source": 1, "payment_method": 1,
     }
     rows = await db.sales.find(query, projection).to_list(20000)
-    active = [r for r in rows if r.get("status") not in ("annule", "litige")]
+    status_caps = await _sale_status_capabilities(user)
+    active = [
+        r for r in rows
+        if status_caps.get(r.get("status"), {}).get("countsCA", False)
+    ]
     total = sum(float(r.get("amount") or 0) for r in active)
     grouped = {}
     for row in active:
@@ -3067,7 +3071,7 @@ async def sales_summary(
             elif payment:
                 bucket["comptant"] += 1
     by_commercial = sorted(grouped.values(), key=lambda x: x["ca"], reverse=True)
-    return {"count": len(rows), "total": round(total, 2), "by_commercial": by_commercial}
+    return {"count": len(active), "total": round(total, 2), "by_commercial": by_commercial}
 
 
 @api_router.get("/sales")
@@ -4625,7 +4629,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
         all_sales_period = await db.sales.find(all_q, {"_id": 0, "amount": 1, "commercial": 1, "commercial_2": 1, "is_de": 1, "status": 1}).to_list(20000)
         ranking_by_com = {}
         for s in all_sales_period:
-            if s.get("status") in ("annule", "litige"):
+            if not status_caps.get(s.get("status"), {}).get("countsCA", False):
                 continue
             _add_ranking_share(ranking_by_com, s, float(s.get("amount") or 0))
     def _delta(cv, pv):

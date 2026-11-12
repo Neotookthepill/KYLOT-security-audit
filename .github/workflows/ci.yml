@@ -70,6 +70,7 @@ jobs:
       - run: python -m unittest backend.test_challenges
       - run: python -m unittest backend.test_prospection
       - run: python -m unittest backend.test_multiday_completion
+      - run: python -m unittest backend.test_ca_consistency
       - name: Run adversarial, multi-tenant and bounded-scale security suites
         env:
           PYTHONPATH: .
