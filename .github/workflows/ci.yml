@@ -74,6 +74,7 @@ jobs:
       - run: python -m unittest backend.test_forms_import
       - run: python -m unittest backend.test_kiks_rbac
       - run: python -m unittest backend.test_file_bounds
+      - run: python -m unittest backend.test_audit_retention
       - name: Run adversarial, multi-tenant and bounded-scale security suites
         env:
           PYTHONPATH: .

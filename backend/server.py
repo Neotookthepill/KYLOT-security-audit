@@ -127,6 +127,38 @@ MAX_PDF_PAGE_PIXELS = int(os.environ.get("MAX_PDF_PAGE_PIXELS", "20000000"))
 MAX_PDF_TOTAL_PIXELS = int(os.environ.get("MAX_PDF_TOTAL_PIXELS", "60000000"))
 MAX_PDF_DIMENSION = int(os.environ.get("MAX_PDF_DIMENSION", "10000"))
 MAX_IMAGE_PIXELS = int(os.environ.get("MAX_IMAGE_PIXELS", "40000000"))
+AUDIT_RETENTION_DAYS = int(os.environ.get("AUDIT_RETENTION_DAYS", "365"))
+AUDIT_SENSITIVE_KEYS = {
+    "password", "password_hash", "mfa_secret", "mfa_pending_secret",
+    "mfa_recovery_codes", "access_token", "refresh_token", "client_secret",
+    "authorization", "cookie", "token", "token_hash",
+}
+AUDIT_PHOTO_KEYS = {"src", "photo", "photos", "image", "images"}
+
+
+def _audit_sanitize(value, depth: int = 0):
+    """Réduit les snapshots d'audit sans recopier secrets ni documents complets."""
+    if depth > 5:
+        return "[profondeur limitée]"
+    if isinstance(value, dict):
+        out = {}
+        for key, raw in value.items():
+            lk = str(key).lower()
+            if lk in AUDIT_SENSITIVE_KEYS:
+                out[key] = "[masqué]"
+            elif lk in AUDIT_PHOTO_KEYS:
+                if isinstance(raw, list):
+                    out[key] = f"[{len(raw)} photo(s) masquée(s)]" if lk == "photos" else "[photo masquée]"
+                else:
+                    out[key] = "[photo masquée]"
+            else:
+                out[key] = _audit_sanitize(raw, depth + 1)
+        return out
+    if isinstance(value, list):
+        return [_audit_sanitize(item, depth + 1) for item in value[:50]]
+    if isinstance(value, str):
+        return value[:500]
+    return value
 
 
 def _external_ai_enabled() -> bool:
@@ -9844,6 +9876,7 @@ async def log_audit(user: dict, action: str, resource: str, resource_id: str, *,
                     extra: Optional[dict] = None):
     """Record a sensitive action in the audit_log collection (best-effort)."""
     try:
+        now = datetime.now(timezone.utc)
         doc = {
             "id": str(uuid.uuid4()),
             "company_id": company_id_of(user),
@@ -9853,10 +9886,11 @@ async def log_audit(user: dict, action: str, resource: str, resource_id: str, *,
             "action": action,          # create | update | delete
             "resource": resource,      # sale | client | project | user | overtime | commission | permissions
             "resource_id": resource_id,
-            "before": before,
-            "after": after,
-            "extra": extra or {},
+            "before": _audit_sanitize(before),
+            "after": _audit_sanitize(after),
+            "extra": _audit_sanitize(extra or {}),
             "at": now_iso(),
+            "at_dt": now,
         }
         await db.audit_log.insert_one(doc)
     except Exception as e:
@@ -10557,6 +10591,7 @@ async def on_startup():
     await db.overtime.create_index([("company_id", 1), ("date", 1)])
     await db.overtime.create_index([("company_id", 1), ("technician_user_id", 1)])
     await db.audit_log.create_index([("company_id", 1), ("at", -1)])
+    await db.audit_log.create_index("at_dt", expireAfterSeconds=AUDIT_RETENTION_DAYS * 86400)
     await db.stock_movements.create_index([("company_id", 1), ("at", -1)])
     await db.payment_transactions.create_index([("company_id", 1), ("user_id", 1)])
     for collection_name in TENANT_COLLECTIONS:
