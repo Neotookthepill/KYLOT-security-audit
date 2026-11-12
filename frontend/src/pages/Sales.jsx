@@ -728,9 +728,9 @@ export default function Sales() {
               <Wallet size={12} className="text-slate-500" /> {isCommercial ? "Mon CA signé" : "CA total"}
             </p>
             <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums" data-testid="sales-top-summary-ca">
-              {fmtEur2(stats.total)}
+              {fmtEur(stats.total)}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · hors annulé & litige</p>
+            <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · statuts comptés dans le CA</p>
           </div>
           <div className="p-4 sm:p-5">
             <p className="overline flex items-center gap-1.5">
