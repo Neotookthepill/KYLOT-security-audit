@@ -3071,7 +3071,7 @@ async def sales_summary(
             elif payment:
                 bucket["comptant"] += 1
     by_commercial = sorted(grouped.values(), key=lambda x: x["ca"], reverse=True)
-    return {"count": len(active), "total": round(total, 2), "by_commercial": by_commercial}
+    return {"count": len(rows), "total": round(total, 2), "by_commercial": by_commercial}
 
 
 @api_router.get("/sales")

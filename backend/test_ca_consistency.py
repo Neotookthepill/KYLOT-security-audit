@@ -79,7 +79,9 @@ class CaConsistencyTests(unittest.TestCase):
         self.assertEqual(commissions.status_code, 200, commissions.text)
         self.assertEqual(dash.json()["ca"]["total"], 100.0)
         self.assertEqual(summary.json()["total"], 100.0)
-        self.assertEqual(summary.json()["count"], 1)
+        # `count` conserve le nombre de lignes de la période ; le CA, lui, ne
+        # compte que les statuts qui entrent dans le chiffre d’affaires.
+        self.assertEqual(summary.json()["count"], 3)
         self.assertEqual(report.json()["totals"]["ca_total"], 100.0)
         self.assertEqual(report.json()["totals"]["commission_total"], 10.0)
         self.assertAlmostEqual(sum(float(r.get("commission_amount") or 0) for r in commissions.json()), 10.0, places=2)
