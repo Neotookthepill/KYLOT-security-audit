@@ -662,7 +662,7 @@ export default function AIHelper() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
-        className="fixed bottom-20 right-4 z-40 grid h-12 w-12 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5 md:h-14 md:w-14"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 grid h-12 w-12 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5 md:h-14 md:w-14"
         aria-label="Ouvrir l'assistant Qylot"
         title="Assistant Qylot"
       >
@@ -670,7 +670,7 @@ export default function AIHelper() {
       </button>
 
       {open && (
-        <div className={`fixed bottom-20 right-2 z-50 ${panelWidth} h-[560px] max-h-[78vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width] md:bottom-24 md:right-5`} data-testid="ai-helper-panel">
+        <div className={`fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-2 z-50 ${panelWidth} h-[560px] max-h-[78vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-[width] md:bottom-24 md:right-5`} data-testid="ai-helper-panel">
           <div className="p-3 border-b border-slate-200 bg-slate-900 text-white shrink-0">
             <div className="flex items-center gap-2.5">
               <KiksAvatar size={36} />
