@@ -313,12 +313,12 @@ class ConcurrencyChecks(unittest.IsolatedAsyncioTestCase):
             await asyncio.gather(
                 server.transfer_stock(
                     "stock-race",
-                    server.StockTransferIn(from_user_id=None, to_user_id="tech-a", quantity=5),
+                    server.StockTransferIn(from_user_id=None, to_user_id="tech-a", quantity=5, client_request_id="audit-transfer-a"),
                     self.manager,
                 ),
                 server.transfer_stock(
                     "stock-race",
-                    server.StockTransferIn(from_user_id=None, to_user_id="tech-b", quantity=5),
+                    server.StockTransferIn(from_user_id=None, to_user_id="tech-b", quantity=5, client_request_id="audit-transfer-b"),
                     self.manager,
                 ),
             )

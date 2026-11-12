@@ -208,14 +208,14 @@ class MultiTenantHTTPMatrix(unittest.TestCase):
             ("delete", "/api/off-days/offday-b", None),
             ("put", "/api/events/event-b", {"title": "stolen"}),
             ("delete", "/api/events/event-b", None),
-            ("put", "/api/stock/stock-b/rename", {"product_name": "stolen"}),
+            ("put", "/api/stock/stock-b/rename", {"product_name": "stolen", "client_request_id": "audit-rename-b"}),
             ("put", "/api/stock/stock-b/override", {"field": "besoin", "value": 999}),
             ("delete", "/api/stock/stock-b/override/besoin", None),
-            ("post", "/api/stock/stock-b/receive", {"quantity": 1}),
+            ("post", "/api/stock/stock-b/receive", {"quantity": 1, "client_request_id": "audit-receive-b"}),
             ("delete", "/api/stock/stock-b", None),
             ("get", "/api/stock/stock-b/holders", None),
-            ("post", "/api/stock/stock-b/holder", {"user_id": "admin-a", "name": "Admin A", "quantity": 1}),
-            ("post", "/api/stock/stock-b/transfer", {"from_user_id": None, "to_user_id": "admin-a", "quantity": 1}),
+            ("post", "/api/stock/stock-b/holder", {"user_id": "admin-a", "name": "Admin A", "quantity": 1, "client_request_id": "audit-holder-b"}),
+            ("post", "/api/stock/stock-b/transfer", {"from_user_id": None, "to_user_id": "admin-a", "quantity": 1, "client_request_id": "audit-transfer-e2e-b"}),
         ]
         for method, path, payload in calls:
             with self.subTest(method=method, path=path):
