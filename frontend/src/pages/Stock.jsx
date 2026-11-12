@@ -367,7 +367,7 @@ export default function Stock() {
     const n = (newName || "").trim();
     if (!n) return toast.error("Nom du produit requis");
     try {
-      await api.post("/stock", { product_name: n });
+      await api.post("/stock", { product_name: n, client_request_id: stockRequestId() });
       setNewName("");
       toast.success("Produit ajouté");
       load();
@@ -456,7 +456,7 @@ export default function Stock() {
   const renameMyProduct = async (row, newName) => {
     if (!row.id) return;
     try {
-      await api.put(`/stock/${row.id}/rename`, { product_name: newName });
+      await api.put(`/stock/${row.id}/rename`, { product_name: newName, client_request_id: stockRequestId() });
       toast.success(`Produit renommé : « ${newName} »`);
       await load();
     } catch (err) {

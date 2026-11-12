@@ -348,7 +348,7 @@ class CounterAuditRegressionTests(unittest.TestCase):
         response = self.client.post(
             "/api/stock/tech-create-and-hold",
             headers=self.headers["tech"],
-            json={"product_name": "Produit interdit", "qty": 5},
+            json={"product_name": "Produit interdit", "qty": 5, "client_request_id": "test-tech-create-1"},
         )
         self.assertEqual(response.status_code, 403, response.text)
         self.assertEqual(run(self.db.stock.count_documents({})), 0)
@@ -361,7 +361,7 @@ class CounterAuditRegressionTests(unittest.TestCase):
         response = self.client.post(
             "/api/stock/stock-cable/holder-adjust",
             headers=self.headers["compta"],
-            json={"delta": 7},
+            json={"delta": 7, "client_request_id": "test-adjust-1"},
         )
         self.assertEqual(response.status_code, 403, response.text)
 

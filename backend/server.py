@@ -10596,8 +10596,16 @@ async def on_startup():
     try:
         await db.stock_movements.create_index("id", unique=True, sparse=True)
     except Exception:
-        # Existing duplicates must not prevent the whole service from starting.
-        logger.warning("Index unique stock_movements.id non créé (doublons existants)", exc_info=True)
+        logger.warning("Index unique stock_movements.id absent ; dédoublonnage avant nouvelle tentative")
+        duplicates = await db.stock_movements.aggregate([
+            {"$match": {"id": {"$type": "string"}}},
+            {"$group": {"_id": "$id", "ids": {"$push": "$_id"}, "n": {"$sum": 1}}},
+            {"$match": {"n": {"$gt": 1}}},
+        ]).to_list(10000)
+        for group in duplicates:
+            await db.stock_movements.delete_many({"_id": {"$in": group["ids"][1:]}})
+            logger.warning("Mouvements stock dupliqués supprimés pour id=%s : %s", group["_id"], group["n"] - 1)
+        await db.stock_movements.create_index("id", unique=True, sparse=True)
     await db.payment_transactions.create_index([("company_id", 1), ("user_id", 1)])
     for collection_name in TENANT_COLLECTIONS:
         await db[collection_name].create_index("company_id")
@@ -11315,7 +11323,7 @@ async def delete_event(eid: str, user: dict = Depends(get_current_user), notify:
 
 class StockUpsert(BaseModel):
     product_name: str = Field(min_length=1, max_length=200)
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     stock_disponible: Optional[int] = Field(default=None, ge=0, le=100000)
     commande_en_cours: Optional[int] = Field(default=None, ge=0, le=100000)
     # iter75 : seuil d'alerte stock bas — configurable par produit (défaut 2, désactivable via 0)
@@ -11323,13 +11331,14 @@ class StockUpsert(BaseModel):
 
 class StockReceive(BaseModel):
     quantity: Optional[int] = Field(default=None, ge=1, le=100000, description="Quantité reçue; défaut = commande_en_cours")
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockRenameIn(BaseModel):
     # iter207 : rename d'un produit du stock. Techniciens autorisés SEULEMENT
     # sur les produits qu'ils ont créés (created_by_technician + created_by == uid).
     product_name: str = Field(min_length=1, max_length=200)
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockOverrideIn(BaseModel):
@@ -11370,21 +11379,21 @@ class StockHolderIn(BaseModel):
     user_id: str = Field(min_length=1, max_length=128)
     name: Optional[str] = Field(default=None, max_length=120)
     quantity: int = Field(ge=0, le=100000)
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockTransferIn(BaseModel):
     from_user_id: Optional[str] = Field(default=None, min_length=1, max_length=128)  # None = dépôt société
     to_user_id: Optional[str] = Field(default=None, min_length=1, max_length=128)    # None = dépôt société
     quantity: int = Field(ge=1, le=100000)
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 class StockAdjustIn(BaseModel):
     delta: int = Field(ge=-10_000, le=10_000)  # +N entrée, -N sortie (technicien sur son propre stock)
     project_id: Optional[str] = Field(default=None, max_length=128)
     note: Optional[str] = Field(default="", max_length=1000)
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 def _holders_total(holders: list) -> int:
@@ -11459,11 +11468,14 @@ async def _stock_compare_and_set(sid: str, user: dict, mutate, *, attempts: int 
         query = cq(user, {"id": sid, "deleted_at": {"$exists": False}})
         query["_rev"] = revision if revision is not None else {"$exists": False}
         update_doc = {"$set": updates, "$inc": {"_rev": 1}}
+        push = {}
         if idempotency_key:
             query["applied_stock_requests"] = {"$ne": idempotency_key}
-            update_doc["$addToSet"] = {"applied_stock_requests": idempotency_key}
+            push["applied_stock_requests"] = {"$each": [idempotency_key], "$slice": -50}
         if movement:
-            update_doc["$push"] = {"pending_stock_movements": movement}
+            push["pending_stock_movements"] = movement
+        if push:
+            update_doc["$push"] = push
         result = await db.stock.update_one(query, update_doc)
         if result.modified_count == 1:
             if movement:
@@ -11817,7 +11829,7 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
 class TechStockCreateIn(BaseModel):
     product_name: str = Field(min_length=1, max_length=120)
     qty: int = Field(ge=1, le=100000)
-    client_request_id: Optional[str] = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 
 
 @api_router.post("/stock/tech-create-and-hold")
@@ -11856,7 +11868,6 @@ async def tech_create_and_hold(data: TechStockCreateIn, user: dict = Depends(get
             "updated_at": now,
             "created_by_technician": True,
             "_rev": 0,
-            "applied_stock_requests": [data.client_request_id] if data.client_request_id else [],
         }, user)
         mv = _log_movement(company_id_of(user), key, name, user, "tech_create", 0, None, None, None, "Produit créé par technicien")
         doc["pending_stock_movements"] = [mv]
@@ -11963,13 +11974,7 @@ async def upsert_stock(data: StockUpsert, user: dict = Depends(get_current_user)
 
 @api_router.put("/stock/{sid}/rename")
 async def rename_stock_product(sid: str, data: StockRenameIn, user: dict = Depends(get_current_user)):
-    """iter207 : renomme un produit du stock.
-    Autorisation :
-      - Manager (admin/responsable/super_admin) : tout produit.
-      - Technicien / sous-traitant : uniquement un produit qu'il a lui-même créé
-        (`created_by_technician=True` et `created_by == user.id`).
-    Effet : met à jour `product_name` + `product_key`. Refuse la collision.
-    """
+    """Renomme un produit du stock, avec mouvement dans la même outbox."""
     row = await db.stock.find_one(cq(user, {"id": sid, "deleted_at": {"$exists": False}}), {"_id": 0})
     if not row:
         raise HTTPException(status_code=404, detail="Ligne stock introuvable")
@@ -11986,25 +11991,25 @@ async def rename_stock_product(sid: str, data: StockRenameIn, user: dict = Depen
     if dupe:
         raise HTTPException(status_code=409, detail="Un autre produit porte déjà ce nom (normalisé).")
     now = now_iso()
-    try:
-        await db.stock.update_one(
-            cq(user, {"id": sid}),
-            {"$set": {"product_name": new_name, "product_key": new_key,
-                      "updated_at": now, "updated_by": user["id"]}, "$inc": {"_rev": 1}},
+
+    def mutate(current):
+        return ({"product_name": new_name, "product_key": new_key,
+                 "updated_at": now, "updated_by": user["id"]}, {})
+
+    def movement_factory(previous, _updates, _context):
+        return _log_movement(
+            company_id_of(user), new_key, new_name, user, "rename", 0, None, None, None,
+            f"Renommage : « {previous.get('product_name')} » → « {new_name} »",
         )
-    except DuplicateKeyError:
-        raise HTTPException(status_code=409, detail="Un autre produit porte déjà ce nom (normalisé).")
-    try:
-        mv = _log_movement(company_id_of(user), new_key, new_name, user, "rename", 0, None, None, None,
-                           f"Renommage : « {row.get('product_name')} » → « {new_name} »")
-        await db.stock_movements.insert_one(mv.copy())
-    except Exception:
-        logger.exception("Échec de la journalisation du renommage de stock")
+
+    updated, _, _ = await _stock_compare_and_set(
+        sid, user, mutate, movement_factory=movement_factory,
+        idempotency_key=data.client_request_id,
+    )
     await log_audit(user, "stock_rename", "stock", sid,
                     before={"product_name": row.get("product_name"), "product_key": row.get("product_key")},
                     after={"product_name": new_name, "product_key": new_key})
-    return await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
-
+    return updated
 
 @api_router.put("/stock/{sid}/override")
 async def set_stock_override(sid: str, data: StockOverrideIn, user: dict = Depends(get_current_user)):
@@ -12107,7 +12112,7 @@ async def delete_stock(sid: str, user: dict = Depends(get_current_user)):
 async def list_stock_holders(sid: str, user: dict = Depends(get_current_user)):
     """Renvoie la liste détaillée des détenteurs pour un produit."""
     _stock_rbac_check(user)
-    row = await db.stock.find_one(cq(user, {"id": sid}), {"_id": 0})
+    row = await db.stock.find_one(cq(user, {"id": sid, "deleted_at": {"$exists": False}}), {"_id": 0})
     if not row:
         raise HTTPException(status_code=404, detail="Ligne stock introuvable")
     holders = row.get("holders") or []

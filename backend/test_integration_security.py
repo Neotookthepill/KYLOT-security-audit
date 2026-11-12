@@ -139,20 +139,20 @@ class SecurityIntegrationTests(unittest.TestCase):
         rejected_holder = self.client.post(
             "/api/stock/stock-a/holder",
             headers=self.headers_a,
-            json={"user_id": "admin-b", "name": "Forged", "quantity": 2},
+            json={"user_id": "admin-b", "name": "Forged", "quantity": 2, "client_request_id": "test-holder-1"},
         )
         self.assertEqual(rejected_holder.status_code, 400, rejected_holder.text)
         accepted_holder = self.client.post(
             "/api/stock/stock-a/holder",
             headers=self.headers_a,
-            json={"user_id": "user-a", "name": "Forged", "quantity": 2},
+            json={"user_id": "user-a", "name": "Forged", "quantity": 2, "client_request_id": "test-holder-2"},
         )
         self.assertEqual(accepted_holder.status_code, 200, accepted_holder.text)
         self.assertEqual(accepted_holder.json()["holders"][0]["name"], "User A")
         rejected_transfer = self.client.post(
             "/api/stock/stock-a/transfer",
             headers=self.headers_a,
-            json={"from_user_id": None, "to_user_id": "admin-b", "quantity": 1},
+            json={"from_user_id": None, "to_user_id": "admin-b", "quantity": 1, "client_request_id": "test-transfer-1"},
         )
         self.assertEqual(rejected_transfer.status_code, 400, rejected_transfer.text)
 
