@@ -126,3 +126,18 @@ jobs:
           STRIPE_RETURN_ORIGINS: https://app.example.invalid
           WEBHOOK_CRON_SECRET: H4$kP9!mR2@vT7#xL6&nQ1Z8
         run: python backend/preflight.py --strict
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-jammy
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - run: yarn install --frozen-lockfile --ignore-scripts
+      - run: CI=true yarn build
+      - run: npm install --no-save playwright@1.55.0
+      - run: node e2e/run.mjs
