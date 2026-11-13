@@ -67,6 +67,23 @@ Il utilise des **routes API mockées** : il ne prouve pas le backend réel.
 | Code MFA faux / récupération double | BLOQUÉ | MFA non enrôlée |
 | Rate limiting login | PARTIEL | emails invalides rejetés en 422 avant le limiteur |
 
+## 4 bis. QA et production
+
+Le backend QA et le backend production utilisent des variables `MONGO_URL` et
+`DB_NAME` différentes. Les identifiants utilisateur et société identiques
+observés lors de la connexion QA proviennent d'une **copie/clone de données**,
+pas d'une base partagée.
+
+Preuve lecture seule :
+
+```text
+production : 541 clients, 175 ventes
+QA         : 542 clients, 176 ventes
+```
+
+Le QA est donc utilisable pour les tests, mais il ne contenait pas encore de
+tenant QA dédié ni de comptes `TEST-AUDIT-`.
+
 ## 5. Matrice des rôles
 
 | Rôle | Lecture | Création | Modification | Suppression | Export | URL directe | Statut |
