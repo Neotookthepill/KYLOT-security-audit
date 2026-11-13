@@ -43,7 +43,13 @@ function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, i
   }, [query]);
   React.useEffect(() => {
     if (!open || !isMobile) return;
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    const t = setTimeout(() => {
+      inputRef.current?.focus();
+      // Safari peut décaler horizontalement le conteneur cmdk quand l'input
+      // monte au-dessus du clavier : on remet le sélecteur à zéro.
+      const root = inputRef.current?.closest("[cmdk-root]");
+      if (root) root.scrollLeft = 0;
+    }, 80);
     return () => clearTimeout(t);
   }, [open, isMobile]);
   const search = query.trim().toLowerCase();
@@ -63,7 +69,7 @@ function ClientPicker({ clients, selectedClient, open, onOpenChange, onSelect, i
         ref={inputRef}
         autoFocus
         placeholder="Chercher un nom, un téléphone, une ville…"
-        className="qy-client-picker-search h-12 text-[15px]"
+        className="qy-client-picker-search h-12 text-[16px]"
         value={query}
         onValueChange={setQuery}
       />

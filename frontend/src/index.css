@@ -513,7 +513,13 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   overflow: hidden;
 }
 .qy-client-picker [data-slot="dialog-close"] { z-index: 4; }
-.qy-client-picker [cmdk-input-wrapper] { flex: 0 0 auto; }
+.qy-client-picker [cmdk-root],
+.qy-client-picker [cmdk-input-wrapper],
+.qy-client-picker .qy-client-picker-list,
+.qy-client-picker [cmdk-group] { width: 100% !important; max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; box-sizing: border-box; }
+.qy-client-picker [cmdk-root] { overflow-x: clip !important; min-width: 0 !important; }
+.qy-client-picker [cmdk-input-wrapper] { flex: 0 0 auto; min-width: 0 !important; }
+.qy-client-picker [cmdk-input] { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important; box-sizing: border-box !important; }
 .qy-client-picker .qy-client-picker-search {
   position: sticky;
   top: 0;
@@ -527,9 +533,11 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   min-height: 0;
   max-height: none !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .qy-client-picker [cmdk-group] { padding-bottom: 1rem; }
 
