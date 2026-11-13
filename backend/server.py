@@ -3740,17 +3740,23 @@ async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
 
 
 async def _repair_project_dates_from_sales(user: dict, *, force: bool = False) -> int:
-    """Répare les ventes déjà existantes dont la date n'a jamais été poussée au chantier.
+    """Répare les anciens chantiers restés « À planifier » alors que la vente a une date.
 
-    La réconciliation est idempotente et bornée aux ventes de la société. Elle est
-    rejouée à chaque lecture pour que les anciennes ventes soient corrigées même
-    si le processus a redémarré entre-temps.
+    La requête est bornée aux chantiers à planifier de la société, puis à leurs
+    ventes : elle ne parcourt pas toutes les ventes à chaque lecture.
     """
-    changed = 0
-    sales = await db.sales.find(
-        cq(user, {"desired_intervention_date": {"$exists": True, "$ne": None}}),
-        {"_id": 0, "id": 1, "desired_intervention_date": 1},
+    stale = await db.projects.find(
+        cq(user, {"status": "a_planifier", "cancelled": {"$ne": True}}),
+        {"_id": 0, "id": 1, "sale_id": 1},
     ).to_list(5000)
+    sale_ids = list({p.get("sale_id") for p in stale if p.get("sale_id")})
+    if not sale_ids:
+        return 0
+    sales = await db.sales.find(
+        cq(user, {"id": {"$in": sale_ids}, "desired_intervention_date": {"$exists": True, "$ne": None}}),
+        {"_id": 0, "id": 1, "desired_intervention_date": 1},
+    ).to_list(len(sale_ids))
+    changed = 0
     for sale in sales:
         if _sale_intervention_date(sale.get("desired_intervention_date")):
             changed += await _sync_one_sale_project_date(user, sale)
