@@ -329,7 +329,7 @@ export default function Layout() {
       {/* Mobile bottom nav */}
       {!isSuper && mobileNav.length > 0 && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Navigation mobile">
-          <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length + 1}, minmax(0, 1fr))` }}>
+          <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length + 2}, minmax(0, 1fr))` }}>
             {mobileNav.map((item) => {
               const Icon = item.icon;
               const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
@@ -340,6 +340,10 @@ export default function Layout() {
                 </NavLink>
               );
             })}
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kylot:ai-open"))} className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground" aria-label="Ouvrir l’assistant Qylot" data-testid="mobile-ai">
+              <Sparkles size={19} strokeWidth={1.8} />
+              Assistant
+            </button>
             <button type="button" onClick={() => setMobileOpen(true)} className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground" aria-label="Plus de navigation">
               <Menu size={19} strokeWidth={1.8} />
               Plus

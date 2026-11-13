@@ -604,8 +604,8 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 /* P1 mobile : la bulle d'assistance ne doit pas recouvrir les commandes.
    On réserve une gouttière à droite de la zone de contenu, au-dessus de la nav. */
 @media (max-width: 767px) {
-  .qy-page { padding-right: 68px; }
-  [data-testid="ai-helper-btn"] { right: 10px; }
+  /* Plus de gouttière globale : l'assistant est dans la barre inférieure. */
+  [data-testid="ai-helper-btn"] { display: none !important; }
 }
 
 /* Ventes : colonnes personnalisables (desktop uniquement). */

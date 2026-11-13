@@ -55,7 +55,7 @@ export default function Kanban() {
   const [query, setQuery] = useState("");
   const [priority, setPriority] = useState("__all");
   const [loading, setLoading] = useState(true);
-  const [visibleCounts, setVisibleCounts] = useState({});
+  const [hasMore, setHasMore] = useState({});
   const [mobileStatus, setMobileStatus] = useState("a_planifier");
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
 
@@ -66,15 +66,37 @@ export default function Kanban() {
     return () => mq.removeEventListener?.("change", sync);
   }, []);
 
+  const projectParams = (status, offset = 0) => {
+    const params = new URLSearchParams({ status, limit: "12", offset: String(offset) });
+    if (filter === "__deleted") params.set("include_deleted", "only");
+    if (query.trim()) params.set("q", query.trim());
+    if (priority !== "__all") params.set("priority", priority);
+    if (filter !== "__all" && filter !== "__deleted" && filter !== "__none") params.set("assigned", filter);
+    return params.toString();
+  };
+
   const load = async () => {
     setLoading(true);
     try {
-      const suffix = filter === "__deleted" ? "?include_deleted=only" : "";
-      setProjects((await api.get(`/projects${suffix}${suffix.includes("?") ? "&" : "?"}limit=500`)).data);
+      const results = await Promise.all(
+        columns.map((col) => api.get(`/projects?${projectParams(col.key)}`))
+      );
+      setProjects(results.flatMap((r) => r.data || []));
+      setHasMore(Object.fromEntries(columns.map((col, i) => [col.key, (results[i].data || []).length === 12])));
     }
     catch (err) { toast.error(formatApiError(err)); }
     finally { setLoading(false); }
   };
+
+  const loadMore = async (colKey) => {
+    const offset = projects.filter((p) => p.status === colKey).length;
+    try {
+      const { data } = await api.get(`/projects?${projectParams(colKey, offset)}`);
+      setProjects((prev) => [...prev, ...(data || [])]);
+      setHasMore((prev) => ({ ...prev, [colKey]: (data || []).length === 12 }));
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
   const loadAbsences = async () => {
     // iter159 : seuls admin/responsable/super_admin voient les absences (privacy).
     if (!(user?.role === "admin" || user?.role === "responsable" || user?.role === "super_admin")) {
@@ -104,7 +126,7 @@ export default function Kanban() {
       window.removeEventListener("kylot:project-updated", onProjectUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id, filter]);
+  }, [authLoading, user?.id, filter, query, priority]);
 
   // iter87 : suppression manuelle (soft-delete) + restauration d'un chantier supprimé
   const removeProject = async (id, clientName) => {
@@ -143,19 +165,8 @@ export default function Kanban() {
           const list = Array.isArray(p.assigned_to) ? p.assigned_to : (p.assigned_to ? [p.assigned_to] : []);
           return list.map((n) => n.toLowerCase()).includes(filter.toLowerCase());
         });
-    const needle = query.trim().toLowerCase();
-    return byPerson.filter((p) => {
-      if (priority !== "__all" && (p.priority || "moyenne") !== priority) return false;
-      if (!needle) return true;
-      return [p.client_name, p.client_phone, p.client_address, p.client_postal_code, p.client_city, p.service, p.commercial]
-        .filter(Boolean).join(" ").toLowerCase().includes(needle);
-    });
-  }, [projects, filter, query, priority]);
-
-  useEffect(() => { setVisibleCounts({}); }, [filter, query, priority]);
-
-  const shownFor = (colKey) => visibleCounts[colKey] ?? 12;
-  const loadMore = (colKey) => setVisibleCounts((prev) => ({ ...prev, [colKey]: (prev[colKey] ?? 12) + 12 }));
+    return byPerson;
+  }, [projects, filter]);
 
   const move = async (id, newStatus) => {
     try {
@@ -253,7 +264,7 @@ export default function Kanban() {
               onClick={() => setMobileStatus(col.key)}
               className={`flex-1 rounded-md px-2 py-2 text-[11px] font-semibold transition ${mobileStatus === col.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
               data-testid={`kanban-tab-${col.key}`}>
-              {col.label} <span className="ml-1 opacity-70">{count}</span>
+              {col.label} <span className="ml-1 opacity-70">{count}{hasMore[col.key] ? "+" : ""}</span>
             </button>
           );
         })}
@@ -271,7 +282,6 @@ export default function Kanban() {
       <div className="grid gap-4 md:grid-cols-3" role="region" aria-label="Colonnes des chantiers">
         {columns.map((col) => {
           const items = visible.filter((p) => p.status === col.key);
-          const shown = shownFor(col.key);
           return (
             <div
               key={col.key}
@@ -283,11 +293,11 @@ export default function Kanban() {
               <div className="flex items-center justify-between px-2 py-2">
                 <div className="flex items-center gap-2">
                   <Badge className={`${col.color} border-0`}>{col.label}</Badge>
-                  <span className="text-xs text-slate-500">{items.length}</span>
+                  <span className="text-xs text-slate-500">{items.length}{hasMore[col.key] ? "+" : ""}</span>
                 </div>
               </div>
               <div className="space-y-2 mt-2">
-                {items.slice(0, shown).map((p) => (
+                {items.map((p) => (
                   <Card
                     key={p.id}
                     draggable
@@ -392,9 +402,9 @@ export default function Kanban() {
                     </div>
                   </Card>
                 ))}
-                {items.length > shown && (
+                {hasMore[col.key] && (
                   <button type="button" onClick={() => loadMore(col.key)} className="mt-2 w-full rounded-md border border-slate-200 py-2 text-[11px] font-semibold text-slate-600 hover:bg-slate-50" data-testid={`kanban-more-${col.key}`}>
-                    Charger plus · {items.length - shown} restant{items.length - shown > 1 ? "s" : ""}
+                    Charger plus
                   </button>
                 )}
                 {items.length === 0 && (

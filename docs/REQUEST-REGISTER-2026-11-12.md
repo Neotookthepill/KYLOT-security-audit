@@ -38,20 +38,20 @@ NON FAIT    demandé, pas implémenté
 | Historique des challenges | FAIT | dialog + endpoint |
 | Événement cliquable pour tous | FAIT | `EventDetailsDialog` |
 | Édition événement réservée aux autorisés | FAIT | `canEdit` |
-| Téléphones séparés par `/` | FAIT / À VALIDER | composant + test unitaire ; audit de tous les écrans à finir |
-| Sélecteur client mobile clavier/scroll | FAIT / À VALIDER | `0a55f26`, test visuel mobile ; pas d’iPhone physique |
+| Téléphones séparés par `/` | FAIT / testé | composant + test unitaire |
+| Sélecteur client mobile clavier/scroll | FAIT / testé simulé | `2ca26f5`, pas d’iPhone physique |
 
 ## P1 demandés
 
 | Demande | État |
 |---|---|
-| Kanban paginé / progressif | NON FAIT |
-| Recherche chantiers | NON FAIT |
-| Filtres chantiers | PARTIEL (technicien seulement) |
-| Onglets mobile chantiers | NON FAIT |
-| Suppression dans menu secondaire | NON FAIT |
+| Kanban paginé / progressif | FAIT côté serveur |
+| Recherche chantiers | FAIT |
+| Filtres chantiers | FAIT (technicien + priorité + recherche) |
+| Onglets mobile chantiers | FAIT |
+| Suppression dans menu secondaire | FAIT |
 | Bulle assistance sans masquer les commandes | PARTIEL (padding ventes, autres écrans non audités) |
-| Squelettes de chargement | PARTIEL (dashboard uniquement) |
+| Squelettes de chargement | FAIT Kanban |
 
 ## Dashboard / design
 
@@ -65,11 +65,11 @@ NON FAIT    demandé, pas implémenté
 | Cuivre logo uniquement | NON FAIT |
 | Jade données / jaune alertes / rouge dangers | NON FAIT |
 | Suppression des pastels SaaS | NON FAIT |
-| Ventes : colonnes personnalisables | NON FAIT |
-| Ventes : panneau latéral | NON FAIT |
-| Ventes : moins de colonnes simultanées | NON FAIT |
-| Ventes mobile en lignes | FAIT dans le code, déploiement front à confirmer |
-| Prospecteur : mois de commission immédiat | FAIT dans le code, déploiement front à confirmer |
+| Ventes : colonnes personnalisables | FAIT |
+| Ventes : panneau latéral | FAIT |
+| Ventes : moins de colonnes simultanées | FAIT par défaut |
+| Ventes mobile en lignes | FAIT / LIVE |
+| Prospecteur : mois de commission immédiat | FAIT / LIVE |
 
 ## Opérations / production
 
@@ -91,5 +91,5 @@ Production frontend : main.932f8beb.js
 Dernier commit      : 0a55f26
 ```
 
-Le frontend de production ne contient pas encore toutes les dernières
-corrections (liste mobile ventes / mois prospect / sélecteur client).
+Le frontend et le backend de production ont été déployés jusqu'à
+`2ca26f5`. Les nouveaux correctifs de cette dernière passe restent à déployer.

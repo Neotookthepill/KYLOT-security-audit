@@ -85,7 +85,7 @@ class SaleProjectSyncTests(unittest.TestCase):
         asyncio.run(self.db.sales.update_one(
             {"id": "sale-sync"}, {"$set": {"desired_intervention_date": "2026-11-25"}},
         ))
-        response = self.client.get("/api/projects", headers=self.headers)
+        response = self.client.post("/api/admin/projects/repair-dates", headers=self.headers)
         self.assertEqual(response.status_code, 200, response.text)
         project = asyncio.run(self.db.projects.find_one({"id": "project-sync"}, {"_id": 0}))
         self.assertEqual(project["status"], "en_cours")
@@ -99,7 +99,7 @@ class SaleProjectSyncTests(unittest.TestCase):
         asyncio.run(self.db.projects.update_one(
             {"id": "project-sync"}, {"$set": {"scheduled_date": "2026-12-03"}},
         ))
-        response = self.client.get("/api/projects", headers=self.headers)
+        response = self.client.post("/api/admin/projects/repair-dates", headers=self.headers)
         self.assertEqual(response.status_code, 200, response.text)
         project = asyncio.run(self.db.projects.find_one({"id": "project-sync"}, {"_id": 0}))
         self.assertEqual(project["status"], "en_cours")
@@ -116,6 +116,22 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(clients[0]["technicians"], ["Alice Martin", "Bob Durand"])
         self.assertEqual(clients[0]["technician_label"], "Alice Martin, Bob Durand")
 
+
+
+    def test_projects_endpoint_applies_server_search_and_status(self):
+        asyncio.run(self.db.projects.insert_one({
+            "id": "project-other", "company_id": "company-sync", "sale_id": "sale-sync",
+            "client_id": "client-sync", "status": "en_cours", "scheduled_date": "2026-11-26",
+            "assigned_to": ["Alice Martin"], "cancelled": False, "service": "Autre",
+        }))
+        response = self.client.get(
+            "/api/projects?status=a_planifier&q=Synchro&limit=1&offset=0",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        rows = response.json()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["id"], "project-sync")
 
     def test_clients_list_returns_technicians_too(self):
         response = self.client.get("/api/clients?q=Synchro", headers=self.headers)

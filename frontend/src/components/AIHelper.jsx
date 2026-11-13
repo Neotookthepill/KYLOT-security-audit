@@ -323,6 +323,13 @@ const Row = ({ label, value }) => (
 );
 
 export default function AIHelper() {
+  // Sur mobile, l'assistant est accessible depuis la barre inférieure :
+  // plus de bouton flottant qui recouvre les commandes.
+  React.useEffect(() => {
+    const openFromNav = () => setOpen(true);
+    window.addEventListener("kylot:ai-open", openFromNav);
+    return () => window.removeEventListener("kylot:ai-open", openFromNav);
+  }, []);
   const nav = useNavigate();
   const { user, can } = useAuth();
   const DRAFT_KEY = user?.id ? `${DRAFT_KEY_BASE}:${user.id}` : DRAFT_KEY_BASE;
@@ -662,7 +669,7 @@ export default function AIHelper() {
       <button
         onClick={() => setOpen((v) => !v)}
         data-testid="ai-helper-btn"
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 grid h-12 w-12 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5 md:h-14 md:w-14"
+        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 z-40 hidden h-12 w-12 rounded-full bg-[#0b0d13] text-white shadow-xl place-items-center hover:scale-105 transition-transform ring-1 ring-white/10 overflow-hidden md:bottom-5 md:right-5 md:grid md:h-14 md:w-14"
         aria-label="Ouvrir l'assistant Qylot"
         title="Assistant Qylot"
       >

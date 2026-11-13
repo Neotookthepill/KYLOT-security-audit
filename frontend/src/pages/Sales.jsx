@@ -18,25 +18,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { SALE_STATUSES, STATUS_MAP, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
 import { isSaleCountedInCA } from "@/lib/workflows";
+import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtEur2 = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
-
-const SALES_COLUMNS = [
-  { key: "status", label: "Statut", index: 1 },
-  { key: "date", label: "Date", index: 2 },
-  { key: "bdc", label: "BDC", index: 3 },
-  { key: "client", label: "Client", index: 4 },
-  { key: "phone", label: "Téléphone", index: 5 },
-  { key: "products", label: "Produits", index: 6 },
-  { key: "amount", label: "Montant HT", index: 7 },
-  { key: "payment", label: "Règlement", index: 8 },
-  { key: "commercial", label: "Commercial", index: 9 },
-  { key: "source", label: "Source", index: 10 },
-];
-const DEFAULT_HIDDEN_COLUMNS = ["phone", "bdc", "source"];
 
 /* ---------- Inline editable cell (Date / Text / Select) ---------- */
 function InlineCell({ value, type = "text", options, onSave, display, disabled, placeholder = "—", testId, wrapperClass = "" }) {
@@ -1104,7 +1091,7 @@ export default function Sales() {
                 key={`mobile-${s.id}`}
                 type="button"
                 onClick={() => setPanelSale(s)}
-                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-20 text-left last:border-0 hover:bg-slate-50"
+                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50"
                 data-testid={`sale-mobile-row-${s.id}`}
               >
                 <span className={`inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || s.status}</span>

@@ -3794,7 +3794,7 @@ async def _repair_project_dates_from_sales(user: dict, *, force: bool = False) -
     return changed
 
 
-async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resource: str = "projects", keep_closed: bool = False, limit: int = 0, offset: int = 0) -> list:
+async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resource: str = "projects", keep_closed: bool = False, limit: int = 0, offset: int = 0, search_q: str = "", status: Optional[str] = None, priority: Optional[str] = None, assigned: Optional[str] = None) -> list:
     """iter209 — logique partagée entre `/api/projects` (Chantiers, gated par
     `projects.view`) et `/api/planning/projects` (Planning, gated par
     `planning.view`). Le `perm_resource` détermine UNIQUEMENT le scope
@@ -3806,6 +3806,15 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     garde son ancien comportement : masque `argent_recupere`, `annule`, `litige`."""
     scope = perm_scope(user, perm_resource, "view")
     q = cq(user)
+    if status:
+        q["status"] = status
+    if priority:
+        q["priority"] = priority
+    if assigned:
+        q["assigned_to"] = {"$regex": re.escape(assigned), "$options": "i"}
+    # Le paramètre de recherche est appliqué AVANT limit/offset : la pagination
+    # serveur reste correcte au-delà des 12 premières cartes.
+    search_value = (search_q or "").strip()
     # iter38/87: soft-delete flag `cancelled=True`. Par défaut masqué. `?include_deleted=only` → uniquement supprimés. `=1` → mix.
     if include_deleted == "only":
         q["cancelled"] = True
@@ -3841,6 +3850,25 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     if _is_prospect_role(user):
         p_sale_ids = [i for i in (await _prospect_ids(user))[0] if i not in closed_ids]
         q["sale_id"] = {"$in": p_sale_ids or ["__none__"]}
+
+    if search_value:
+        rx = {"$regex": re.escape(search_value), "$options": "i"}
+        client_ids = [
+            c["id"] async for c in db.clients.find(
+                cq(user, {"$or": [{f: rx} for f in ("name", "phone", "address", "postal_code", "city")]}),
+                {"_id": 0, "id": 1},
+            ).limit(1000)
+        ]
+        sale_ids = [
+            s["id"] async for s in db.sales.find(
+                cq(user, {"$or": [{f: rx} for f in ("client_name", "service", "commercial", "bdc")]}),
+                {"_id": 0, "id": 1},
+            ).limit(1000)
+        ]
+        q.setdefault("$and", []).append({"$or": [
+            {"client_id": {"$in": client_ids or ["__none__"]}},
+            {"sale_id": {"$in": sale_ids or ["__none__"]}},
+        ]})
 
     if user.get("role") in ("technicien", "sous_traitant"):
         # Robust matching: gather every candidate name for THIS technician,
@@ -3957,6 +3985,13 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     return projects
 
 
+@api_router.post("/admin/projects/repair-dates")
+async def admin_repair_project_dates(user: dict = Depends(require_admin)):
+    """Tâche administrateur explicite, sans effet de bord sur une simple lecture."""
+    changed = await _repair_project_dates_from_sales(user, force=True)
+    return {"ok": True, "projects_updated": changed}
+
+
 @api_router.get("/projects")
 async def list_projects(
     response: Response,
@@ -3964,11 +3999,15 @@ async def list_projects(
     include_deleted: str = Query(default="", pattern=r"^(only|1)?$"),
     limit: int = Query(0, ge=0, le=5000),
     offset: int = Query(0, ge=0),
+    q: str = Query("", max_length=120),
+    status: Optional[str] = Query(None, max_length=40),
+    priority: Optional[str] = Query(None, max_length=20),
+    assigned: Optional[str] = Query(None, max_length=120),
 ):
     check_perm(user, "projects", "view", "own")
-    await _repair_project_dates_from_sales(user)
     rows = await _fetch_projects_list(
-        user, include_deleted, perm_resource="projects", limit=limit, offset=offset
+        user, include_deleted, perm_resource="projects", limit=limit, offset=offset,
+        search_q=q, status=status, priority=priority, assigned=assigned,
     )
     return rows
 
