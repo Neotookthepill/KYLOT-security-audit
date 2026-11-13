@@ -2133,6 +2133,29 @@ async def list_clients(
     if limit > 0:
         cursor = cursor.limit(limit)
     docs = await cursor.to_list(limit if limit > 0 else 20000)
+    # Enrichit chaque ligne avec la dernière intervention connue, pour afficher
+    # le technicien affecté directement dans le tableau Clients.
+    if docs:
+        ids = [c.get("id") for c in docs if c.get("id")]
+        projects_scope = perm_scope(user, "projects", "view")
+        if projects_scope != "none":
+            p_q = cq(user, {"client_id": {"$in": ids}, "cancelled": {"$ne": True}})
+            if projects_scope == "own" and user.get("role") not in ("technicien", "sous_traitant"):
+                p_q["sale_id"] = {"$in": await _own_sale_ids(user)}
+            prows = await db.projects.find(
+                p_q,
+                {"_id": 0, "client_id": 1, "status": 1, "scheduled_date": 1, "assigned_to": 1},
+            ).sort("scheduled_date", -1).to_list(max(len(ids), 1) * 4)
+            by_client = {}
+            for project in prows:
+                by_client.setdefault(project.get("client_id"), project)
+            for client in docs:
+                project = by_client.get(client.get("id"))
+                names = _assigned_names((project or {}).get("assigned_to"))
+                client["intervention_status"] = (project or {}).get("status")
+                client["intervention_date"] = (project or {}).get("scheduled_date")
+                client["technicians"] = names
+                client["technician_label"] = ", ".join(names) if names else "Technicien non attribué"
     return docs
 
 

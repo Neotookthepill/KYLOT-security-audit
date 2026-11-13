@@ -116,6 +116,15 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(clients[0]["technicians"], ["Alice Martin", "Bob Durand"])
         self.assertEqual(clients[0]["technician_label"], "Alice Martin, Bob Durand")
 
+
+    def test_clients_list_returns_technicians_too(self):
+        response = self.client.get("/api/clients?q=Synchro", headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        rows = response.json()
+        self.assertTrue(rows)
+        self.assertEqual(rows[0]["technicians"], ["Alice Martin", "Bob Durand"])
+        self.assertEqual(rows[0]["technician_label"], "Alice Martin, Bob Durand")
+
     def test_client_search_labels_unassigned(self):
         asyncio.run(self.db.projects.update_one({"id": "project-sync"}, {"$set": {"assigned_to": []}}))
         response = self.client.get("/api/search?q=Synchro", headers=self.headers)

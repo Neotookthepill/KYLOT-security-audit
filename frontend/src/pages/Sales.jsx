@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal, Columns3, MapPin } from "lucide-react";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
@@ -22,6 +23,20 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtEur2 = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
+
+const SALES_COLUMNS = [
+  { key: "status", label: "Statut", index: 1 },
+  { key: "date", label: "Date", index: 2 },
+  { key: "bdc", label: "BDC", index: 3 },
+  { key: "client", label: "Client", index: 4 },
+  { key: "phone", label: "Téléphone", index: 5 },
+  { key: "products", label: "Produits", index: 6 },
+  { key: "amount", label: "Montant HT", index: 7 },
+  { key: "payment", label: "Règlement", index: 8 },
+  { key: "commercial", label: "Commercial", index: 9 },
+  { key: "source", label: "Source", index: 10 },
+];
+const DEFAULT_HIDDEN_COLUMNS = ["phone", "bdc", "source"];
 
 /* ---------- Inline editable cell (Date / Text / Select) ---------- */
 function InlineCell({ value, type = "text", options, onSave, display, disabled, placeholder = "—", testId, wrapperClass = "" }) {
@@ -294,6 +309,18 @@ export default function Sales() {
   const [openNew, setOpenNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [viewSale, setViewSale] = useState(null);
+  const [panelSale, setPanelSale] = useState(null);
+  const salesColumnsKey = `kylot:sales:columns:${user?.id || "anon"}`;
+  const [hiddenCols, setHiddenCols] = useState(() => {
+    try {
+      const raw = localStorage.getItem(salesColumnsKey);
+      return Array.isArray(raw ? JSON.parse(raw) : null) ? JSON.parse(raw) : DEFAULT_HIDDEN_COLUMNS;
+    } catch (_) { return DEFAULT_HIDDEN_COLUMNS; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(salesColumnsKey, JSON.stringify(hiddenCols)); } catch (_) {}
+  }, [hiddenCols, salesColumnsKey]);
+  const toggleColumn = (key) => setHiddenCols((current) => current.includes(key) ? current.filter((k) => k !== key) : [...current, key]);
   const [objectif, setObjectif] = useState(0);
   const [objectifYear, setObjectifYear] = useState(null); // iter132 : override annuel (null => ×12)
   const [editingObjectif, setEditingObjectif] = useState(false);
@@ -809,6 +836,28 @@ export default function Sales() {
             className="border-0 shadow-none focus-visible:ring-0 h-9 px-0 flex-1 min-w-[220px]"
             data-testid="sales-search-input"
           />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" data-testid="sales-columns-btn">
+                <Columns3 size={14} /> Colonnes
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel className="text-xs text-slate-500">Colonnes affichées</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {SALES_COLUMNS.map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col.key}
+                  checked={!hiddenCols.includes(col.key)}
+                  onCheckedChange={() => toggleColumn(col.key)}
+                  onSelect={(e) => e.preventDefault()}
+                  data-testid={`sales-column-${col.key}`}
+                >
+                  {col.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {(queries.length > 0 || q) && (
             <button
               type="button"
@@ -831,7 +880,7 @@ export default function Sales() {
           );
         })()}
         <div className="qy-sales-table-wrap hidden overflow-x-auto md:block" tabIndex={0} role="region" aria-label="Tableau des ventes">
-          <table className="w-full text-sm sales-table">
+          <table className={`w-full text-sm sales-table ${hiddenCols.map((key) => `hide-${key}`).join(" ")}`}>
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline whitespace-nowrap">Statut</th>
@@ -856,7 +905,7 @@ export default function Sales() {
                   <tr
                     key={s.id}
                     className="data-row border-b border-slate-100 cursor-pointer"
-                    onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
+                    onClick={() => setPanelSale(s)}
                     data-testid={`sale-row-${s.id}`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -1054,7 +1103,7 @@ export default function Sales() {
               <button
                 key={`mobile-${s.id}`}
                 type="button"
-                onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
+                onClick={() => setPanelSale(s)}
                 className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-20 text-left last:border-0 hover:bg-slate-50"
                 data-testid={`sale-mobile-row-${s.id}`}
               >
@@ -1179,6 +1228,52 @@ export default function Sales() {
       </Card>
       )}
 
+      <Sheet open={!!panelSale} onOpenChange={(v) => !v && setPanelSale(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md" data-testid="sale-side-panel">
+          {panelSale && (() => {
+            const st = statusMap[panelSale.status] || STATUS_MAP[panelSale.status];
+            const src = SOURCE_MAP[panelSale.source];
+            return (
+              <>
+                <SheetHeader className="text-left">
+                  <p className="overline">Détail de la vente</p>
+                  <SheetTitle className="font-display text-2xl">{panelSale.client_name || "Client inconnu"}</SheetTitle>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || panelSale.status}</span>
+                    <span className="font-display text-lg font-semibold">{fmtEur2(panelSale.amount)}</span>
+                  </div>
+                </SheetHeader>
+                <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div><p className="overline">Date de vente</p><p className="mt-1 font-medium">{panelSale.sale_date || "—"}</p></div>
+                  <div><p className="overline">Intervention</p><p className="mt-1 font-medium">{panelSale.desired_intervention_date || "—"}</p></div>
+                  <div><p className="overline">BDC</p><p className="mt-1 font-mono text-xs">{panelSale.bdc || "—"}</p></div>
+                  <div><p className="overline">Source</p><p className="mt-1 font-medium">{src?.label || panelSale.source || "—"}</p></div>
+                  <div><p className="overline">Règlement</p><p className="mt-1 font-medium">{formatPayment(panelSale.payment_method, panelSale.payment_installments)}</p></div>
+                  <div><p className="overline">Commercial</p><p className="mt-1 font-medium">{panelSale.commercial || "—"}{panelSale.is_de && panelSale.commercial_2 ? ` + ${panelSale.commercial_2}` : ""}</p></div>
+                </div>
+                <div className="mt-5 border-t border-slate-200 pt-4">
+                  <p className="overline">Coordonnées</p>
+                  <div className="mt-1 text-sm text-slate-600"><PhoneNumbers value={panelSale.client_phone} iconSize={12} /></div>
+                  {panelSale.client_address && <p className="mt-1 flex items-start gap-1.5 text-sm text-slate-600"><MapPin size={13} className="mt-0.5 shrink-0" />{panelSale.client_address}{panelSale.client_postal_code || panelSale.client_city ? `, ${panelSale.client_postal_code || ""} ${panelSale.client_city || ""}` : ""}</p>}
+                </div>
+                <div className="mt-5 border-t border-slate-200 pt-4">
+                  <p className="overline">Produit / prestation</p>
+                  <p className="mt-1 text-sm text-slate-700">{panelSale.service || "—"}</p>
+                </div>
+                {panelSale.notes && <div className="mt-5 border-t border-slate-200 pt-4"><p className="overline">Notes</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{panelSale.notes}</p></div>}
+                <div className="mt-6 flex gap-2">
+                  {canEditSaleAny ? (
+                    <Button className="flex-1" onClick={() => { setEditingSale(panelSale); setPanelSale(null); }} data-testid="sale-panel-edit">Modifier la vente</Button>
+                  ) : (
+                    <Button variant="outline" className="flex-1" onClick={() => { setViewSale(panelSale); setPanelSale(null); }}>Ouvrir la fiche</Button>
+                  )}
+                  <Button variant="outline" onClick={() => setPanelSale(null)}>Fermer</Button>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
       <NewSaleSheet open={openNew} onOpenChange={(v) => { setOpenNew(v); if (!v) setPrefill(null); }} onCreated={() => { load(); window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { created: true } })); }} prefill={prefill} />
       <StatusManagerDialog open={statusManagerOpen} onOpenChange={setStatusManagerOpen} onSaved={() => { load(); window.dispatchEvent(new Event("kylot:settings-updated")); }} />
       <ImportClientPdfDialog open={pdfImportOpen} onOpenChange={setPdfImportOpen} onImported={() => { load(); }} />

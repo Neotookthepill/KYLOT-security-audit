@@ -285,11 +285,12 @@ export default function Clients() {
                 <th className="px-5 py-3 overline">CP</th>
                 <th className="px-5 py-3 overline">Ville</th>
                 <th className="px-5 py-3 overline">Catégories</th>
+                <th className="px-5 py-3 overline">Technicien / intervention</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
             <tbody>
-              {filteredClients.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-slate-500">{loading ? "Chargement…" : "Aucun client."}</td></tr>}
+              {filteredClients.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-slate-500">{loading ? "Chargement…" : "Aucun client."}</td></tr>}
               {filteredClients.map((c) => (
                 <tr
                   key={c.id}
@@ -353,6 +354,16 @@ export default function Clients() {
                         </select>
                       )}
                     </div>
+                  </td>
+                  <td className="px-5 py-3 text-slate-600">
+                    <div className={`text-xs ${c.technicians?.length ? "font-medium text-slate-800" : "italic text-slate-400"}`} data-testid={`client-technicians-${c.id}`}>
+                      {c.technician_label || "Technicien non attribué"}
+                    </div>
+                    {(c.intervention_date || c.intervention_status) && (
+                      <div className="mt-0.5 text-[10px] text-slate-500">
+                        {[c.intervention_date, c.intervention_status === "en_cours" ? "Programmé" : c.intervention_status === "a_planifier" ? "À planifier" : c.intervention_status === "termine" ? "Terminé" : c.intervention_status].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-right">
                     {can("clients", "delete") && (

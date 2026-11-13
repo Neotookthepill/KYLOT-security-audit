@@ -437,6 +437,7 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   .qy-page .clients-table td:nth-child(5)::before { content: "Ville"; }
   .qy-page .clients-table td:nth-child(6)::before { content: "Catégories"; }
   .qy-page .clients-table td:nth-child(7)::before { content: ""; }
+  .qy-page .clients-table td:nth-child(8)::before { content: "Technicien"; }
   .qy-page .clients-table td:nth-child(3), .qy-page .clients-table td:nth-child(4) { display: none; }
   .qy-page .clients-table td:nth-child(7) { display: none; }
 }
@@ -605,4 +606,18 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 @media (max-width: 767px) {
   .qy-page { padding-right: 68px; }
   [data-testid="ai-helper-btn"] { right: 10px; }
+}
+
+/* Ventes : colonnes personnalisables (desktop uniquement). */
+@media (min-width: 768px) {
+  .sales-table.hide-bdc th:nth-child(3), .sales-table.hide-bdc td:nth-child(3),
+  .sales-table.hide-phone th:nth-child(5), .sales-table.hide-phone td:nth-child(5),
+  .sales-table.hide-source th:nth-child(10), .sales-table.hide-source td:nth-child(10),
+  .sales-table.hide-status th:nth-child(1), .sales-table.hide-status td:nth-child(1),
+  .sales-table.hide-date th:nth-child(2), .sales-table.hide-date td:nth-child(2),
+  .sales-table.hide-client th:nth-child(4), .sales-table.hide-client td:nth-child(4),
+  .sales-table.hide-products th:nth-child(6), .sales-table.hide-products td:nth-child(6),
+  .sales-table.hide-amount th:nth-child(7), .sales-table.hide-amount td:nth-child(7),
+  .sales-table.hide-payment th:nth-child(8), .sales-table.hide-payment td:nth-child(8),
+  .sales-table.hide-commercial th:nth-child(9), .sales-table.hide-commercial td:nth-child(9) { display: none !important; }
 }
