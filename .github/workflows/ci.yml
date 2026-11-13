@@ -142,7 +142,9 @@ jobs:
       - run: npm install --prefix /tmp/pw playwright@1.55.0
       - name: Run P1 E2E
         run: |
-          NODE_PATH=/tmp/pw/node_modules node e2e/run.mjs > /tmp/e2e.log 2>&1 || {
+          ln -s /tmp/pw/node_modules/playwright node_modules/playwright
+          ln -s /tmp/pw/node_modules/playwright-core node_modules/playwright-core
+          node e2e/run.mjs > /tmp/e2e.log 2>&1 || {
             tail -30 /tmp/e2e.log
             echo "::error::$(grep -E 'Error|Timeout|E2E' /tmp/e2e.log | tail -4 | tr '\n' ' ')"
             exit 1
