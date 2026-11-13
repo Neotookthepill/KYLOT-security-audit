@@ -28,7 +28,7 @@ const user = {
     commissions: { view: 'all', edit: 'all' },
     reports: { view: 'all' }, users: { manage: 'all' },
   },
-  mfa_setup_required: false, mfa_enabled: true,
+  mfa_setup_required: false, mfa_enabled: true, onboarding_done: true,
 };
 const project = (id, status, name) => ({ id, status, client_name: name, service: 'Test', city: 'Lille', scheduled_date: '2026-11-20', assigned_to: ['Alice Martin'], priority: 'moyenne', cancelled: false, client_phone: '0600000000' });
 const many = (status, n = 12) => Array.from({ length: n }, (_, i) => project(`${status}-${i}`, status, `Client ${i}`));
