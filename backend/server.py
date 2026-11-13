@@ -3273,14 +3273,18 @@ async def list_sales(
                 ]}),
                 {"_id": 0, "id": 1},
             ).to_list(1000)
-            tag_conditions.extend([
-                {"service": pattern}, {"status": pattern}, {"bdc": pattern},
-                {"commercial": pattern}, {"commercial_2": pattern}, {"source": pattern},
-            ])
             if matching_statuses:
+                # Un libellé/code de statut est un filtre de statut explicite :
+                # on ne le mélange pas avec les services ou noms qui contiennent
+                # les mêmes mots (ex. « En cours » ou « PROG »).
                 tag_conditions.append({"status": {"$in": matching_statuses}})
-            if client_ids:
-                tag_conditions.append({"client_id": {"$in": [c["id"] for c in client_ids]}})
+            else:
+                tag_conditions.extend([
+                    {"service": pattern}, {"status": pattern}, {"bdc": pattern},
+                    {"commercial": pattern}, {"commercial_2": pattern}, {"source": pattern},
+                ])
+                if client_ids:
+                    tag_conditions.append({"client_id": {"$in": [c["id"] for c in client_ids]}})
         scope_or = q.pop("$or", None)
         if scope_or:
             q["$and"] = [{"$or": scope_or}, {"$or": tag_conditions}]

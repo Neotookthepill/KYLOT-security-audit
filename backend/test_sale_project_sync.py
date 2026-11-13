@@ -152,6 +152,27 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual([row["id"] for row in response.json()], ["sale-cheque"])
 
+
+    def test_status_label_search_does_not_match_service_text(self):
+        asyncio.run(self.db.settings.update_one(
+            {"company_id": "company-sync", "kind": "global"},
+            {"$set": {"sale_statuses": [
+                {"value": "en_cours", "label": "En cours", "active": True},
+                {"value": "attente_fi", "label": "En attente FI", "active": True},
+            ]}}, upsert=True,
+        ))
+        asyncio.run(self.db.sales.insert_many([
+            {"id": "sale-status", "company_id": "company-sync", "client_id": "client-sync",
+             "amount": 100, "status": "en_cours", "sale_date": "2026-11-10",
+             "commercial": "Admin Sync", "service": "Divers"},
+            {"id": "sale-service-collision", "company_id": "company-sync", "client_id": "client-sync",
+             "amount": 100, "status": "attente_fi", "sale_date": "2026-11-11",
+             "commercial": "Admin Sync", "service": "En cours de traitement"},
+        ]))
+        response = self.client.get("/api/sales?tags=En%20cours", headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual([r["id"] for r in response.json()], ["sale-status"])
+
     def test_clients_list_returns_technicians_too(self):
         response = self.client.get("/api/clients?q=Synchro", headers=self.headers)
         self.assertEqual(response.status_code, 200, response.text)
