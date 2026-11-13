@@ -838,7 +838,7 @@ export default function Sales() {
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" data-testid="sales-columns-btn">
+              <Button variant="outline" size="sm" className="hidden h-8 gap-1.5 text-xs md:inline-flex" data-testid="sales-columns-btn">
                 <Columns3 size={14} /> Colonnes
               </Button>
             </DropdownMenuTrigger>
