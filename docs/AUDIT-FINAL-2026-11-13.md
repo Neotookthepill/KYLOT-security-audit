@@ -247,3 +247,138 @@ Qylot n'est pas **PRÊT POUR PRODUCTION** ni **COMMERCIALISABLE SOUS CONDITIONS*
 les P1 AUD-001 à AUD-006 ne sont pas fermés.
 
 Le code et les tests automatisés sont verts, mais la recette de sécurité, de rôles, de restauration et de devices réels n'est pas prouvée.
+
+---
+
+## 15. Exécution réelle sur QA
+
+QA est une base séparée : 542 clients / 176 ventes contre 541 / 175 en production.
+
+### Comptes TEST-AUDIT- créés
+
+```text
+admin
+responsable
+commercial A
+commercial B
+technicien A
+technicien B
+sous-traitant
+comptable
+prospecteur
+responsable prospecteur
+```
+
+Le rôle **super-admin** n'est pas créable via l'API admin ; aucun compte
+super-admin QA n'était fourni. Il reste BLOQUÉ.
+
+### Matrice observée
+
+| Rôle | clients | sales | projects | planning | commissions | users | settings | challenge/current | stock |
+|---|---|---|---|---|---|---|---|---|---|
+| admin | 200 | 200 | 200 | 200 | 200 | 200 | 200 | 200 | 200 |
+| responsable | 200 | 200 | 200 | 200 | 200 | 403 | 200 | 200 | 200 |
+| commercial A/B | 200 | 200 | 200 | 200 | 200 | 403 | 200 | 200 | 403 |
+| technicien A/B | 403 | 403 | 200 | 200 | 403 | 403 | 200 | 200 | 200 |
+| sous-traitant | 403 | 403 | 200 | 200 | 403 | 403 | 200 | 200 | 403 |
+| comptable | 200 | 200 | 200 | 200 | 200 | 403 | 200 | 200 | 200 |
+| prospecteur | 403 | 403 | 403 | 200 | 403 | 403 | 200 | 200 | 403 |
+| responsable prospecteur | 403 | 403 | 403 | 200 | 403 | 403 | 200 | 200 | 403 |
+
+`/api/challenges` reste 403 pour les rôles non-admin, mais `/api/challenges/current`
+est accessible à tous les rôles testés : le module de consultation fonctionne.
+
+### Isolation collègue
+
+```text
+commercial A : voit ses ventes A et C, pas la vente B
+commercial B : voit uniquement sa vente B
+client B modifié par A : 404
+vente B modifiée par A : 403
+client B supprimé par A : 403
+```
+
+### Affectation technicien
+
+```text
+technicien A : voit les chantiers affectés
+technicien B : ne voit aucun chantier TEST-AUDIT
+```
+
+### Parcours créés
+
+```text
+TEST-AUDIT-CLIENT-A → vente A → chantier A
+TEST-AUDIT-CLIENT-B → vente B → chantier B
+TEST-AUDIT-CLIENT-C → vente C → chantier C
+```
+
+Vérifié :
+
+```text
+vente → chantier automatique
+date vente 2026-11-25 → chantier et planning 2026-11-25
+statut chantier en_cours puis termine
+ligne de commission liée à la vente
+dashboard CA recalculé
+```
+
+Non exécuté : événement, photos, stock, encaissement final, challenge impacté,
+suppression/restauration complète.
+
+### Charge QA
+
+```text
+10 requêtes simultanées   : 10 × 200
+50 requêtes simultanées   : 50 × 200
+100 requêtes simultanées  : 100 × 200
+```
+
+Ce sont des requêtes HTTP, pas 100 utilisateurs réels. Les temps de réponse n'ont
+pas été mesurés avec précision.
+
+### E2E full-stack
+
+Admin QA : 7 routes testées sur le backend réel, aucun débordement, aucune erreur JS.
+Les rôles commerciaux/techniciens n'ont pas été testés en E2E navigateur.
+
+### Nettoyage
+
+```text
+10 comptes TEST-AUDIT- supprimés
+compte probe supprimé
+2 clients TEST-AUDIT-FORBIDDEN supprimés
+3 projets TEST-AUDIT soft-deleted
+3 ventes TEST-AUDIT restantes (suppression bloquée par le chantier lié)
+3 clients TEST-AUDIT restants (suppression bloquée par l'historique)
+```
+
+Le nettoyage est **PARTIEL** : l'API refuse la suppression définitive des ventes
+et clients liés à un chantier. Ces objets sont isolés en QA, mais ils restent
+présents et doivent être purgés par une tâche base de données autorisée.
+
+## 16. Conclusion après QA
+
+Les tests QA confirment :
+
+```text
+isolation collègue commercial : OK
+isolation technicien          : OK
+IDOR client/vente             : OK
+challenge consultation        : OK
+rôle admin / responsable      : OK
+10 rôles testés               : OK
+```
+
+Restent bloqués :
+
+```text
+super-admin
+deuxième société
+MFA admin
+parcours complet 20 étapes
+E2E navigateur multi-rôles
+purge définitive des données TEST-AUDIT-
+```
+
+Verdict maintenu : **PILOTE ACCOMPAGNÉ**.
