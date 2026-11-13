@@ -134,6 +134,40 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(rows[0]["id"], "project-sync")
 
 
+
+    def test_unassigned_filter_is_applied_before_pagination(self):
+        asyncio.run(self.db.projects.insert_one({
+            "id": "project-unassigned", "company_id": "company-sync", "sale_id": "sale-sync",
+            "client_id": "client-sync", "status": "a_planifier", "scheduled_date": None,
+            "assigned_to": [], "cancelled": False,
+        }))
+        response = self.client.get(
+            "/api/projects?status=a_planifier&assigned=__none&limit=1&offset=0",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual([p["id"] for p in response.json()], ["project-unassigned"])
+
+    def test_technician_pagination_is_applied_after_assignment_filter(self):
+        tech = {
+            "id": "tech-sync", "email": "tech-sync@example.com", "name": "Tech Sync",
+            "password_hash": server.hash_password("tech-sync-password"),
+            "role": "technicien", "company_id": "company-sync",
+            "permissions": server.get_default_permissions("technicien"),
+        }
+        asyncio.run(self.db.users.insert_one(tech))
+        asyncio.run(self.db.projects.insert_many([
+            {"id": "tech-project-1", "company_id": "company-sync", "sale_id": "sale-sync", "client_id": "client-sync",
+             "status": "a_planifier", "scheduled_date": None, "assigned_to": ["Tech Sync"], "cancelled": False},
+            {"id": "tech-project-2", "company_id": "company-sync", "sale_id": "sale-sync", "client_id": "client-sync",
+             "status": "a_planifier", "scheduled_date": None, "assigned_to": ["Tech Sync"], "cancelled": False},
+        ]))
+        headers = {"Authorization": "Bearer " + server.create_access_token(tech["id"], tech["email"])}
+        response = self.client.get("/api/projects?status=a_planifier&limit=1&offset=0", headers=headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["id"] in ("tech-project-1", "tech-project-2"), True)
+
     def test_sales_search_matches_status_label(self):
         asyncio.run(self.db.settings.update_one(
             {"company_id": "company-sync", "kind": "global"},

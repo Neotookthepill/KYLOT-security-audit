@@ -3837,7 +3837,14 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
         q["status"] = status
     if priority:
         q["priority"] = priority
-    if assigned:
+    if assigned == "__none":
+        q.setdefault("$and", []).append({"$or": [
+            {"assigned_to": {"$exists": False}},
+            {"assigned_to": None},
+            {"assigned_to": []},
+            {"assigned_to": ""},
+        ]})
+    elif assigned:
         q["assigned_to"] = {"$regex": re.escape(assigned), "$options": "i"}
     # Le paramètre de recherche est appliqué AVANT limit/offset : la pagination
     # serveur reste correcte au-delà des 12 premières cartes.
@@ -3949,6 +3956,12 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
             names_norm = {_norm(n) for n in names if n}
             if names_norm & norm_cands:
                 projects.append(p)
+        # La pagination doit s'appliquer APRÈS le filtrage d'affectation,
+        # sinon un technicien télécharge toujours 5000 lignes.
+        if offset:
+            projects = projects[offset:]
+        if limit > 0:
+            projects = projects[:limit]
     else:
         if scope == "own" and not _is_prospect_role(user):
             # Commercial-scope: projects tied to their own clients OR own sales

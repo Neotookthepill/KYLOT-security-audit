@@ -46,7 +46,7 @@ async function mockApi(page) {
     else if (p === '/api/projects') {
       const status = url.searchParams.get('status') || 'a_planifier';
       const offset = Number(url.searchParams.get('offset') || 0);
-      body = status === 'a_planifier' ? (offset === 0 ? many(status, 12) : many(status, 5)) : many(status, 2);
+      body = status === 'a_planifier' ? (offset === 0 ? many(status, 13) : many(status, 5)) : many(status, 2);
     }
     else if (p === '/api/sales/summary') body = { count: 2, ca_count: 2, total: 2400, by_commercial: [] };
     else if (p === '/api/sales') body = [sale('s1', 'Client Un'), sale('s2', 'Client Deux', 1200)];

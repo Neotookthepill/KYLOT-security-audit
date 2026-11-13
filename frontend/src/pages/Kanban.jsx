@@ -67,11 +67,12 @@ export default function Kanban() {
   }, []);
 
   const projectParams = (status, offset = 0) => {
-    const params = new URLSearchParams({ status, limit: "12", offset: String(offset) });
+    const params = new URLSearchParams({ status, limit: "13", offset: String(offset) });
     if (filter === "__deleted") params.set("include_deleted", "only");
     if (query.trim()) params.set("q", query.trim());
     if (priority !== "__all") params.set("priority", priority);
-    if (filter !== "__all" && filter !== "__deleted" && filter !== "__none") params.set("assigned", filter);
+    if (filter === "__none") params.set("assigned", "__none");
+    else if (filter !== "__all" && filter !== "__deleted") params.set("assigned", filter);
     return params.toString();
   };
 
@@ -81,8 +82,9 @@ export default function Kanban() {
       const results = await Promise.all(
         columns.map((col) => api.get(`/projects?${projectParams(col.key)}`))
       );
-      setProjects(results.flatMap((r) => r.data || []));
-      setHasMore(Object.fromEntries(columns.map((col, i) => [col.key, (results[i].data || []).length === 12])));
+      const pages = results.map((r) => (r.data || []).slice(0, 12));
+      setProjects(pages.flat());
+      setHasMore(Object.fromEntries(columns.map((col, i) => [col.key, (results[i].data || []).length > 12])));
     }
     catch (err) { toast.error(formatApiError(err)); }
     finally { setLoading(false); }
@@ -92,8 +94,8 @@ export default function Kanban() {
     const offset = projects.filter((p) => p.status === colKey).length;
     try {
       const { data } = await api.get(`/projects?${projectParams(colKey, offset)}`);
-      setProjects((prev) => [...prev, ...(data || [])]);
-      setHasMore((prev) => ({ ...prev, [colKey]: (data || []).length === 12 }));
+      setProjects((prev) => [...prev, ...(data || []).slice(0, 12)]);
+      setHasMore((prev) => ({ ...prev, [colKey]: (data || []).length > 12 }));
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -126,7 +128,14 @@ export default function Kanban() {
       window.removeEventListener("kylot:project-updated", onProjectUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user?.id, filter, query, priority]);
+  }, [authLoading, user?.id]);
+
+  useEffect(() => {
+    if (authLoading || !user?.id) return;
+    const id = setTimeout(() => { load(); }, 300);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, query, priority]);
 
   // iter87 : suppression manuelle (soft-delete) + restauration d'un chantier supprimé
   const removeProject = async (id, clientName) => {
