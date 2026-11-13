@@ -58,14 +58,22 @@ async function mockApi(page) {
 
 async function closeOnboarding(page) {
   const skip = page.getByText('Passer et fermer', { exact: false });
-  if (await skip.count()) await skip.first().click({ force: true }).catch(() => {});
-  await page.waitForTimeout(150);
+  if (await skip.count()) {
+    await skip.first().click({ timeout: 5000 }).catch(async () => {
+      await skip.first().click({ force: true }).catch(() => {});
+    });
+    await page.waitForFunction(
+      () => !document.querySelector('[role="dialog"][data-state="open"]'),
+      { timeout: 5000 },
+    ).catch(() => {});
+  }
+  await page.waitForTimeout(200);
 }
 
 const browser = await chromium.launch();
 try {
-  const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  const p = await desktop.newPage();
+  const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+  const p = await desktop.newPage(); p.setDefaultTimeout(10000);
   await mockApi(p);
   await p.goto(`http://127.0.0.1:${PORT}/ventes`, { waitUntil: 'domcontentloaded' });
   await p.waitForTimeout(1000);
@@ -79,14 +87,15 @@ try {
   const after = await p.locator('.sales-table thead th:visible').allTextContents();
   if (!after.includes('Téléphone')) throw new Error('Téléphone non réaffiché');
   await p.keyboard.press('Escape');
+  await p.waitForFunction(() => !document.querySelector('[role="menu"][data-state="open"]'), { timeout: 5000 }).catch(() => {});
   await p.waitForTimeout(250);
-  await p.getByTestId('sale-row-s1').click();
+  await p.getByTestId('sale-row-s1').click({ timeout: 8000 });
   await p.waitForTimeout(250);
   if (!await p.getByTestId('sale-side-panel').count()) throw new Error('panneau latéral absent');
   await desktop.close();
 
-  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  const m = await mobile.newPage();
+  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
+  const m = await mobile.newPage(); m.setDefaultTimeout(10000);
   await mockApi(m);
   await m.goto(`http://127.0.0.1:${PORT}/chantiers`, { waitUntil: 'domcontentloaded' });
   await m.waitForTimeout(1000);
