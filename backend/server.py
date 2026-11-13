@@ -3747,8 +3747,16 @@ async def _repair_project_dates_from_sales(user: dict, *, force: bool = False) -
     """
     stale = await db.projects.find(
         cq(user, {"status": "a_planifier", "cancelled": {"$ne": True}}),
-        {"_id": 0, "id": 1, "sale_id": 1},
+        {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1},
     ).to_list(5000)
+    # Un chantier qui porte déjà une vraie date ne doit plus rester « À planifier »,
+    # même si la vente source n'a pas de desired_intervention_date.
+    for project in stale:
+        if _sale_intervention_date(project.get("scheduled_date")):
+            await db.projects.update_one(
+                cq(user, {"id": project["id"], "status": "a_planifier"}),
+                {"$set": {"status": "en_cours"}},
+            )
     sale_ids = list({p.get("sale_id") for p in stale if p.get("sale_id")})
     if not sale_ids:
         return 0

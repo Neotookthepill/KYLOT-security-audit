@@ -91,6 +91,20 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(project["status"], "en_cours")
         self.assertEqual(project["scheduled_date"], "2026-11-25")
 
+
+    def test_stale_project_with_real_date_is_promoted_even_without_sale_date(self):
+        asyncio.run(self.db.sales.update_one(
+            {"id": "sale-sync"}, {"$set": {"desired_intervention_date": None}},
+        ))
+        asyncio.run(self.db.projects.update_one(
+            {"id": "project-sync"}, {"$set": {"scheduled_date": "2026-12-03"}},
+        ))
+        response = self.client.get("/api/projects", headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        project = asyncio.run(self.db.projects.find_one({"id": "project-sync"}, {"_id": 0}))
+        self.assertEqual(project["status"], "en_cours")
+        self.assertEqual(project["scheduled_date"], "2026-12-03")
+
     def test_client_search_returns_all_technicians(self):
         asyncio.run(self.db.sales.update_one(
             {"id": "sale-sync"}, {"$set": {"desired_intervention_date": "2026-11-25"}},
