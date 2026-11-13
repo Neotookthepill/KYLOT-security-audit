@@ -82,7 +82,7 @@ HORS CODE   action humaine / infrastructure / décision
 | Podium et position personnelle | LIVRÉ |
 | Consultation par les commerciaux | LIVRÉ |
 | Interdiction de modifier les résultats | LIVRÉ / TESTÉ RBAC |
-| Challenge de Noël 2026 | LIVE — actif, 5 participants |
+| Challenge de Noël 2026 | LIVE — actif |
 | Historique des challenges | LIVRÉ / TESTÉ |
 
 ## Planning / événements
@@ -147,7 +147,7 @@ backend : 117 tests avant la dernière passe
 frontend : 47 tests
 E2E P1 : dans la CI, vert
 CI : verte
-production : b1e31c8 au dernier contrôle
+production : bae0ce4 au dernier contrôle
 ```
 
 ## Conclusion
