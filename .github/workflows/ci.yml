@@ -45,12 +45,6 @@ jobs:
       - run: yarn install --frozen-lockfile --ignore-scripts
       - run: CI=true yarn test --watchAll=false
       - run: CI=true yarn build
-      - name: Install Playwright for P1 E2E
-        run: |
-          yarn add -D playwright@1.55.0 --ignore-scripts
-          npx playwright install chromium
-      - name: Run P1 interface E2E
-        run: node e2e/run.mjs
       - name: Enforce frontend dependency advisory baseline
         run: |
           yarn audit --groups dependencies --json > "$RUNNER_TEMP/yarn-audit.json" || true

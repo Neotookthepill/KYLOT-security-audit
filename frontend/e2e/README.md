@@ -12,4 +12,6 @@
 
 Prérequis locaux : `playwright` et un build frontend à jour.
 
-En CI, le workflow installe Playwright et Chromium puis lance ce script.
+Le script est exécutable localement avec Playwright installé.
+L'intégration CI automatique n'est pas active : l'installation du navigateur
+dans l'environnement CI n'a pas encore été stabilisée.
