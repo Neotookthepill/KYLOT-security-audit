@@ -71,13 +71,7 @@ jobs:
       - run: python -m unittest backend.test_prospection
       - run: python -m unittest backend.test_multiday_completion
       - run: python -m unittest backend.test_ca_consistency
-      - name: Test sale project sync
-        run: |
-          python -m unittest backend.test_sale_project_sync > /tmp/sale-sync.log 2>&1 || {
-            tail -80 /tmp/sale-sync.log
-            echo "::error::$(grep -A14 -E 'FAIL:|FAILED \(' /tmp/sale-sync.log | tail -20 | tr '\n' ' ')"
-            exit 1
-          }
+      - run: python -m unittest backend.test_sale_project_sync
       - run: python -m unittest backend.test_forms_import
       - run: python -m unittest backend.test_kiks_rbac
       - run: python -m unittest backend.test_file_bounds

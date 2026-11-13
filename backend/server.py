@@ -3739,20 +3739,13 @@ async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
     return changed
 
 
-_PROJECT_DATE_SYNC_AT: dict[str, float] = {}
-
-
 async def _repair_project_dates_from_sales(user: dict, *, force: bool = False) -> int:
     """Répare les ventes déjà existantes dont la date n'a jamais été poussée au chantier.
 
-    Cette réconciliation est bornée aux ventes de la société et mise en cache 5 min.
-    L'écriture de vente, elle, appelle directement `_sync_one_sale_project_date`.
+    La réconciliation est idempotente et bornée aux ventes de la société. Elle est
+    rejouée à chaque lecture pour que les anciennes ventes soient corrigées même
+    si le processus a redémarré entre-temps.
     """
-    company = company_id_of(user)
-    now = time.monotonic()
-    if not force and now - _PROJECT_DATE_SYNC_AT.get(company, 0) < 300:
-        return 0
-    _PROJECT_DATE_SYNC_AT[company] = now
     changed = 0
     sales = await db.sales.find(
         cq(user, {"desired_intervention_date": {"$exists": True, "$ne": None}}),
