@@ -139,4 +139,5 @@ jobs:
       - run: corepack enable
       - run: yarn install --frozen-lockfile --ignore-scripts
       - run: CI=true yarn build
-      - run: node e2e/run.mjs
+      - run: npm install --prefix /tmp/pw playwright@1.55.0
+      - run: NODE_PATH=/tmp/pw/node_modules node e2e/run.mjs
