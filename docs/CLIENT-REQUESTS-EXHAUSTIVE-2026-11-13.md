@@ -190,13 +190,11 @@ BLOQUÉ    accès ou environnement manquant
 ## Bilan
 
 ```text
-Demandes fonctionnelles listées : 79
-LIVRÉ / TESTÉ / SIMULÉ          : 61
-MAQUETTE                        : 15
-PARTIEL                         : 10
-BLOQUÉ                          : 5
-ÉCHOUÉ                          : 1 (MFA)
+117 demandes / corrections inventoriées
+Les doublons de demandes répétées dans les messages
+(commissions, challenge, planning, téléphone) sont regroupés.
+Le détail du statut est indiqué ligne par ligne.
 ```
 
-Le total inclut les doublons de demandes répétées dans les messages (commissions,
-challenge, planning, téléphone) une seule fois.
+Les 10 dernières lignes (K) sont des corrections demandées après audit,
+pas des demandes fonctionnelles initiales.
