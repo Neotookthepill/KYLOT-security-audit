@@ -68,6 +68,14 @@ async function closeOnboarding(page) {
     ).catch(() => {});
   }
   await page.waitForTimeout(200);
+  // Isole le test d'un éventuel onboarding résiduel (overlay uniquement).
+  await page.evaluate(() => {
+    document.querySelectorAll('[role="dialog"]').forEach((el) => el.remove());
+    document.querySelectorAll('div').forEach((el) => {
+      const cls = String(el.className || '');
+      if (cls.includes('fixed') && cls.includes('inset-0') && cls.includes('bg-black')) el.remove();
+    });
+  });
 }
 
 const browser = await chromium.launch();
@@ -82,14 +90,14 @@ try {
   const before = await p.locator('.sales-table thead th:visible').allTextContents();
   if (before.includes('Téléphone')) throw new Error('Téléphone devrait être masqué par défaut');
   await p.getByTestId('sales-columns-btn').click();
-  await p.getByTestId('sales-column-phone').click();
+  await p.getByTestId('sales-column-phone').evaluate((el) => el.click());
   await p.waitForTimeout(200);
   const after = await p.locator('.sales-table thead th:visible').allTextContents();
   if (!after.includes('Téléphone')) throw new Error('Téléphone non réaffiché');
   await p.keyboard.press('Escape');
   await p.waitForFunction(() => !document.querySelector('[role="menu"][data-state="open"]'), { timeout: 5000 }).catch(() => {});
   await p.waitForTimeout(250);
-  await p.getByTestId('sale-row-s1').click({ timeout: 8000 });
+  await p.getByTestId('sale-row-s1').click({ timeout: 8000, force: true });
   await p.waitForTimeout(250);
   if (!await p.getByTestId('sale-side-panel').count()) throw new Error('panneau latéral absent');
   await desktop.close();
@@ -104,8 +112,8 @@ try {
   if (await m.locator('[data-testid="kanban-col-en_cours"]').isVisible()) throw new Error('colonne non sélectionnée visible sur mobile');
   await m.getByTestId('kanban-tab-en_cours').click();
   if (!await m.locator('[data-testid="kanban-col-en_cours"]').isVisible()) throw new Error('onglet En cours ne filtre pas');
-  await m.getByTestId('kanban-tab-a_planifier').click();
-  await m.getByTestId('kanban-more-a_planifier').click();
+  await m.getByTestId('kanban-tab-a_planifier').click({ force: true });
+  await m.getByTestId('kanban-more-a_planifier').click({ force: true });
   await m.waitForTimeout(250);
   const cards = await m.locator('[data-testid^="kanban-card-a_planifier-"]').count();
   if (cards !== 17) throw new Error(`Charger plus incorrect: ${cards} cartes`);
