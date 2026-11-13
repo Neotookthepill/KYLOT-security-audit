@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const RECENT_KEY_PREFIX = "kylot:search:recents:";
 const MAX_RECENTS = 5;
 
+const PROJECT_STATUS_LABEL = { a_planifier: "À planifier", en_cours: "Programmé", termine: "Terminé", encaisse: "Encaissé" };
+
 const CAT_META = {
   clients: { label: "Clients", icon: Users, path: "/clients" },
   sales: { label: "Ventes", icon: ShoppingBag, path: "/ventes" },
@@ -149,10 +151,20 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
                         const names = cat === "clients"
                           ? (it.technicians || [])
                           : (Array.isArray(it.assigned_to) ? it.assigned_to : (it.assigned_to ? [it.assigned_to] : []));
+                        const intervention = cat === "clients"
+                          ? [it.intervention_date, it.intervention_status ? (PROJECT_STATUS_LABEL[it.intervention_status] || it.intervention_status) : null]
+                          : [it.scheduled_date, it.status ? (PROJECT_STATUS_LABEL[it.status] || it.status) : null];
                         return (
-                          <p className={`mt-0.5 text-[11px] truncate ${names.length ? "text-slate-500" : "text-slate-400 italic"}`}>
-                            Technicien{names.length > 1 ? "s" : ""} : {names.length ? names.join(", ") : "non attribué"}
-                          </p>
+                          <>
+                            {intervention.some(Boolean) && (
+                              <p className="mt-0.5 text-[11px] text-slate-500 truncate">
+                                Intervention : {intervention.filter(Boolean).join(" · ")}
+                              </p>
+                            )}
+                            <p className={`mt-0.5 text-[11px] truncate ${names.length ? "text-slate-500" : "text-slate-400 italic"}`}>
+                              Technicien{names.length > 1 ? "s" : ""} : {names.length ? names.join(", ") : "non attribué"}
+                            </p>
+                          </>
                         );
                       })()}
                     </div>
