@@ -210,7 +210,7 @@ function ComMonthCell({ row, editable, onSaved }) {
     try {
       await api.put(`/prospection/${row.id}`, { prospect_commission_month: v });
       toast.success(`Commission affectée à ${monthLabel(v)}`);
-      onSaved(row.id, { prospect_commission_month: v });
+      onSaved(row.id, { prospect_commission_month: v, commission_month: v });
     } catch (e) { toast.error(formatApiError(e)); }
   };
   return (

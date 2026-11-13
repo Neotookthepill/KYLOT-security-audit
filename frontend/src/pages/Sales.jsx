@@ -830,7 +830,7 @@ export default function Sales() {
             </div>
           );
         })()}
-        <div className="qy-sales-table-wrap overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau des ventes">
+        <div className="qy-sales-table-wrap hidden overflow-x-auto md:block" tabIndex={0} role="region" aria-label="Tableau des ventes">
           <table className="w-full text-sm sales-table">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
@@ -1044,6 +1044,34 @@ export default function Sales() {
               })}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden" data-testid="sales-mobile-list" aria-label="Liste mobile des ventes">
+          {filtered.length === 0 && <p className="p-6 text-center text-sm text-slate-500">Aucune vente.</p>}
+          {filtered.map((s) => {
+            const st = statusMap[s.status] || STATUS_MAP[s.status];
+            const commercial = s.commercial || "—";
+            return (
+              <button
+                key={`mobile-${s.id}`}
+                type="button"
+                onClick={() => { if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }}
+                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-20 text-left last:border-0 hover:bg-slate-50"
+                data-testid={`sale-mobile-row-${s.id}`}
+              >
+                <span className={`inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || s.status}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-3">
+                    <span className="truncate text-sm font-semibold text-slate-900">{s.client_name || "—"}</span>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{fmtEur(s.amount)}</span>
+                  </span>
+                  <span className="mt-0.5 flex items-center justify-between gap-3 text-[10px] text-slate-500">
+                    <span className="truncate">{s.sale_date || "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
+                    <span className="shrink-0">Détail ›</span>
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </Card>
 
