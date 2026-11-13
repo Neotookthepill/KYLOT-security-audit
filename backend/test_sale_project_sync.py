@@ -133,6 +133,25 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["id"], "project-sync")
 
+
+    def test_sales_search_matches_status_label(self):
+        asyncio.run(self.db.settings.update_one(
+            {"company_id": "company-sync", "kind": "global"},
+            {"$set": {"sale_statuses": [
+                {"value": "cheque_recupere", "label": "Chèque récupéré", "active": True},
+                {"value": "virement_recu", "label": "Virement reçu", "active": True},
+            ]}}, upsert=True,
+        ))
+        asyncio.run(self.db.sales.insert_many([
+            {"id": "sale-cheque", "company_id": "company-sync", "client_id": "client-sync", "client_name": "Client Synchro", "amount": 100,
+             "status": "cheque_recupere", "sale_date": "2026-11-10", "commercial": "Admin Sync"},
+            {"id": "sale-virement", "company_id": "company-sync", "client_id": "client-sync", "client_name": "Client Synchro", "amount": 200,
+             "status": "virement_recu", "sale_date": "2026-11-11", "commercial": "Admin Sync"},
+        ]))
+        response = self.client.get("/api/sales?tags=Ch%C3%A8que%20r%C3%A9cup%C3%A9r%C3%A9", headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual([row["id"] for row in response.json()], ["sale-cheque"])
+
     def test_clients_list_returns_technicians_too(self):
         response = self.client.get("/api/clients?q=Synchro", headers=self.headers)
         self.assertEqual(response.status_code, 200, response.text)

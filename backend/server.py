@@ -3243,8 +3243,29 @@ async def list_sales(
     tokens = [t.strip() for t in (tags or "").split("|") if t.strip()][:10]
     if tokens:
         tag_conditions = []
+        _settings = await db.settings.find_one(
+            {"company_id": company_id_of(user), "kind": "global"},
+            {"_id": 0, "sale_statuses": 1},
+        ) or {}
+        _status_defs = _resolve_statuses(_settings)
+
+        def _norm(value):
+            import unicodedata
+            return " ".join(
+                unicodedata.normalize("NFKD", value or "")
+                .encode("ascii", "ignore").decode().lower().split()
+            )
+
         for token in tokens:
             pattern = {"$regex": re.escape(token), "$options": "i"}
+            token_norm = _norm(token)
+            matching_statuses = [
+                st.get("value") for st in _status_defs
+                if st.get("value") and (
+                    token_norm in _norm(st.get("label"))
+                    or token_norm in _norm(st.get("value"))
+                )
+            ]
             client_ids = await db.clients.find(
                 cq(user, {"$or": [
                     {"name": pattern}, {"phone": pattern}, {"email": pattern},
@@ -3256,6 +3277,8 @@ async def list_sales(
                 {"service": pattern}, {"status": pattern}, {"bdc": pattern},
                 {"commercial": pattern}, {"commercial_2": pattern}, {"source": pattern},
             ])
+            if matching_statuses:
+                tag_conditions.append({"status": {"$in": matching_statuses}})
             if client_ids:
                 tag_conditions.append({"client_id": {"$in": [c["id"] for c in client_ids]}})
         scope_or = q.pop("$or", None)
