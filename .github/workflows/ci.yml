@@ -71,6 +71,7 @@ jobs:
       - run: python -m unittest backend.test_prospection
       - run: python -m unittest backend.test_multiday_completion
       - run: python -m unittest backend.test_ca_consistency
+      - run: python -m unittest backend.test_sale_project_sync
       - run: python -m unittest backend.test_forms_import
       - run: python -m unittest backend.test_kiks_rbac
       - run: python -m unittest backend.test_file_bounds

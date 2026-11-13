@@ -141,10 +141,20 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
                       <p className="text-xs text-slate-500 truncate">
                         {cat === "clients" && [it.city, it.postal_code, it.phone].filter(Boolean).join(" · ")}
                         {cat === "sales" && [it.service, it.commercial, it.sale_date, it.amount ? `${it.amount} €` : ""].filter(Boolean).join(" · ")}
-                        {cat === "projects" && [it.city, it.status, (it.assigned_to || []).join(", "), it.scheduled_date].filter(Boolean).join(" · ")}
+                        {cat === "projects" && [it.city, it.status, it.scheduled_date].filter(Boolean).join(" · ")}
                         {cat === "reinterventions" && [it.reason, it.assigned_to, it.scheduled_date].filter(Boolean).join(" · ")}
                         {cat === "users" && [it.email, it.role].filter(Boolean).join(" · ")}
                       </p>
+                      {(cat === "clients" || cat === "projects") && (() => {
+                        const names = cat === "clients"
+                          ? (it.technicians || [])
+                          : (Array.isArray(it.assigned_to) ? it.assigned_to : (it.assigned_to ? [it.assigned_to] : []));
+                        return (
+                          <p className={`mt-0.5 text-[11px] truncate ${names.length ? "text-slate-500" : "text-slate-400 italic"}`}>
+                            Technicien{names.length > 1 ? "s" : ""} : {names.length ? names.join(", ") : "non attribué"}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </button>
                 ))}

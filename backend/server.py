@@ -1755,6 +1755,7 @@ async def global_search(
     company = company_id_of(user)
     out = {"clients": [], "sales": [], "projects": [], "users": [], "reinterventions": []}
     lim = max(1, min(int(limit or 8), 20))
+    projects_scope = perm_scope(user, "projects", "view")
 
     # --- CLIENTS ---
     clients_scope = perm_scope(user, "clients", "view")
@@ -1765,6 +1766,25 @@ async def global_search(
             ids = await _commercial_client_ids(user)
             c_q["id"] = {"$in": ids}
         docs = await db.clients.find(c_q, {"_id": 0, "id": 1, "name": 1, "city": 1, "phone": 1, "postal_code": 1}).limit(lim).to_list(lim)
+        if docs and projects_scope != "none":
+            cids = [c["id"] for c in docs if c.get("id")]
+            p_q = cq(user, {"client_id": {"$in": cids}, "cancelled": {"$ne": True}})
+            if projects_scope == "own" and role not in ("technicien", "sous_traitant"):
+                p_q["sale_id"] = {"$in": await _own_sale_ids(user)}
+            prows = await db.projects.find(
+                p_q,
+                {"_id": 0, "client_id": 1, "status": 1, "scheduled_date": 1, "assigned_to": 1},
+            ).sort("scheduled_date", -1).to_list(lim * 4)
+            by_client = {}
+            for proj in prows:
+                by_client.setdefault(proj.get("client_id"), proj)
+            for client in docs:
+                proj = by_client.get(client.get("id"))
+                names = _assigned_names((proj or {}).get("assigned_to"))
+                client["intervention_status"] = (proj or {}).get("status")
+                client["intervention_date"] = (proj or {}).get("scheduled_date")
+                client["technicians"] = names
+                client["technician_label"] = ", ".join(names) if names else "Technicien non attribué"
         out["clients"] = docs
 
     # --- SALES ---
@@ -3504,6 +3524,10 @@ async def update_sale(sid: str, data: SaleUpdate, user: dict = Depends(get_curre
     if r.matched_count == 0:
         raise HTTPException(status_code=404, detail="Vente introuvable")
     sale = await db.sales.find_one(cq(user, {"id": sid}), {"_id": 0})
+    # Une date d'intervention saisie/modifiée dans Ventes doit immédiatement
+    # programmer le chantier existant (et jamais en créer un second).
+    if "desired_intervention_date" in updates and sale:
+        await _sync_one_sale_project_date(user, sale)
     # Sync prestations & service to any linked project so techs always see current products/qty
     sync_fields = {}
     if "prestations" in updates:
@@ -3678,6 +3702,68 @@ async def delete_sale(sid: str, user: dict = Depends(get_current_user)):
 
 # ---------------- Projects (Chantiers) ----------------
 
+def _sale_intervention_date(value) -> Optional[str]:
+    """Retourne une date ISO exploitable, ou None pour les sentinelles."""
+    value = (value or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return value
+    return None
+
+
+def _assigned_names(value) -> list[str]:
+    if isinstance(value, list):
+        raw = value
+    elif value:
+        raw = [value]
+    else:
+        raw = []
+    return [str(name).strip() for name in raw if str(name or "").strip()]
+
+
+async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
+    """Aligne les chantiers d'une vente sur sa date d'intervention, sans doublon."""
+    pdate = _sale_intervention_date(sale.get("desired_intervention_date"))
+    if not pdate:
+        return 0
+    changed = 0
+    rows = await db.projects.find(cq(user, {"sale_id": sale.get("id"), "cancelled": {"$ne": True}}), {"_id": 0, "id": 1, "status": 1, "scheduled_date": 1}).to_list(10)
+    for row in rows:
+        fields = {}
+        if row.get("scheduled_date") != pdate:
+            fields["scheduled_date"] = pdate
+        if row.get("status") == "a_planifier":
+            fields["status"] = "en_cours"
+        if fields:
+            await db.projects.update_one(cq(user, {"id": row["id"]}), {"$set": fields})
+            changed += 1
+    return changed
+
+
+_PROJECT_DATE_SYNC_AT: dict[str, float] = {}
+
+
+async def _repair_project_dates_from_sales(user: dict, *, force: bool = False) -> int:
+    """Répare les ventes déjà existantes dont la date n'a jamais été poussée au chantier.
+
+    Cette réconciliation est bornée aux ventes de la société et mise en cache 5 min.
+    L'écriture de vente, elle, appelle directement `_sync_one_sale_project_date`.
+    """
+    company = company_id_of(user)
+    now = time.monotonic()
+    if not force and now - _PROJECT_DATE_SYNC_AT.get(company, 0) < 300:
+        return 0
+    _PROJECT_DATE_SYNC_AT[company] = now
+    changed = 0
+    sales = await db.sales.find(
+        cq(user, {"desired_intervention_date": {"$exists": True, "$ne": None}}),
+        {"_id": 0, "id": 1, "desired_intervention_date": 1},
+    ).to_list(5000)
+    for sale in sales:
+        if _sale_intervention_date(sale.get("desired_intervention_date")):
+            changed += await _sync_one_sale_project_date(user, sale)
+    return changed
+
+
 async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resource: str = "projects", keep_closed: bool = False, limit: int = 0, offset: int = 0) -> list:
     """iter209 — logique partagée entre `/api/projects` (Chantiers, gated par
     `projects.view`) et `/api/planning/projects` (Planning, gated par
@@ -3850,6 +3936,7 @@ async def list_projects(
     offset: int = Query(0, ge=0),
 ):
     check_perm(user, "projects", "view", "own")
+    await _repair_project_dates_from_sales(user)
     rows = await _fetch_projects_list(
         user, include_deleted, perm_resource="projects", limit=limit, offset=offset
     )
