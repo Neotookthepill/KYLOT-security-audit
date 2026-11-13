@@ -139,5 +139,4 @@ jobs:
       - run: corepack enable
       - run: yarn install --frozen-lockfile --ignore-scripts
       - run: CI=true yarn build
-      - run: npm install --no-save playwright@1.55.0
       - run: node e2e/run.mjs
