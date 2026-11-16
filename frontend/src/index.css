@@ -133,6 +133,7 @@
     background: hsl(var(--card));
     border-bottom: 1px solid hsl(var(--border));
   }
+  .qy-sidebar-wrap { position: fixed; top: 0; bottom: 0; left: 0; height: 100dvh; }
   .qy-sidebar {
     background: hsl(var(--sidebar));
     color: hsl(var(--sidebar-foreground));
@@ -703,3 +704,6 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 @media (prefers-reduced-motion: reduce) { .qy-intro-logo, .qy-intro-word, .qy-intro-line span, .qy-intro-caption { animation: none; } }
 .qy-brand-mark { background: transparent !important; box-shadow: none !important; }
 .qy-brand-mark img { object-fit: contain; }
+
+/* Le logo maître est sombre : un liseré lumineux discret le garde lisible dans la sidebar compacte. */
+.qy-sidebar .qy-brand-mark img { filter: drop-shadow(0 0 1px rgba(232,236,248,.9)) drop-shadow(0 0 7px rgba(82,113,255,.22)); }

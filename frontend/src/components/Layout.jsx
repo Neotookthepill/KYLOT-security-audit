@@ -140,7 +140,7 @@ export default function Layout() {
       style={{ background: brand }}
       data-testid="sidebar"
     >
-      <div className={cn("flex items-center border-b border-white/[.08]", compact ? "justify-center px-2 py-5" : "gap-3 px-4 pt-6 pb-5")}>
+      <div className={cn("flex items-center border-b border-white/[.08]", compact ? "flex-col justify-center gap-2 px-2 py-4" : "gap-3 px-4 pt-6 pb-5")}>
         <div className="qy-brand-mark shrink-0">
           {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1.5" /> : <img src="/brand/qylot-logo-nuit-azur.png" alt="Qylot" className="h-full w-full object-contain" data-theme-logo={themeMode} />}
         </div>
@@ -156,7 +156,7 @@ export default function Layout() {
           </button>
         )}
         {!inDrawer && compact && (
-          <button type="button" onClick={toggleCollapsed} className="absolute left-[62px] top-7 z-10 grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-[#111a29] text-white/60 shadow hover:text-white" aria-label="Déplier le menu" title="Déplier le menu">
+          <button type="button" onClick={toggleCollapsed} className="grid h-6 w-6 place-items-center rounded-md text-white/55 hover:bg-white/10 hover:text-white" aria-label="Déplier le menu" title="Déplier le menu">
             <ChevronsRight size={13} />
           </button>
         )}
@@ -255,7 +255,7 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <div className="sticky top-0 hidden h-screen shrink-0 md:block">
+      <div className="qy-sidebar-wrap fixed inset-y-0 left-0 z-40 hidden shrink-0 md:block">
         {SidebarContent({ compact: collapsed })}
       </div>
 
@@ -268,7 +268,7 @@ export default function Layout() {
         </div>
       )}
 
-      <main className="min-w-0 flex-1 pb-24 md:pb-0">
+      <main className={`min-h-screen min-w-0 flex-1 pb-24 md:pb-0 ${collapsed ? "md:pl-[78px]" : "md:pl-[240px]"}`}>
         {/* Mobile top bar */}
         <div className="qy-topbar sticky top-0 z-30 flex items-center gap-2 px-3 py-2 md:hidden">
           <button type="button" onClick={() => setMobileOpen(true)} aria-label="Ouvrir le menu" data-testid="mobile-menu-btn" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">

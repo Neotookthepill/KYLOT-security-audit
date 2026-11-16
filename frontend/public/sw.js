@@ -1,5 +1,5 @@
-const CACHE = "qylot-shell-v3";
-const SHELL = ["/", "/index.html", "/manifest.json", "/favicon.ico", "/logo192.png"];
+const CACHE = "qylot-shell-v4";
+const SHELL = ["/", "/index.html", "/manifest.json", "/favicon.ico?v=4", "/logo192.png"];
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
