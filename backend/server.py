@@ -8001,6 +8001,17 @@ class UserCreateIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     role: Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"] = "commercial"
 
+class UserInviteIn(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=1, max_length=120)
+    role: Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"] = "commercial"
+
+
+class InviteAcceptIn(BaseModel):
+    token: str = Field(min_length=20, max_length=256)
+    password: str = Field(min_length=12, max_length=72)
+
+
 class UserUpdateIn(BaseModel):
     name: Optional[str] = Field(default=None, max_length=120)
     role: Optional[Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"]] = None
@@ -8035,6 +8046,113 @@ async def _ensure_unique_user_name(user: dict, name: str, exclude_id: Optional[s
                 status_code=409,
                 detail="Un utilisateur porte déjà ce nom. Ajoutez une initiale ou un identifiant pour distinguer les homonymes.",
             )
+
+
+def _invite_url(token: str) -> str:
+    base = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+    path = "/invitation?token=" + quote(token)
+    return (base + path) if base else path
+
+
+@api_router.post("/users/invite")
+async def invite_user(data: UserInviteIn, user: dict = Depends(require_admin)):
+    """Crée un compte inactif et renvoie un lien d'invitation à usage unique.
+
+    Aucun email n'est envoyé : l'administrateur copie le lien, ce qui évite
+    d'envoyer de vrais emails pendant les tests et permet de fonctionner sans
+    fournisseur email.
+    """
+    admin = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0}) or {}  # nosec B105
+    plan = admin.get("subscription_plan") or "keylot_essentiel_monthly"
+    limit = PLAN_USER_LIMITS.get(plan, 3)
+    if limit is not None:
+        current = await db.users.count_documents(cq(user))
+        if current >= limit:
+            raise HTTPException(status_code=402, detail=f"Limite du plan atteinte ({current}/{limit} utilisateurs). Passez à un forfait supérieur pour ajouter des utilisateurs.")
+    email = data.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
+    await _ensure_unique_user_name(user, data.name)
+    raw = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    uid = str(uuid.uuid4())
+    doc = with_company({
+        "id": uid, "email": email, "name": data.name,
+        "password_hash": hash_password(secrets.token_urlsafe(32)),
+        "role": data.role, "is_active": False, "invite_pending": True,
+        "invite_token_hash": token_hash, "invite_created_at": now,
+        "invite_expires_at": now + timedelta(days=7),
+        "permissions": get_default_permissions(data.role),
+        "subscription_plan": admin.get("subscription_plan"),
+        "subscription_status": admin.get("subscription_status"),
+        "stripe_subscription_id": admin.get("stripe_subscription_id"),
+        "created_at": now_iso(),
+    }, user)
+    await db.users.insert_one(doc)
+    await log_audit(user, "invite", "user", uid, after={"email": email, "name": data.name, "role": data.role})
+    try:
+        await _sync_user_team_membership(user, doc)
+    except Exception as _e:
+        logger.warning(f"team sync after invite_user failed: {_e}")
+    if data.role in ("commercial", "responsable", "admin"):
+        try:
+            await _reconcile_sales_commercials(company_id_of(user))
+        except Exception as _e:
+            logger.warning(f"auto-reconcile after invite_user failed: {_e}")
+    return {"ok": True, "user": public_user(doc), "invite_url": _invite_url(raw), "expires_in_days": 7}
+
+
+@api_router.post("/users/{uid}/invite")
+async def reissue_invite(uid: str, user: dict = Depends(require_admin)):
+    target = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if target.get("is_active") and not target.get("invite_pending"):
+        raise HTTPException(status_code=400, detail="Ce compte est déjà actif")
+    raw = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    await db.users.update_one(cq(user, {"id": uid}), {"$set": {
+        "invite_token_hash": hashlib.sha256(raw.encode()).hexdigest(),
+        "invite_pending": True, "is_active": False,
+        "invite_created_at": now, "invite_expires_at": now + timedelta(days=7),
+    }})
+    await log_audit(user, "invite_resend", "user", uid)
+    return {"ok": True, "invite_url": _invite_url(raw), "expires_in_days": 7}
+
+
+@api_router.get("/auth/invitation/{token}")
+async def get_invitation(token: str):
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    target = await db.users.find_one({
+        "invite_token_hash": token_hash, "invite_pending": True,
+        "is_active": False, "invite_expires_at": {"$gt": now},
+    }, {"_id": 0, "email": 1, "name": 1, "role": 1})
+    if not target:
+        raise HTTPException(status_code=400, detail="Invitation invalide ou expirée")
+    return {"valid": True, "email": target.get("email"), "name": target.get("name"), "role": target.get("role")}
+
+
+@api_router.post("/auth/accept-invitation")
+async def accept_invitation(data: InviteAcceptIn, response: Response):
+    token_hash = hashlib.sha256(data.token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    account = await db.users.find_one_and_update(
+        {"invite_token_hash": token_hash, "invite_pending": True,
+         "is_active": False, "invite_expires_at": {"$gt": now}},
+        {"$set": {
+            "password_hash": hash_password(data.password), "is_active": True,
+            "invite_pending": False, "invite_token_hash": None,
+            "invite_accepted_at": now, "onboarding_done": False,
+            "token_epoch_ms": int(time.time() * 1000), "token_epoch": int(time.time()),
+        }},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not account:
+        raise HTTPException(status_code=400, detail="Invitation invalide ou expirée")
+    await log_audit(account, "accept_invite", "user", account["id"])
+    return {"ok": True, "message": "Compte activé. Vous pouvez vous connecter."}
 
 
 @api_router.post("/users")

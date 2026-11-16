@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Login from "@/pages/Login";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import AcceptInvite from "@/pages/AcceptInvite";
 import Layout from "@/components/Layout";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Sales = lazy(() => import("@/pages/Sales"));
@@ -93,6 +94,7 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
       <Route path="/reset-password" element={user ? <Navigate to="/" replace /> : <ResetPassword />} />
+      <Route path="/invitation/:token" element={user ? <Navigate to="/" replace /> : <AcceptInvite />} />
       <Route path="/payment/success" element={<Protected><PaymentSuccess /></Protected>} />
       <Route path="/payment/cancel" element={<Protected><PaymentCancel /></Protected>} />
       <Route

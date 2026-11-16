@@ -31,6 +31,9 @@ export default function Users() {
   const [pwEditing, setPwEditing] = useState(null);
   const [newPw, setNewPw] = useState("");
   const [permsEditing, setPermsEditing] = useState(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "commercial" });
+  const [inviteLink, setInviteLink] = useState("");
 
   const load = async () => {
     try {
@@ -61,6 +64,24 @@ export default function Users() {
       load();
       notifyTeamSync();
     } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const invite = async () => {
+    try {
+      if (!inviteForm.name || !inviteForm.email) return toast.error("Nom et email requis");
+      const { data } = await api.post("/users/invite", inviteForm);
+      const url = data?.invite_url || "";
+      setInviteLink(url.startsWith("http") ? url : `${window.location.origin}${url}`);
+      setInviteForm({ name: "", email: "", role: "commercial" });
+      load();
+      notifyTeamSync();
+      toast.success("Invitation créée");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const copyInvite = async () => {
+    try { await navigator.clipboard.writeText(inviteLink); toast.success("Lien copié"); }
+    catch (_) { toast.error("Copie impossible — sélectionne le lien"); }
   };
 
   const remove = async (uid) => {
@@ -99,6 +120,51 @@ export default function Users() {
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Utilisateurs & permissions</h1>
           <p className="text-sm text-slate-500 mt-2">Créez des comptes et personnalisez précisément les droits de chaque utilisateur.</p>
         </div>
+        <Dialog open={inviteOpen} onOpenChange={(v) => { setInviteOpen(v); if (!v) setInviteLink(""); }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" data-testid="invite-user-btn">Inviter un utilisateur</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md" data-testid="invite-user-dialog">
+            <DialogHeader><DialogTitle className="font-display text-2xl">Inviter un utilisateur</DialogTitle></DialogHeader>
+            {inviteLink ? (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600">Envoie ce lien personnel au testeur. Il choisira son mot de passe à la première ouverture. Le lien expire dans 7 jours.</p>
+                <Input readOnly value={inviteLink} data-testid="invite-link-input" />
+                <div className="flex gap-2">
+                  <Button type="button" onClick={copyInvite} data-testid="invite-copy-btn">Copier le lien</Button>
+                  <Button type="button" variant="outline" onClick={() => { setInviteOpen(false); setInviteLink(""); }}>Fermer</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div><Label>Nom complet</Label><Input value={inviteForm.name} onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })} data-testid="invite-name-input" /></div>
+                <div><Label>Email</Label><Input type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} data-testid="invite-email-input" /></div>
+                <div>
+                  <Label>Rôle</Label>
+                  <Select value={inviteForm.role} onValueChange={(v) => setInviteForm({ ...inviteForm, role: v })}>
+                    <SelectTrigger data-testid="invite-role-select" aria-label="Rôle de l'utilisateur invité"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin — accès complet</SelectItem>
+                      <SelectItem value="responsable">Responsable — équipes, planning, chantiers</SelectItem>
+                      <SelectItem value="commercial">Commercial — ses ventes et clients uniquement</SelectItem>
+                      <SelectItem value="technicien">Technicien — ses chantiers + heures sup</SelectItem>
+                      <SelectItem value="sous_traitant">Sous-traitant — Chantiers &amp; Planning uniquement</SelectItem>
+                      <SelectItem value="comptable">Comptable — Commissions + rapports</SelectItem>
+                      <SelectItem value="prospecteur">Prospecteur — ses clients prospectés</SelectItem>
+                      <SelectItem value="responsable_prospecteur">Responsable prospecteur</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-[11px] text-slate-500">Aucun email automatique : tu copies le lien toi-même. Le compte reste inactif jusqu'à l'activation.</p>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInviteOpen(false)}>Annuler</Button>
+                  <Button onClick={invite} data-testid="invite-submit-btn">Créer l'invitation</Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button data-testid="new-user-btn">+ Nouvel utilisateur</Button>

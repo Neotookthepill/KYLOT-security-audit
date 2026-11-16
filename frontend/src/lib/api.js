@@ -111,8 +111,8 @@ api.interceptors.response.use(
     const status = err?.response?.status;
     const url = err?.config?.url || "";
     const publicAuthPage = typeof window !== "undefined"
-      && ["/login", "/forgot-password", "/reset-password"].some((p) => window.location.pathname.startsWith(p));
-    const publicAuthCall = /\/auth\/(login|register|forgot-password|reset-password)/.test(url);
+      && ["/login", "/forgot-password", "/reset-password", "/invitation"].some((p) => window.location.pathname.startsWith(p));
+    const publicAuthCall = /\/auth\/(login|register|forgot-password|reset-password|invitation|accept-invitation)/.test(url);
     const isAuthMe = /\/auth\/me/.test(url);
     if (status === 401 && isAuthMe) {
       // AuthContext décide lui-même du retry/redirect. Un 401 transitoire sur
