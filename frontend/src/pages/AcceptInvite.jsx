@@ -67,11 +67,11 @@ export default function AcceptInvite() {
             {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700" role="alert">{error}</div>}
             <div className="space-y-1.5">
               <Label htmlFor="invite-password">Mot de passe</Label>
-              <Input id="invite-password" type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} data-testid="invite-password-input" className="h-12 rounded-xl" />
+              <Input id="invite-password" type="password" autoComplete="new-password" required minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} data-testid="invite-password-input" className="qy-login-field h-12 rounded-xl" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="invite-confirm">Confirmer</Label>
-              <Input id="invite-confirm" type="password" autoComplete="new-password" required minLength={12} value={confirm} onChange={(e) => setConfirm(e.target.value)} data-testid="invite-confirm-input" className="h-12 rounded-xl" />
+              <Input id="invite-confirm" type="password" autoComplete="new-password" required minLength={12} value={confirm} onChange={(e) => setConfirm(e.target.value)} data-testid="invite-confirm-input" className="qy-login-field h-12 rounded-xl" />
             </div>
             <Button type="submit" disabled={loading || !invite} className="h-12 w-full rounded-xl" data-testid="invite-submit-btn">
               {loading ? "Activation…" : "Activer mon compte"}
