@@ -9,13 +9,43 @@ import { useAuth } from "@/contexts/AuthContext";
 const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 
-function AnnualChart({ monthly, objectifMonthly, height = 90 }) {
+function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
+  const [active, setActive] = useState(null);
+  const [pinned, setPinned] = useState(false);
   const max = Math.max(...monthly, objectifMonthly || 0, 1);
   const barW = 22;
   const gap = 4;
   const w = (barW + gap) * 12;
+  const activeMonth = active === null ? null : active;
+  const activeValue = activeMonth === null ? 0 : Number(monthly[activeMonth] || 0);
+  const activeGoal = activeMonth === null ? 0 : Number(objectifMonthly || 0);
+  const leftPct = activeMonth === null ? 0 : ((activeMonth * (barW + gap) + barW / 2) / w) * 100;
+  const tooltipStyle = leftPct < 28
+    ? { left: 0, transform: "none" }
+    : leftPct > 72
+      ? { right: 0, left: "auto", transform: "none" }
+      : { left: `${leftPct}%` };
+
+  const setFromPointer = (i, pin = false) => {
+    setActive(i);
+    if (pin) setPinned((p) => (p && active === i ? false : true));
+  };
+
   return (
-    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
+    <div className="relative pb-1">
+      {activeMonth !== null && (
+        <div
+          className="qy-chart-tooltip"
+          style={tooltipStyle}
+          role="status"
+          data-testid={`annual-tooltip-${activeMonth}`}
+        >
+          <div className="font-semibold">{MONTHS[activeMonth]} {year}</div>
+          <div>CA réalisé : <b>{fmtEur(activeValue)}</b></div>
+          <div>Objectif mensuel : <b>{activeGoal > 0 ? fmtEur(activeGoal) : "—"}</b></div>
+        </div>
+      )}
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Graphique annuel du chiffre d’affaires">
       <svg width={w} height={height + 22} className="block">
         {objectifMonthly > 0 && (
           <line
@@ -33,12 +63,35 @@ function AnnualChart({ monthly, objectifMonthly, height = 90 }) {
           const fill = reached ? "#10b981" : v > 0 ? "#6366f1" : "#e2e8f0";
           return (
             <g key={i}>
-              <rect x={x} y={y} width={barW} height={h} fill={fill} rx={2} />
+              <rect
+                x={x} y={y} width={barW} height={h} fill={fill} rx={2}
+                className="qy-annual-bar"
+                tabIndex={0}
+                role="button"
+                aria-label={`${MONTHS[i]} ${year}, ${fmtEur(v)}, objectif ${objectifMonthly > 0 ? fmtEur(objectifMonthly) : "non défini"}`}
+                data-testid={`annual-bar-${i}`}
+                onMouseEnter={() => { if (!pinned) setActive(i); }}
+                onMouseLeave={() => { if (!pinned) setActive(null); }}
+                onFocus={() => setActive(i)}
+                onBlur={() => { if (!pinned) setActive(null); }}
+                onClick={() => setFromPointer(i, true)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFromPointer(i, true); } }}
+                style={{ cursor: "pointer", outline: "none" }}
+              />
+              <rect x={x} y={0} width={barW} height={height} fill="transparent" style={{ cursor: "pointer" }} onClick={() => setFromPointer(i, true)} />
               <text x={x + barW / 2} y={height + 14} textAnchor="middle" fontSize="9" fill="#64748b">{MONTHS[i]}</text>
             </g>
           );
         })}
       </svg>
+      </div>
+      {activeMonth !== null && (
+        <div className="qy-chart-tooltip-mobile" role="status" data-testid={`annual-tooltip-mobile-${activeMonth}`}>
+          <div className="font-semibold">{MONTHS[activeMonth]} {year}</div>
+          <div>CA réalisé : <b>{fmtEur(activeValue)}</b></div>
+          <div>Objectif mensuel : <b>{activeGoal > 0 ? fmtEur(activeGoal) : "—"}</b></div>
+        </div>
+      )}
     </div>
   );
 }
@@ -97,7 +150,7 @@ export default function Progression() {
 
       {!isCommercial && (
         <Card className="p-5 border-slate-200 shadow-sm mb-6" data-testid="progression-company">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
             <div>
               <p className="overline">Société · Total {year}</p>
               <p className="font-display text-4xl font-semibold tracking-tight mt-1">{fmtEur(companyTotal)}</p>
@@ -108,8 +161,8 @@ export default function Progression() {
                 )}
               </p>
             </div>
-            <div className="min-w-0 flex-1">
-              <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} height={70} />
+            <div className="w-full min-w-0 sm:flex-1">
+              <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} year={year} height={70} />
             </div>
           </div>
         </Card>
@@ -141,7 +194,7 @@ export default function Progression() {
                   </span>
                 )}
               </div>
-              <AnnualChart monthly={r.monthly} objectifMonthly={r.objectif_monthly} />
+              <AnnualChart monthly={r.monthly} objectifMonthly={r.objectif_monthly} year={year} />
               <p className="text-[10px] text-slate-500 mt-2">
                 <span className="inline-block w-2 h-2 rounded-sm bg-indigo-500 mr-1 align-middle" /> mois en cours &nbsp;·&nbsp;
                 <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1 align-middle" /> objectif atteint &nbsp;·&nbsp;
