@@ -586,8 +586,13 @@ export default function AIHelper() {
         pushMessage({ role: "assistant", content: data.reply || "Ok." });
       }
     } catch (err) {
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail;
       const msg = formatApiError(err) || err.message || "Erreur";
-      pushMessage({ role: "assistant", content: `Désolé, une erreur est survenue : ${msg}` });
+      const friendly = status === 503 && /IA externes/i.test(String(detail || msg))
+        ? "L’analyse des documents est désactivée sur cet environnement. Un administrateur doit activer ALLOW_EXTERNAL_AI avant l’import d’un BDC."
+        : `Désolé, une erreur est survenue : ${msg}`;
+      pushMessage({ role: "assistant", content: friendly });
     } finally { setLoading(false); }
   };
 

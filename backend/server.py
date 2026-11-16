@@ -3720,20 +3720,23 @@ async def delete_sale(sid: str, user: dict = Depends(get_current_user)):
     before = await db.sales.find_one(q, {"_id": 0})
     if not before:
         raise HTTPException(status_code=404, detail="Vente introuvable")
-    linked_projects = await db.projects.count_documents(cq(user, {"sale_id": sid}))
-    if linked_projects:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "code": "sale_has_projects",
-                "message": "Cette vente possède un chantier. Archivez ou annulez la vente au lieu de la supprimer.",
-                "project_count": linked_projects,
-            },
-        )
+    # Une vente planifiée peut être supprimée : ses chantiers/interventions liés
+    # sont retirés en cascade pour ne pas laisser une intervention orpheline.
+    linked_projects = await db.projects.find(cq(user, {"sale_id": sid}), {"_id": 0, "id": 1}).to_list(500)
+    project_ids = [p.get("id") for p in linked_projects if p.get("id")]
     r = await db.sales.delete_one(q)
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Vente introuvable")
-    await log_audit(user, "delete", "sale", sid, before=before)
+    removed_projects = 0
+    if project_ids:
+        removed_projects = (await db.projects.delete_many(cq(user, {"id": {"$in": project_ids}}))).deleted_count
+        await db.project_notes.delete_many(cq(user, {"project_id": {"$in": project_ids}}))
+        await db.project_bonuses.delete_many(cq(user, {"project_id": {"$in": project_ids}}))
+    await log_audit(
+        user, "delete", "sale", sid,
+        before={**before, "deleted_project_ids": project_ids},
+        after={"deleted_projects": removed_projects},
+    )
     # iter113/123 : recalcule les taux evolutive_ca pour le(s) commercial(aux) impacté(s)
     try:
         if before:
@@ -3747,7 +3750,7 @@ async def delete_sale(sid: str, user: dict = Depends(get_current_user)):
             )
     except Exception as _e:
         logger.warning(f"reconcile evolutive_ca on delete_sale failed: {_e}")
-    return {"ok": True}
+    return {"ok": True, "deleted_projects": removed_projects}
 
 
 # ---------------- Projects (Chantiers) ----------------
@@ -6589,14 +6592,69 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
     sales = await db.sales.find(cq(user, {"sale_date": {"$regex": f"^{prefix}"}}), {"_id": 0}).to_list(10000)
     status_caps = await _sale_status_capabilities(user)
     team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0}).to_list(500)
-    names = [t["name"] for t in team]
+
+    # one commercial can appear as "Thomas" in a sale and "Thomas Delporte" in
+    # the team/users. Build one canonical display name before aggregating.
+    import unicodedata as _ud
+    def _name_key(value):
+        text = " ".join((value or "").replace("\u00a0", " ").split())
+        return " ".join(_ud.normalize("NFKD", text).encode("ascii", "ignore").decode().lower().split())
+    raw_names = []
+    for t in team:
+        nm = (t.get("name") or "").strip()
+        if nm and nm not in raw_names:
+            raw_names.append(nm)
     for s in sales:
-        n = (s.get("commercial") or "").strip()
-        if n and n not in names:
-            names.append(n)
+        for field in ("commercial", "commercial_2"):
+            nm = (s.get(field) or "").strip()
+            if nm and nm not in raw_names:
+                raw_names.append(nm)
+    async for u in db.users.find(cq(user, {"role": {"$in": ["commercial", "responsable"]}}), {"_id": 0, "name": 1}):
+        nm = (u.get("name") or "").strip()
+        if nm and nm not in raw_names:
+            raw_names.append(nm)
+
+    # Prefer the full display name when a short first name is unambiguous.
+    # Direction aliases are grouped explicitly (Direction, Direction client,
+    # LA DIRECTION) because the company uses all three spellings.
+    by_key = {}
+    for nm in raw_names:
+        k = _name_key(nm)
+        if k:
+            by_key.setdefault(k, nm)
+    aliases = {k: v for k, v in by_key.items()}
+    direction_keys = [k for k in by_key if k == "direction" or k.startswith("direction ") or k == "la direction"]
+    direction_canonical = None
+    for preferred in ("la direction", "direction client", "direction"):
+        if preferred in direction_keys:
+            direction_canonical = by_key[preferred]
+            break
+    if direction_canonical:
+        for k in direction_keys:
+            aliases[k] = direction_canonical
+    full_by_first = {}
+    for k, display in by_key.items():
+        if " " in k and k not in direction_keys:
+            full_by_first.setdefault(k.split(" ", 1)[0], set()).add(display)
+    for k, display in by_key.items():
+        if " " not in k and k not in direction_keys:
+            candidates = full_by_first.get(k, set())
+            if len(candidates) == 1:
+                aliases[k] = next(iter(candidates))
+
+    def canonical_name(value):
+        display = (value or "").strip()
+        k = _name_key(display)
+        return aliases.get(k, display)
+
+    names = []
+    for nm in raw_names:
+        c = canonical_name(nm)
+        if c and c not in names:
+            names.append(c)
 
     def key(n):
-        return (n or "").strip().lower()
+        return _name_key(canonical_name(n))
 
     per_commercial = {}
     for n in names:
@@ -6616,12 +6674,12 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
         # Each commercial has an INDEPENDENT commission rate (commission_rate for the primary,
         # commission_rate_2 for the secondary, defaulting to the primary rate for legacy sales).
         is_de = bool(s.get("is_de")) and bool((s.get("commercial_2") or "").strip())
-        primary = (s.get("commercial") or "").strip()
-        secondary = (s.get("commercial_2") or "").strip() if is_de else ""
+        primary = canonical_name(s.get("commercial"))
+        secondary = canonical_name(s.get("commercial_2")) if is_de else ""
         rate_1 = float(s.get("commission_rate") if s.get("commission_rate") is not None else 0)
         rate_2 = float(s.get("commission_rate_2") if s.get("commission_rate_2") is not None else rate_1)
         involved = []  # list of (name, ca_share, commission_rate)
-        if is_de and secondary and secondary != primary:
+        if is_de and secondary and _name_key(secondary) != _name_key(primary):
             if primary: involved.append((primary, 0.5, rate_1))
             involved.append((secondary, 0.5, rate_2))
         else:
@@ -6670,7 +6728,6 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
         },
     }
     return {"month": prefix, "rows": rows, "totals": totals}
-
 
 @api_router.get("/reports/monthly")
 async def monthly_report(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user: dict = Depends(get_current_user)):

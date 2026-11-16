@@ -20,7 +20,7 @@ const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 // iter120 : "termine" (À encaisser) = bleu pétant · "encaisse" (Terminé validé) = vert émeraude
 const statusColors = {
   a_planifier: "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300",
-  en_cours: "bg-[#EEF2FF] text-[#3B56D9] border-[#C9D2FF] hover:bg-[#E8ECFF]",
+  en_cours: "bg-amber-100 text-amber-950 border-amber-300 hover:bg-amber-200",
   termine: "bg-primary text-white border-primary hover:bg-primary/90",
   encaisse: "bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200",
 };

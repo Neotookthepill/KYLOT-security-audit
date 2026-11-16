@@ -1238,7 +1238,7 @@ export default function Sales() {
                   {confirmDelete.amount ? <> ({fmtEur(confirmDelete.amount)})</> : null}
                   {confirmDelete.bdc ? <> · BDC <span className="font-mono text-xs">{confirmDelete.bdc}</span></> : null}.
                   <br />
-                  Cette action est <span className="font-semibold text-red-700">définitive</span>. Si un chantier est lié, la suppression sera refusée : annulez la vente ou archivez-la pour conserver l'historique.
+                  Cette action est <span className="font-semibold text-red-700">définitive</span>. Les interventions et chantiers liés seront également supprimés du planning.
                 </>
               )}
             </AlertDialogDescription>
