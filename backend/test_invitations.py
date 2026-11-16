@@ -3,7 +3,7 @@
 import asyncio
 import os
 import unittest
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, unquote
 
 os.environ.update({
     "ENVIRONMENT": "production",
@@ -53,7 +53,7 @@ class InvitationTests(unittest.TestCase):
         self.assertEqual(created.status_code, 200, created.text)
         data = created.json()
         self.assertIn("invite_url", data)
-        token = parse_qs(urlparse(data["invite_url"]).query).get("token", [""])[0]
+        token = unquote(urlparse(data["invite_url"]).path.rsplit("/", 1)[-1])
         self.assertTrue(token)
 
         user = asyncio.run(self.db.users.find_one({"email": "invite-test@qylot-audit.com"}))

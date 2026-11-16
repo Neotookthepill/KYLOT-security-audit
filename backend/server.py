@@ -8050,7 +8050,7 @@ async def _ensure_unique_user_name(user: dict, name: str, exclude_id: Optional[s
 
 def _invite_url(token: str) -> str:
     base = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
-    path = "/invitation?token=" + quote(token)
+    path = "/invitation/" + quote(token)
     return (base + path) if base else path
 
 

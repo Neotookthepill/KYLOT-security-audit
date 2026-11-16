@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import api, { formatApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 export default function AcceptInvite() {
-  const { token = "" } = useParams();
+  const { token: pathToken = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const token = pathToken || searchParams.get("token") || "";
   const [invite, setInvite] = useState(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
