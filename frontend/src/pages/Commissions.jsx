@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api, { downloadApiFile, formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import InlineCell from "@/components/InlineCell";
 import BonusesProgress from "@/components/BonusesProgress";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import CommissionHistory from "@/components/CommissionHistory";
+import PageLoader from "@/components/PageLoader";
 import { isSaleCommissionable } from "@/lib/workflows";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
@@ -145,21 +146,29 @@ export default function Commissions() {
     });
   };
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try { setRows((await api.get("/commissions")).data); }
+    try {
+      const next = (await api.get("/commissions")).data;
+      setRows(next);
+      try { if (user?.id) sessionStorage.setItem(`qylot_commissions_${user.id}`, JSON.stringify(next)); } catch (_) {}
+    }
     catch (_) { /* keep previous rows */ }
     finally { setLoading(false); }
-  };
-  const loadRates = async () => {
+  }, [user?.id]);
+  const loadRates = useCallback(async () => {
     try {
       const s = (await api.get("/settings")).data;
       if (Array.isArray(s?.commission_rates) && s.commission_rates.length) setRates(s.commission_rates);
     } catch (_) {}
-  };
+  }, []);
   // Wait for auth to be resolved so axios has the Bearer token in place.
   useEffect(() => {
     if (authLoading || !user?.id) return;
+    try {
+      const cached = sessionStorage.getItem(`qylot_commissions_${user.id}`);
+      if (cached) { const parsed = JSON.parse(cached); if (Array.isArray(parsed)) setRows(parsed); }
+    } catch (_) {}
     load(); loadRates();
     const onFocus = () => load();
     const onVis = () => { if (document.visibilityState === "visible") load(); };
@@ -173,7 +182,7 @@ export default function Commissions() {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("kylot:sales-updated", onSalesUpdated);
     };
-  }, [authLoading, user?.id]);
+  }, [authLoading, user?.id, load, loadRates]);
 
     const isAdmin = user?.role === "admin" || can("settings", "modify");
     const canEditCommissions = can("commissions", "edit");
@@ -275,7 +284,7 @@ export default function Commissions() {
   }, [filtered]);
 
   return (
-    <div className="p-4 md:p-8 max-w-[1400px]">
+    <div className="p-4 md:p-8 max-w-[1400px]" aria-busy={loading}>
       <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
           <p className="overline">Rémunération commerciale</p>
@@ -311,6 +320,12 @@ export default function Commissions() {
           </div>
         )}
       </div>
+
+      {loading && (
+        <div className="qy-page-loader-slot" data-testid="commissions-loading">
+          <PageLoader compact label={rows.length ? "Actualisation des commissions…" : "Chargement des commissions…"} testId="commissions-loader" />
+        </div>
+      )}
 
       {/* iter179 — Toggle vue Mois / Historique */}
       <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-0.5">

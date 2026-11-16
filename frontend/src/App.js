@@ -8,6 +8,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import AcceptInvite from "@/pages/AcceptInvite";
 import Layout from "@/components/Layout";
+import PageLoader from "@/components/PageLoader";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Sales = lazy(() => import("@/pages/Sales"));
 const MonthlyReport = lazy(() => import("@/pages/MonthlyReport"));
@@ -74,9 +75,7 @@ function HomeRedirect() {
 }
 
 function RouteFallback() {
-  // Pas de spinner plein écran : les pages sont découpées en chunks et la
-  // navigation affiche un espace vide pendant le chargement du chunk.
-  return <div className="min-h-[45vh] bg-slate-50/40" aria-busy="true" />;
+  return <div className="min-h-[45vh]" aria-busy="true"><PageLoader label="Chargement de la page…" /></div>;
 }
 
 function AppRoutes() {

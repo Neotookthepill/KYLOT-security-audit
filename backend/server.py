@@ -7236,6 +7236,10 @@ async def _reconcile_after_sale_mutation(company_id: str, tuples):
     return total
 
 
+_COMM_RECONCILE_LAZY_AT: Dict[str, float] = {}
+_COMM_RECONCILE_LAZY_TTL = 300.0
+
+
 @api_router.get("/commissions")
 async def list_commissions(user: dict = Depends(get_current_user)):
     check_perm(user, "commissions", "view", "own")
@@ -7246,23 +7250,26 @@ async def list_commissions(user: dict = Depends(get_current_user)):
     # (source de vérité — cohérent avec la page Ventes "Ce mois").
     try:
         cid = company_id_of(user)
-        pairs = await db.sales.aggregate([
-            {"$match": {"company_id": cid, "$or": [{"commission_type": "evolutive_ca"}, {"commission_type_2": "evolutive_ca"}]}},
-            {"$project": {
-                "_id": 0,
-                "cm": {"$substr": ["$sale_date", 0, 7]},
-                "pairs": [
-                    {"cuid": "$commercial_user_id"},
-                    {"cuid": "$commercial_2_user_id"},
-                ],
-            }},
-            {"$unwind": "$pairs"},
-            {"$match": {"pairs.cuid": {"$ne": None}, "cm": {"$ne": ""}}},
-            {"$group": {"_id": {"cuid": "$pairs.cuid", "cm": "$cm"}}},
-        ]).to_list(2000)
-        tuples = [(p["_id"]["cuid"], p["_id"]["cm"]) for p in pairs]
-        if tuples:
-            await _reconcile_after_sale_mutation(cid, tuples)
+        now_mono = time.monotonic()
+        if now_mono - _COMM_RECONCILE_LAZY_AT.get(cid, 0.0) >= _COMM_RECONCILE_LAZY_TTL:
+            pairs = await db.sales.aggregate([
+                {"$match": {"company_id": cid, "$or": [{"commission_type": "evolutive_ca"}, {"commission_type_2": "evolutive_ca"}]}},
+                {"$project": {
+                    "_id": 0,
+                    "cm": {"$substr": ["$sale_date", 0, 7]},
+                    "pairs": [
+                        {"cuid": "$commercial_user_id"},
+                        {"cuid": "$commercial_2_user_id"},
+                    ],
+                }},
+                {"$unwind": "$pairs"},
+                {"$match": {"pairs.cuid": {"$ne": None}, "cm": {"$ne": ""}}},
+                {"$group": {"_id": {"cuid": "$pairs.cuid", "cm": "$cm"}}},
+            ]).to_list(2000)
+            tuples = [(p["_id"]["cuid"], p["_id"]["cm"]) for p in pairs]
+            if tuples:
+                await _reconcile_after_sale_mutation(cid, tuples)
+            _COMM_RECONCILE_LAZY_AT[cid] = time.monotonic()
     except Exception as _e:
         logger.warning(f"lazy reconcile evolutive_ca on list_commissions failed: {_e}")
     scope = perm_scope(user, "commissions", "view")
