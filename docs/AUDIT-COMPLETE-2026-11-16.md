@@ -51,14 +51,14 @@ Seule modification QA pendant l'audit : réinitialisation des mots de passe des 
 | CORS origine inconnue | refusé, pas d'`Access-Control-Allow-Origin` | préflight avec `Origin: https://evil.example` → 400 |
 | En-têtes | HSTS, CSP, X-Frame-Options DENY, nosniff, Referrer-Policy | réponses QA/production |
 | RBAC | 105 tests d'audit passent | scripts `audit/security_*.py` |
-| Isolation QA/production | `TEST-AUDIT` absent en production | 3 clients/sales QA, 0 production |
+| Isolation QA/production | `TEST-AUDIT` absent des deux côtés après nettoyage | 0 client/sales test QA, 0 production |
 | Secrets dans le dépôt | aucun secret exploitable trouvé | recherche ciblée ; seuls exemples/placeholders |
 
 ### 3.2 Tests
 
 | Suite | Résultat |
 |---|---|
-| Backend complet `unittest discover` | **155 tests, 1 échec** (corrigé après audit) |
+| Backend complet `unittest discover` | **155 tests, 1 échec initial ; 155/155 OK après correction** |
 | Frontend Jest | 47/47 OK |
 | E2E Playwright | OK (API mockée) |
 | Audits sécurité du dépôt | 105/105 OK |
@@ -124,12 +124,12 @@ Chiffres lus via API/MongoDB :
 
 | Donnée | Client source | Production | QA |
 |---|---:|---:|---:|
-| Clients | 554 | 554 | 558 |
-| Ventes | 195 | 195 | 199 |
+| Clients | 554 | 554 | 554 |
+| Ventes | 195 | 195 | 195 |
 | CA novembre | 126 388,40 € | 126 388,40 € | 126 388,40 € |
 | Utilisateurs | — | 18 | 20 |
-| Clients `TEST-AUDIT` | 0 | 0 | 3 |
-| Ventes `TEST-AUDIT` | 0 | 0 | 3 |
+| Clients `TEST-AUDIT` | 0 | 0 | 0 (nettoyés) |
+| Ventes `TEST-AUDIT` | 0 | 0 | 0 (nettoyées) |
 
 Contrôles d'intégrité production :
 
@@ -145,7 +145,7 @@ Anomalies à qualifier :
 - deux groupes de ventes partagent le même BDC et le même client, avec des montants/dates différents ; ce n'est pas nécessairement un doublon, mais ce n'est pas expliqué ;
 - 24 groupes de clients ont un nom identique en minuscules ; à qualifier (homonymes possibles) ;
 - production contient 151 projets en base, source 86 : écarts de projets cibles/soft-deleted/tests à réconcilier ;
-- QA contient 4 clients et 4 ventes de plus que la production, dont seulement 3 `TEST-AUDIT`.
+- QA a été nettoyée des enregistrements `TEST-AUDIT` et `FULL-AUDIT` pendant la remédiation ; ses comptes métier rejoignent désormais la production (554/195/151).
 
 ### 3.7 Performance mesurée
 
@@ -200,7 +200,7 @@ Aucun mot de passe n'est affiché dans ce rapport.
 | F-02 | **P1** | MFA admin non enrôlée | `mfa_enabled=false` ; grace au 19/23 nov. ; `MFA_ENFORCE_ADMINS=true` | Blocage admin après échéance, ou contournement si enforcement désactivé |
 | F-03 | **P1** | Restauration complète non prouvée | script corrigé ; test partiel 745 docs OK ; restore complet bloqué | Rollback complet non garanti |
 | F-04 | **P1** | Dépendance email/IA à Emergent | `EMAIL_BASE_URL`, `EMERGENT_LLM_KEY` | Perte des emails et de l'IA si Emergent/abonnement s'arrête |
-| F-05 | **P2** | Suite backend complète en échec, CI incomplète | test corrigé ; 155/155 local ; CI complète ajoutée | à confirmer par le prochain run CI |
+| F-05 | **P3** | Suite backend complète historiquement incomplète | test corrigé ; 155/155 local ; CI complète verte sur `f7ccbb6` | fermé |
 | F-06 | **P1** | Assistant BDC indisponible | QA 502 ; production 503 | Fonction annoncée non utilisable |
 | F-07 | **P1** | Comptes QA inutilisables au départ | 401 commercial_A/B/technicien_A ; remédié | Tests équipe bloqués avant remédiation |
 | F-08 | **P2** | Performance Commissions | 3,82 s QA / 4,91 s prod | Attente, perception de bug |
@@ -262,7 +262,7 @@ Aucun P0 confirmé.
 - versionner QA par hash réel ;
 - restreindre `/api/settings` aux champs publics et aux rôles autorisés ;
 - réconcilier les projets et les doublons BDC ;
-- nettoyer les données `TEST-AUDIT` QA ;
+- vérifier les données de test restantes en QA ;
 - tester iPhone Safari et Android Chrome ;
 - confirmer la grille Abonnement ;
 - compléter les tests réels sur API non mockée.
@@ -284,7 +284,7 @@ Aucun P0 confirmé.
 | Projets | 86 | 151 | +65 | cible contient des projets supplémentaires/soft-deleted/tests ; à qualifier |
 | Utilisateurs | — | 18 | — | dont comptes de test |
 | Commissions | — | 30 506,08 € | — | à rapprocher du CA |
-| QA test | — | — | +4 clients/+4 ventes | 3 `TEST-AUDIT` + 1 à qualifier |
+| QA test | — | — | 0 | `TEST-AUDIT` et `FULL-AUDIT` nettoyés |
 
 ## 8. Go / No-Go
 
@@ -298,7 +298,7 @@ NO-GO pour la démonstration BDC IA
 Conditions :
 
 - utiliser les comptes QA après remédiation ;
-- masquer ou nettoyer les 3 enregistrements `TEST-AUDIT` ;
+- vérifier l’absence de données de test ;
 - ne pas promettre l'IA BDC ;
 - vérifier le commit réellement déployé.
 
@@ -327,7 +327,7 @@ POST /api/auth/register   : 403
 GET /api/openapi.json     : 404
 QA AI multipart           : 502
 Prod AI multipart         : 503
-Backend discover          : 155 tests, 1 failure
+Backend discover          : 155/155 OK après correction
 Frontend Jest             : 47/47
 Audits sécurité           : 105/105
 ```
