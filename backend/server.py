@@ -13117,6 +13117,12 @@ SALE_STATUS_CAPABILITIES = {
     "litige": {"countsCA": False, "commissionable": False},
     "annule": {"countsCA": False, "commissionable": False},
     "non_financable": {"countsCA": True, "commissionable": False},
+    # Statuts personnalisés repris de la version client CPF.
+    "stat_mtllrgv5": {"countsCA": True, "commissionable": True},   # PROG
+    "stat_mtkktzqu": {"countsCA": True, "commissionable": True},   # virement en cours
+    "stat_mtkktyzi": {"countsCA": True, "commissionable": True},   # virement reçu
+    "stat_mthsyx7z": {"countsCA": True, "commissionable": False},  # non finançable
+    "stat_mtkmkm8l": {"countsCA": False, "commissionable": False}, # impayé
 }
 
 
