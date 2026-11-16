@@ -11,7 +11,7 @@
 | Environnement | Verdict | Motif |
 |---|---|---|
 | QA | **Prêt sous conditions** | Parcours cœur accessible après remise en état des comptes QA ; IA BDC indisponible ; données de test encore présentes |
-| Production | **Non prêt** | Backend et frontend déployés en retard, MFA admin non enrôlée, restauration de sauvegarde non prouvée, dépendances email/IA, suite backend complète en échec |
+| Production | **Non prêt** | MFA admin non enrôlée, index de restauration non validés, dépendances email/IA |
 
 **Aucun contournement d'authentification critique n'a été trouvé.**  
 **Aucun test destructif n'a été exécuté sur la production.**
@@ -114,7 +114,8 @@ Problèmes :
 
 - **Corrigé après audit** : `scripts/restore_mongo_validation.sh` gère maintenant le `tar.gz` opérationnel et les vraies archives mongodump.
 - Un test de restauration ciblé (clients + ventes) a restauré 745 documents avec succès dans une base temporaire.
-- La restauration **complète** de l'archive de 128 Mo reste non prouvée : une tentative a bloqué à 100 % de `projects` et a été interrompue.
+- La restauration **complète des données** de l'archive de 128 Mo a finalement réussi : **3 080 documents restaurés, 0 échec**, dont 149 projets, 193 ventes, 552 clients et 18 utilisateurs.
+- Elle a été réalisée avec `--noIndexRestore` : les **index ne sont pas encore restaurés**. C'est le point restant à valider.
 - La base temporaire a été vidée ; elle n'a pas pu être supprimée faute de permission `dropDatabase`.
 - Les snapshots Atlas/PITR ne sont pas activés selon la documentation interne ; ils n'ont pas été vérifiés dans Atlas.
 
@@ -198,7 +199,7 @@ Aucun mot de passe n'est affiché dans ce rapport.
 |---|---|---|---|---|
 | F-01 | **Fermé** | Déploiement production | `36ad02a` ; bundle `main.f4b3a782.js` ; rapport sans doublons | Vérifié après déploiement |
 | F-02 | **P1** | MFA admin non enrôlée | `mfa_enabled=false` ; grace au 19/23 nov. ; `MFA_ENFORCE_ADMINS=true` | Blocage admin après échéance, ou contournement si enforcement désactivé |
-| F-03 | **P1** | Restauration complète non prouvée | script corrigé ; test partiel 745 docs OK ; restore complet bloqué | Rollback complet non garanti |
+| F-03 | **P1 partiel** | Restauration des données prouvée, index non restaurés | 3 080 docs restaurés, 0 échec ; `--noIndexRestore` ; script corrigé | Rebuild des index encore à valider |
 | F-04 | **P1** | Dépendance email/IA à Emergent | `EMAIL_BASE_URL`, `EMERGENT_LLM_KEY` | Perte des emails et de l'IA si Emergent/abonnement s'arrête |
 | F-05 | **Fermé** | Suite backend complète historiquement incomplète | test corrigé ; 155/155 local ; CI complète verte | fermé |
 | F-06 | **P1** | Assistant BDC indisponible | QA 502 ; production 503 | Fonction annoncée non utilisable |
@@ -312,7 +313,7 @@ Raisons :
 
 - déploiement en retard ;
 - MFA admin non enrôlée ;
-- restauration non prouvée ;
+- index de restauration non validés ;
 - dépendances email/IA ;
 - suite backend rouge ;
 - rapports encore faux en production.
@@ -336,7 +337,7 @@ Audits sécurité           : 105/105
 
 - Suite backend complète : **155/155 OK** en local.
 - CI : ajout de `python -m unittest discover -s backend -p 'test_*.py'`.
-- Restauration : script corrigé pour les sauvegardes `tar.gz` ; test ciblé 745 documents réussi.
+- Restauration : script corrigé ; test ciblé 745 documents et restauration complète 3 080 documents / 0 échec, sans index.
 - Comptes QA : 11/11 connectés après réinitialisation des mots de passe QA.
 - Aucune donnée de production modifiée.
 
@@ -369,6 +370,6 @@ Le déploiement production a donc corrigé le retard de version et les doublons 
 
 Le socle sécurité est sérieux : authentification, cookies, RBAC, isolation tenant, en-têtes et tests adversariaux résistent aux vérifications menées.
 
-La production n'est cependant pas défendable en l'état comme version cliente : elle est en retard sur le code, la MFA admin n'est pas enrôlée, la restauration de sauvegarde n'est pas prouvée et l'IA/email dépendent encore d'Emergent.
+La production est désormais déployée sur le bon commit et les données sont restaurées. Elle n'est cependant pas encore défendable comme version cliente : la MFA admin n'est pas enrôlée, le rebuild des index de restauration n'est pas validé et l'IA/email dépendent encore d'Emergent.
 
 **QA peut servir aux tests cœur après nettoyage des données de test. La production doit rester fermée aux opérations client tant que les P1 ne sont pas fermés.**
