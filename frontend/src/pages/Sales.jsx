@@ -669,7 +669,7 @@ export default function Sales() {
             </Button>
           )}
           {can("sales", "create") && (
-            <Button variant="outline" onClick={() => setPdfImportOpen(true)} data-testid="sales-pdf-import-btn" className="hidden border-violet-200 text-violet-700 hover:bg-violet-50 sm:inline-flex">
+            <Button variant="outline" onClick={() => setPdfImportOpen(true)} data-testid="sales-pdf-import-btn" className="hidden border-primary/35 text-primary hover:bg-primary/[.04] sm:inline-flex">
               <Sparkles size={14} className="mr-1.5" /> Importer un devis PDF
             </Button>
           )}
@@ -715,7 +715,7 @@ export default function Sales() {
           <button
             key={p.k}
             onClick={() => setPeriod(p.k)}
-            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-full border transition ${period === p.k ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"}`}
+            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-[10px] border transition-colors ${period === p.k ? "bg-primary text-white border-primary" : "bg-white text-[#344054] border-[#DDE3EC] hover:border-primary/40"}`}
             data-testid={`sales-period-${p.k}`}
           >
             {p.l}
@@ -733,7 +733,7 @@ export default function Sales() {
 
       {/* Synthèse en haut : CA total / Objectif / % atteint (suit le filtre période) */}
       <Card
-        className="sales-top-summary border-slate-200 shadow-sm overflow-hidden mb-4"
+        className="sales-top-summary border-[#DDE3EC] shadow-none overflow-hidden mb-4"
         data-testid="sales-top-summary"
       >
         <div className="grid grid-cols-3 divide-x divide-slate-200">
@@ -750,14 +750,14 @@ export default function Sales() {
             <p className="overline flex items-center gap-1.5">
               <Target size={12} className="text-slate-500" /> {isCommercial ? "Mon objectif" : "Objectif"}
             </p>
-            <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums text-slate-700" data-testid="sales-top-summary-objectif">
-              {effectiveObjectif > 0 ? fmtEur2(effectiveObjectif) : <span className="text-slate-400 italic text-lg">Non défini</span>}
+            <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums text-[#101828]" data-testid="sales-top-summary-objectif">
+              {effectiveObjectif > 0 ? fmtEur(effectiveObjectif) : <span className="text-slate-400 italic text-lg">Non défini</span>}
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
               {objectifReached
-                ? `Dépassé de ${fmtEur2(stats.total - effectiveObjectif)}`
+                ? `Dépassé de ${fmtEur(stats.total - effectiveObjectif)}`
                 : effectiveObjectif > 0
-                ? `Reste ${fmtEur2(remaining)}`
+                ? `Reste ${fmtEur(remaining)}`
                 : "Définir ci-dessous"}
             </p>
           </div>
@@ -772,7 +772,7 @@ export default function Sales() {
             {effectiveObjectif > 0 && (
               <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden" aria-hidden="true">
                 <div
-                  className={`h-full transition-all ${objectifReached ? "bg-emerald-500" : "bg-slate-900"}`}
+                  className={`h-full transition-all ${objectifReached ? "bg-[#16845B]" : "bg-primary"}`}
                   style={{ width: `${Math.min(100, objectifPct)}%` }}
                 />
               </div>
@@ -789,7 +789,7 @@ export default function Sales() {
         <div className="p-4 border-b border-slate-200 flex flex-wrap items-center gap-2" data-testid="sales-search-bar">
           <Search size={16} className="text-slate-400 shrink-0" />
           {queries.map((t, i) => (
-            <span key={`${t}-${i}`} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-full bg-slate-900 text-white text-xs font-medium" data-testid={`sales-search-chip-${i}`}>
+            <span key={`${t}-${i}`} className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 rounded-[8px] bg-[#101828] text-white text-xs font-medium" data-testid={`sales-search-chip-${i}`}>
               {t}
               <button
                 type="button"
@@ -876,7 +876,7 @@ export default function Sales() {
                 <th className="px-4 py-3 overline whitespace-nowrap">Client</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Téléphone</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Produits</th>
-                <th className="px-4 py-3 overline whitespace-nowrap">Montant HT</th>
+                <th className="px-4 py-3 overline whitespace-nowrap text-right">Montant HT</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Règlement</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Commercial</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Source</th>
@@ -1009,7 +1009,7 @@ export default function Sales() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap"><PhoneNumbers value={s.client_phone} iconSize={11} className="text-xs" /></td>
                     <td className="px-4 py-3 max-w-[220px]"><div className="truncate" title={s.service}>{s.service}</div></td>
-                    <td className="px-4 py-3 font-semibold whitespace-nowrap">{fmtEur(s.amount)}</td>
+                    <td className="px-4 py-3 font-semibold whitespace-nowrap text-right tabular-nums">{fmtEur(s.amount)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-600" onClick={(e) => e.stopPropagation()}>
                       <InlineCell
                         type="select"
@@ -1064,15 +1064,19 @@ export default function Sales() {
                     </td>
                     {canDeleteSale && (
                       <td className="px-2 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => setConfirmDelete(s)}
-                          className="h-8 w-8 grid place-items-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                          title="Supprimer cette vente"
-                          aria-label="Supprimer cette vente"
-                          data-testid={`sale-delete-btn-${s.id}`}
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="h-8 w-8 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition" title="Actions de la vente" aria-label="Actions de la vente" data-testid={`sale-actions-${s.id}`}>
+                              <MoreHorizontal size={15} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setConfirmDelete(s)} data-testid={`sale-delete-btn-${s.id}`}>
+                              <Trash2 size={14} className="mr-2" /> Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     )}
                   </tr>

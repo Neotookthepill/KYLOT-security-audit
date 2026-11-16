@@ -40,7 +40,7 @@ const fmtDate = (iso) => {
 };
 
 const STATUS_LABELS = {
-  trialing: { label: "Essai gratuit", cls: "bg-indigo-100 text-indigo-800", icon: Gift },
+  trialing: { label: "Essai gratuit", cls: "bg-primary/10 text-primary", icon: Gift },
   active: { label: "Actif", cls: "bg-emerald-100 text-emerald-800", icon: ShieldCheck },
   past_due: { label: "Paiement en retard", cls: "bg-amber-100 text-amber-800", icon: AlertTriangle },
   suspended: { label: "Suspendu", cls: "bg-red-100 text-red-800", icon: AlertTriangle },
@@ -95,7 +95,7 @@ export default function Abonnement() {
 
       {/* Trial banner */}
       {!currentPlan && (
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#a9552b] to-[#c8784e] text-white px-5 py-4 flex items-center gap-3 shadow-sm" data-testid="trial-banner">
+        <div className="mb-6 rounded-2xl bg-gradient-to-r from-[#101828] to-[#25324A] text-white px-5 py-4 flex items-center gap-3 shadow-sm" data-testid="trial-banner">
           <div className="h-10 w-10 rounded-full bg-white/20 grid place-items-center shrink-0"><Sparkles size={18} /></div>
           <div className="flex-1">
             <p className="font-semibold text-lg">Essayez Qylot gratuitement pendant 14 jours</p>
@@ -126,7 +126,7 @@ export default function Abonnement() {
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                 <div><p className="text-slate-500">Début</p><p className="font-medium">{fmtDate(mySub.period_start)}</p></div>
                 <div><p className="text-slate-500">{mySub.cancel_at_period_end ? "Résiliation le" : "Prochain renouvellement"}</p><p className="font-medium flex items-center gap-1"><Calendar size={12} />{fmtDate(mySub.period_end)}</p></div>
-                {mySub.trial_end && <div><p className="text-slate-500">Fin d'essai</p><p className="font-medium text-indigo-700">{fmtDate(mySub.trial_end)}</p></div>}
+                {mySub.trial_end && <div><p className="text-slate-500">Fin d'essai</p><p className="font-medium text-primary">{fmtDate(mySub.trial_end)}</p></div>}
                 <div>
                   <p className="text-slate-500">Utilisateurs actifs</p>
                   <p className="font-medium">{mySub.active_users}</p>
@@ -161,7 +161,7 @@ export default function Abonnement() {
           return (
             <Card key={p.key} className={`relative p-6 border transition ${p.popular ? "border-slate-900 shadow-lg ring-2 ring-slate-900/10 md:scale-[1.03]" : "border-slate-200 shadow-sm"} ${active ? "ring-2 ring-emerald-400" : ""} ${isSuggested && !active ? "ring-2 ring-amber-400" : ""}`} data-testid={`plan-${p.key}`}>
               {p.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-semibold whitespace-nowrap">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-white text-xs font-semibold whitespace-nowrap">
                   <Star size={12} /> Le plus choisi
                 </div>
               )}

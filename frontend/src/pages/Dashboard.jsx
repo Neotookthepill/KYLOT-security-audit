@@ -183,7 +183,7 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
                   key={s}
                   type="button"
                   onClick={() => onResize(id, s)}
-                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full transition ${size === s ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full transition ${size === s ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"}`}
                   data-testid={`widget-size-${id}-${s}`}
                   title={`Taille ${SIZE_LABEL[s]}`}
                 >
@@ -437,7 +437,7 @@ export default function Dashboard() {
         {/* Section 1 : Performance personnelle (ou société pour non-commercial) */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            {isCommercial && <p className="overline text-indigo-600" data-testid="dashboard-personal-label">Ma performance personnelle</p>}
+            {isCommercial && <p className="overline text-primary" data-testid="dashboard-personal-label">Ma performance personnelle</p>}
             <p className="overline">{isCommercial ? "Mon CA signé" : "Chiffre d'affaires signé"}</p>
             {loading && !data ? (
               <>
@@ -471,7 +471,7 @@ export default function Dashboard() {
                   <p className="text-xs text-emerald-700 mt-1 font-medium" data-testid="dashboard-ca-reached">🎯 Objectif atteint — bravo !</p>
                 )}
                 {isCommercial && ca.objectif > 0 && ca.progress > 100 && (
-                  <p className="text-xs mt-1 font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent" data-testid="dashboard-ca-overperf">
+                  <p className="text-xs mt-1 font-semibold bg-gradient-to-r from-[#5271FF] to-[#3B56D9] bg-clip-text text-transparent" data-testid="dashboard-ca-overperf">
                     ✨ Objectif dépassé de {(ca.progress - 100).toFixed(1)}% — top perf !
                   </p>
                 )}
@@ -525,13 +525,13 @@ export default function Dashboard() {
     stats: () => (
       // Legacy — conservé au cas où une config non migrée l'utilise encore. À terme retirable.
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-        <Stat testId="stat-sales" label="Ventes" value={data?.sales?.count ?? 0} icon={TrendingUp} delta={data?.sales?.delta_pct} accent="bg-indigo-50 text-indigo-700" onClick={() => nav("/ventes")} />
+        <Stat testId="stat-sales" label="Ventes" value={data?.sales?.count ?? 0} icon={TrendingUp} delta={data?.sales?.delta_pct} accent="bg-primary/10 text-primary" onClick={() => nav("/ventes")} />
         <TodayTodos />
       </div>
     ),
     // iter182 — Widgets éclatés
     sales_count: () => (
-      <Stat testId="stat-sales" label="Ventes" value={data?.sales?.count ?? 0} icon={TrendingUp} delta={data?.sales?.delta_pct} accent="bg-indigo-50 text-indigo-700" onClick={() => nav("/ventes")} />
+      <Stat testId="stat-sales" label="Ventes" value={data?.sales?.count ?? 0} icon={TrendingUp} delta={data?.sales?.delta_pct} accent="bg-primary/10 text-primary" onClick={() => nav("/ventes")} />
     ),
     today_todos: () => (<TodayTodos />),
     activity: () => {
@@ -586,7 +586,7 @@ export default function Dashboard() {
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">{dayD.date}</p>
                   </div>
-                  <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-indigo-50 text-indigo-700"><HardHat size={18} /></div>
+                  <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-primary/10 text-primary"><HardHat size={18} /></div>
                 </div>
               </button>
             </div>
@@ -644,16 +644,16 @@ export default function Dashboard() {
     },
     events: () => (events.length > 0 && (
       <Card className="p-5 border-slate-200 shadow-sm" data-testid="dashboard-events">
-        <div className="flex items-center gap-2 mb-3"><Sparkles size={16} className="text-violet-500" /><p className="font-display text-base font-semibold">Événements à venir</p></div>
+        <div className="flex items-center gap-2 mb-3"><Sparkles size={16} className="text-primary" /><p className="font-display text-base font-semibold">Événements à venir</p></div>
         <ul className="divide-y divide-slate-100">
           {events.slice(0, 5).map((ev) => (
             <li key={ev.id} className="py-2.5 flex items-start justify-between gap-3" data-testid={`dashboard-event-${ev.id}`}>
               <div className="min-w-0 flex-1"><p className="font-semibold text-slate-900 truncate">{ev.title}</p>{ev.description && <p className="text-xs text-slate-500 truncate mt-0.5">{ev.description}</p>}</div>
-              <div className="text-right shrink-0"><p className="text-sm font-medium text-violet-800">{ev.date}</p>{ev.start_time && <p className="text-xs text-slate-500">{ev.start_time}{ev.end_time ? ` – ${ev.end_time}` : ""}</p>}</div>
+              <div className="text-right shrink-0"><p className="text-sm font-medium text-primary">{ev.date}</p>{ev.start_time && <p className="text-xs text-slate-500">{ev.start_time}{ev.end_time ? ` – ${ev.end_time}` : ""}</p>}</div>
             </li>
           ))}
         </ul>
-        <button onClick={() => nav("/planning")} className="mt-3 text-xs text-violet-700 hover:text-violet-900 font-medium">Voir le planning →</button>
+        <button onClick={() => nav("/planning")} className="mt-3 text-xs text-primary hover:text-primary/80 font-medium">Voir le planning →</button>
       </Card>
     )),
     alerts: () => (
@@ -702,12 +702,12 @@ export default function Dashboard() {
       };
       return (
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="dashboard-ranking">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-2"><Trophy size={16} className="text-amber-500" /><p className="font-display text-base font-semibold">Classement commercial</p><span className="ml-auto text-xs text-slate-500">{PERIODS.find((p) => p.key === period)?.label}</span></div>
+        <div className="p-4 border-b border-slate-200 flex items-center gap-2"><Trophy size={16} className="text-primary" /><p className="font-display text-base font-semibold">Classement commercial</p><span className="ml-auto text-xs text-slate-500">{PERIODS.find((p) => p.key === period)?.label}</span></div>
         <div className="divide-y divide-slate-100">
           {(!data?.ranking || data.ranking.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour la période.</p>}
           {data?.ranking?.map((r, i) => (
             <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "bg-slate-50/60" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
-              <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-amber-100 text-amber-800" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-orange-100 text-orange-800" : "bg-slate-50 text-slate-500"}`}>{i + 1}</span>
+              <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-primary/10 text-primary" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-500"}`}>{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
                   {r.commercial}
@@ -716,7 +716,7 @@ export default function Dashboard() {
                   )}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5"><span className="text-xs text-slate-600">{r.count} vente{r.count > 1 ? "s" : ""}</span>{r.progress != null && (<span className={`text-[11px] font-medium ${r.progress >= 100 ? "text-emerald-700" : "text-slate-500"}`}>{r.progress}% obj.</span>)}</div>
-                {r.objectif > 0 && (<div className="mt-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[240px]"><div className={`h-full ${r.progress >= 100 ? "bg-emerald-500" : "bg-slate-900"}`} style={{ width: `${Math.min(100, r.progress || 0)}%` }} /></div>)}
+                {r.objectif > 0 && (<div className="mt-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[240px]"><div className={`h-full ${r.progress >= 100 ? "bg-emerald-500" : "bg-primary"}`} style={{ width: `${Math.min(100, r.progress || 0)}%` }} /></div>)}
               </div>
               <p className="font-display text-base font-semibold whitespace-nowrap">{fmtEur(r.ca)}</p>
               {isAdmin && r.team_member_id && (
@@ -803,7 +803,7 @@ export default function Dashboard() {
           <div className="inline-flex rounded-lg border border-border bg-card p-0.5" data-testid="dashboard-period-tabs">
             {PERIODS.map((p) => (
               <button key={p.key} onClick={() => setPeriod(p.key)} data-testid={`period-${p.key}`}
-                className={`min-h-[34px] px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
+                className={`min-h-[34px] px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
             ))}
           </div>
           <Button

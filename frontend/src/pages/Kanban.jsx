@@ -18,8 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const columns = [
   { key: "a_planifier", label: "À planifier", color: "bg-slate-100 text-slate-700" },
   // iter158 : renommage de la colonne "En cours" → "PROG" (demande utilisateur Msg 350).
-  { key: "en_cours", label: "Programmé", color: "bg-amber-100 text-amber-800" },
-  { key: "termine", label: "À encaisser", color: "bg-emerald-100 text-emerald-800" },
+  { key: "en_cours", label: "Programmé", color: "bg-primary/10 text-primary" },
+  { key: "termine", label: "À encaisser", color: "bg-slate-100 text-slate-700" },
 ];
 
 const priorityColor = {
@@ -226,7 +226,7 @@ export default function Kanban() {
             </div>
           )}
           {canManageAbs && (
-            <Button variant="outline" onClick={() => setAbsOpen(true)} data-testid="kanban-manage-absences" className="border-red-200 text-red-700 hover:bg-red-50">
+            <Button variant="outline" onClick={() => setAbsOpen(true)} data-testid="kanban-manage-absences" className="border-border text-[#344054] hover:bg-muted">
               <CalendarOff size={16} className="mr-2" /> Absences
             </Button>
           )}
@@ -271,7 +271,7 @@ export default function Kanban() {
           return (
             <button key={col.key} type="button" role="tab" aria-selected={mobileStatus === col.key}
               onClick={() => setMobileStatus(col.key)}
-              className={`flex-1 rounded-md px-2 py-2 text-[11px] font-semibold transition ${mobileStatus === col.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+              className={`flex-1 rounded-md px-2 py-2 text-[11px] font-semibold transition ${mobileStatus === col.key ? "bg-primary text-white" : "bg-slate-100 text-slate-600"}`}
               data-testid={`kanban-tab-${col.key}`}>
               {col.label} <span className="ml-1 opacity-70">{count}{hasMore[col.key] ? "+" : ""}</span>
             </button>

@@ -106,7 +106,7 @@ export default function Layout() {
 
   const current = nav.find((n) => n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to));
   const currentTitle = current?.label || (location.pathname === "/abonnement" ? "Abonnement" : location.pathname === "/parametres" ? "Paramètres" : "Qylot");
-  const brand = settings.theme_primary || "#0b1220";
+  const brand = "#101828";
   const appName = settings.app_name || "Qylot";
   const canSettings = can("settings", "modify");
   const canCreateSale = can("sales", "create");

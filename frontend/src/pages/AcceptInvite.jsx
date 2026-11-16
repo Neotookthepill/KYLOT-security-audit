@@ -39,26 +39,26 @@ export default function AcceptInvite() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3e9] px-5 py-10 text-[#0b1220]">
+    <div className="min-h-screen bg-[#F5F7FA] px-5 py-10 text-[#111827]">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-[430px] flex-col justify-center">
-        <Link to="/login" className="mb-8 flex items-center gap-2.5 text-sm font-medium text-[#667085] hover:text-[#0b1220]">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#0b1220] font-display text-lg font-bold text-[#f7f3e9]">Q</span>
+        <Link to="/login" className="mb-8 flex items-center gap-2.5 text-sm font-medium text-[#667085] hover:text-[#111827]">
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#5271FF] font-display text-lg font-bold text-white">Q</span>
           <span className="font-display text-lg font-semibold">Qylot</span>
         </Link>
-        <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#a9552b]">Invitation</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#5271FF]">Invitation</p>
         <h1 className="mt-3 font-display text-[34px] font-semibold leading-tight tracking-[-.04em]">Bienvenue sur Qylot.</h1>
         <p className="mt-3 text-sm leading-relaxed text-[#667085]">Choisissez votre mot de passe. Il doit contenir au moins 12 caractères.</p>
 
         {done ? (
-          <div className="mt-8 rounded-2xl border border-[#d8d0c0] bg-white p-5">
+          <div className="mt-8 rounded-2xl border border-[#DDE3EC] bg-white p-5">
             <CheckCircle2 size={22} className="text-[#1f6b57]" />
             <p className="mt-3 font-medium">Compte activé.</p>
-            <Link to="/login" className="mt-5 inline-block text-sm font-semibold text-[#a9552b] underline underline-offset-4" data-testid="invite-go-login">Se connecter</Link>
+            <Link to="/login" className="mt-5 inline-block text-sm font-semibold text-[#5271FF] underline underline-offset-4" data-testid="invite-go-login">Se connecter</Link>
           </div>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-5" data-testid="accept-invite-form">
             {invite && (
-              <div className="rounded-xl border border-[#d8d0c0] bg-white px-4 py-3 text-sm">
+              <div className="rounded-xl border border-[#DDE3EC] bg-white px-4 py-3 text-sm">
                 <div className="font-semibold">{invite.name}</div>
                 <div className="text-[#667085]">{invite.email}</div>
               </div>

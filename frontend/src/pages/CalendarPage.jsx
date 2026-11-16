@@ -20,8 +20,8 @@ const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
 // iter120 : "termine" (À encaisser) = bleu pétant · "encaisse" (Terminé validé) = vert émeraude
 const statusColors = {
   a_planifier: "bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300",
-  en_cours: "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200",
-  termine: "bg-blue-700 text-white border-blue-800 hover:bg-blue-800",
+  en_cours: "bg-[#EEF2FF] text-[#3B56D9] border-[#C9D2FF] hover:bg-[#E8ECFF]",
+  termine: "bg-primary text-white border-primary hover:bg-primary/90",
   encaisse: "bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200",
 };
 
@@ -258,16 +258,16 @@ export default function CalendarPage() {
           )}
           {canManageAbs && (
             <>
-              <Button variant="outline" size="sm" onClick={() => openNewEvent(null)} data-testid="calendar-new-event" className="border-violet-200 text-violet-700 hover:bg-violet-50">
+              <Button variant="outline" size="sm" onClick={() => openNewEvent(null)} data-testid="calendar-new-event" className="border-primary/35 text-primary hover:bg-primary/[.04]">
                 <Sparkles size={14} className="mr-1.5" /> Événement
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setReinterOpen(true)} data-testid="calendar-reintervention" className="border-orange-200 text-orange-700 hover:bg-orange-50">
+              <Button variant="outline" size="sm" onClick={() => setReinterOpen(true)} data-testid="calendar-reintervention" className="border-border text-[#344054] hover:bg-muted">
                 <RefreshCw size={14} className="mr-1.5" /> Réintervention
               </Button>
               <Button variant="outline" size="sm" onClick={() => setOffOpen(true)} data-testid="calendar-off-days" className="border-slate-300 text-slate-600 hover:bg-slate-100">
                 <Sun size={14} className="mr-1.5" /> Jours de repos
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setAbsOpen(true)} data-testid="calendar-manage-absences" className="border-red-200 text-red-700 hover:bg-red-50">
+              <Button variant="outline" size="sm" onClick={() => setAbsOpen(true)} data-testid="calendar-manage-absences" className="border-border text-[#344054] hover:bg-muted">
                 <CalendarOff size={14} className="mr-1.5" /> Absences
               </Button>
             </>
@@ -328,7 +328,7 @@ export default function CalendarPage() {
                           <button
                             key={ev.id}
                             onClick={() => setViewingEvent(ev)}
-                            className="w-full text-left text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 border border-violet-300 hover:bg-violet-200 font-medium truncate"
+                            className="w-full text-left text-[10px] px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#3B56D9] border border-[#C9D2FF] hover:bg-[#E8ECFF] font-medium truncate"
                             title={`${ev.title}${ev.start_time ? " · " + ev.start_time : ""}${ev.description ? "\n" + ev.description : ""}`}
                             data-testid={`cal-event-item-${ev.id}`}
                           >
@@ -352,7 +352,7 @@ export default function CalendarPage() {
                               setReinterClient({ id: r.client_id, name: r.client_name });
                               setReinterOpen(true);
                             }}
-                            className={`text-[10px] px-1.5 py-0.5 rounded border font-medium truncate cursor-pointer hover:brightness-95 ${r.status === "terminee" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-orange-100 text-orange-800 border-orange-300"}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded border font-medium truncate cursor-pointer hover:brightness-95 ${r.status === "terminee" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-[#F5F7FA] text-[#344054] border-[#DDE3EC]"}`}
                             title={`Réintervention — ${r.client_name || ""}${r.scheduled_time ? " · " + r.scheduled_time : ""}${r.technician_name ? " · " + r.technician_name : ""}${r.note ? "\n" + r.note : ""}`}
                             data-testid={`cal-reinter-${r.id}`}
                           >
@@ -370,7 +370,7 @@ export default function CalendarPage() {
                           return (
                             <div
                               key={a.id}
-                              className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate ${partial ? "bg-amber-50 text-amber-800 border border-amber-200" : "bg-red-100 text-red-800 border border-red-200"}`}
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate ${partial ? "bg-[#F0F3FF] text-[#3B56D9] border border-[#C9D2FF]" : "bg-red-100 text-red-800 border border-red-200"}`}
                               title={`${partial ? "Absent partiel" : "Absent"} — ${a.person_name}${partial ? ` · ${a.start_time}–${a.end_time}` : ""}${a.reason ? " · " + a.reason : ""}${a.note ? "\n" + a.note : ""}`}
                               data-testid={`cal-absence-${a.id}-${cellIso}`}
                             >

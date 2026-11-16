@@ -100,7 +100,7 @@ export default function MonthlyReport() {
         <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes comptées CA" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-emerald-50 text-emerald-700" />
         <StatCard testId="report-stat-cancelled" icon={XCircle} label="Annulations" value={totals.cancelled_count} sub={totals.litige_count ? `+ ${totals.litige_count} en litige` : "sur le mois"} accent="bg-red-50 text-red-700" />
         <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="statuts comptés dans le CA" />
-        <StatCard testId="report-stat-comm" icon={Trophy} label="Commissions dues" value={fmtEur(totals.commission_total)} sub={topCommercial ? `Top : ${topCommercial.commercial}` : ""} accent="bg-amber-50 text-amber-700" />
+        <StatCard testId="report-stat-comm" icon={Trophy} label="Commissions dues" value={fmtEur(totals.commission_total)} sub={topCommercial ? `Top : ${topCommercial.commercial}` : ""} accent="bg-primary/10 text-primary" />
       </div>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
@@ -119,9 +119,9 @@ export default function MonthlyReport() {
                 <th className="px-3 py-3 overline text-right" title="Toutes les ventes du mois, y compris annulées et statuts non comptés">Ventes totales</th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px]">R1</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px]">Assist</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px]">CQ</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">CQ</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px]">CA</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px]">TAP</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">TAP</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px]">Sous-trait.</span></th>
                 <th className="px-3 py-3 overline text-right text-red-700">Annulé</th>
                 <th className="px-4 py-3 overline text-right">CA €</th>
@@ -147,7 +147,7 @@ export default function MonthlyReport() {
                 return (
                   <tr key={r.commercial} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40" data-testid={`report-row-${r.commercial}`}>
                     <td className="px-4 py-3 font-semibold whitespace-nowrap flex items-center gap-2">
-                      {isTop && <Trophy size={14} className="text-amber-500" />}
+                      {isTop && <Trophy size={14} className="text-primary" />}
                       {r.commercial}
                     </td>
                     <td className="px-3 py-3 text-right">{r.sales_count}</td>

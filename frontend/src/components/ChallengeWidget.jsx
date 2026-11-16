@@ -191,7 +191,7 @@ export default function ChallengeWidget() {
       <Card className="p-5 border-slate-200 shadow-sm" data-testid="challenge-widget">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="h-10 w-10 rounded-lg bg-amber-100 text-amber-700 grid place-items-center"><Trophy size={20} /></span>
+            <span className="h-10 w-10 rounded-lg bg-primary/10 text-primary grid place-items-center"><Trophy size={20} /></span>
             <div>
               <p className="overline">Challenge commercial</p>
               <p className="font-display text-xl font-semibold">{ch ? ch.name : "Aucun challenge en cours"}</p>
@@ -236,7 +236,7 @@ export default function ChallengeWidget() {
               {podium.map((row, index) => (
                 <div
                   key={row.name}
-                  className={`rounded-xl border p-4 text-center ${index === 0 ? "border-amber-300 bg-amber-50/70" : "border-slate-200 bg-white"} ${row.is_me ? "ring-2 ring-indigo-400" : ""}`}
+                  className={`rounded-xl border p-4 text-center ${index === 0 ? "border-primary/30 bg-[#F7F9FF]" : "border-slate-200 bg-white"} ${row.is_me ? "ring-2 ring-primary/40" : ""}`}
                   data-testid={`challenge-podium-${index + 1}`}
                 >
                   <div className="text-3xl">{MEDALS[index]}</div>
@@ -259,10 +259,10 @@ export default function ChallengeWidget() {
                 </thead>
                 <tbody>
                   {ranking.map((row) => (
-                    <tr key={row.name} className={`border-t border-slate-100 ${row.is_me ? "bg-indigo-50/70 font-medium" : ""}`} data-testid={`challenge-row-${row.name}`}>
+                    <tr key={row.name} className={`border-t border-slate-100 ${row.is_me ? "bg-[#F0F3FF] font-medium" : ""}`} data-testid={`challenge-row-${row.name}`}>
                       <td className="px-3 py-2">{row.rank <= 3 ? MEDALS[row.rank - 1] : row.rank}</td>
                       <td className="px-3 py-2">
-                        <div className="font-medium">{row.name} {row.is_me && <span className="text-[10px] text-indigo-600">(vous)</span>}</div>
+                        <div className="font-medium">{row.name} {row.is_me && <span className="text-[10px] text-primary">(vous)</span>}</div>
                         <div className="text-[11px] text-slate-500 sm:hidden">{fmtEur(row.ca)}</div>
                       </td>
                       <td className="px-3 py-2 text-right whitespace-nowrap">{pointsLabel(row, ch.criterion)}</td>

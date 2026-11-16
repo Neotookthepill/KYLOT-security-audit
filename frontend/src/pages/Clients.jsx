@@ -367,9 +367,18 @@ export default function Clients() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     {can("clients", "delete") && (
-                      <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); remove(c.id); }} data-testid={`client-delete-${c.id}`} aria-label="Supprimer">
-                        <Trash2 size={14} />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()} data-testid={`client-actions-${c.id}`} aria-label="Actions du client">
+                            <MoreHorizontal size={15} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); remove(c.id); }} data-testid={`client-delete-${c.id}`}>
+                            <Trash2 size={14} className="mr-2" /> Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </td>
                 </tr>

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,82 +6,81 @@
 
 @layer base {
   :root {
-    /* Qylot — Blueprint éditorial, mode clair */
-    --background: 42 33% 96%;
-    --foreground: 222 47% 8%;
-    --card: 42 40% 99%;
-    --card-foreground: 222 47% 8%;
-    --popover: 42 40% 99%;
-    --popover-foreground: 222 47% 8%;
-    --primary: 22 65% 38%;
-    --primary-foreground: 42 40% 98%;
-    --secondary: 40 22% 91%;
-    --secondary-foreground: 222 47% 8%;
-    --muted: 40 22% 92%;
-    --muted-foreground: 220 10% 43%;
-    --accent: 22 65% 38%;
-    --accent-foreground: 42 40% 98%;
-    --destructive: 0 72% 46%;
+    /* Qylot — CRM/ERP opérationnel, identité navy + bleu électrique */
+    --background: 216 33% 97%;        /* #F5F7FA */
+    --foreground: 221 39% 11%;        /* #111827 */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 221 39% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 221 39% 11%;
+    --primary: 229 100% 66%;          /* #5271FF */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 216 33% 97%;
+    --secondary-foreground: 221 39% 11%;
+    --muted: 216 33% 97%;
+    --muted-foreground: 221 13% 46%;  /* #667085 */
+    --accent: 229 100% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 4 74% 49%;         /* #D92D20 */
     --destructive-foreground: 0 0% 100%;
-    --border: 40 17% 84%;
-    --input: 40 17% 82%;
-    --ring: 22 65% 46%;
-    --radius: 0.75rem;
+    --border: 216 28% 90%;            /* #DDE3EC */
+    --input: 216 28% 90%;
+    --ring: 229 100% 66%;
+    --radius: 0.625rem;               /* 10px */
 
-    --success: 158 45% 30%;
-    --success-soft: 158 38% 91%;
-    --warning: 30 79% 37%;
-    --warning-soft: 38 92% 91%;
-    --info: 214 72% 43%;
-    --info-soft: 214 80% 93%;
-    --sidebar: 222 47% 8%;
-    --sidebar-foreground: 42 30% 94%;
-    --sidebar-muted: 218 15% 65%;
-    --copper: 22 65% 38%;
-    --paper: 42 40% 99%;
-    --line: 40 17% 84%;
+    --success: 158 71% 30%;
+    --success-soft: 158 45% 94%;
+    --warning: 36 71% 42%;
+    --warning-soft: 38 92% 95%;
+    --info: 229 100% 66%;
+    --info-soft: 229 100% 96%;
+    --sidebar: 220 43% 11%;           /* #101828 */
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-muted: 218 14% 68%;
+    --copper: 229 100% 66%;           /* legacy token neutralisé : plus de cuivre dans l'UI */
+    --paper: 0 0% 100%;
+    --line: 216 28% 90%;
   }
 
   .dark {
-    /* Qylot — Blueprint éditorial, mode sombre */
-    --background: 220 40% 4%;
-    --foreground: 42 28% 93%;
-    --card: 220 28% 8%;
-    --card-foreground: 42 28% 93%;
-    --popover: 220 28% 8%;
-    --popover-foreground: 42 28% 93%;
-    --primary: 22 70% 56%;
-    --primary-foreground: 220 40% 5%;
-    --secondary: 220 22% 13%;
-    --secondary-foreground: 42 28% 93%;
-    --muted: 220 22% 12%;
-    --muted-foreground: 215 14% 66%;
-    --accent: 22 70% 56%;
-    --accent-foreground: 220 40% 5%;
-    --destructive: 0 62% 51%;
+    --background: 220 33% 7%;
+    --foreground: 210 40% 98%;
+    --card: 220 33% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 33% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 229 100% 72%;
+    --primary-foreground: 220 43% 11%;
+    --secondary: 220 25% 16%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 25% 14%;
+    --muted-foreground: 218 14% 68%;
+    --accent: 229 100% 72%;
+    --accent-foreground: 220 43% 11%;
+    --destructive: 4 74% 56%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 18% 18%;
-    --input: 220 18% 20%;
-    --ring: 22 70% 56%;
-    --success: 158 48% 55%;
+    --border: 220 22% 20%;
+    --input: 220 22% 22%;
+    --ring: 229 100% 72%;
+    --success: 158 60% 55%;
     --success-soft: 158 35% 15%;
     --warning: 38 88% 62%;
     --warning-soft: 35 40% 16%;
-    --info: 214 80% 68%;
-    --info-soft: 214 45% 16%;
-    --sidebar: 220 40% 5%;
-    --sidebar-foreground: 42 28% 93%;
+    --info: 229 100% 72%;
+    --info-soft: 229 45% 16%;
+    --sidebar: 220 43% 8%;
+    --sidebar-foreground: 210 40% 98%;
     --sidebar-muted: 218 14% 61%;
-    --copper: 22 70% 56%;
-    --paper: 220 28% 8%;
-    --line: 220 18% 18%;
+    --copper: 229 100% 72%;
+    --paper: 220 33% 11%;
+    --line: 220 22% 20%;
   }
 
   * { @apply border-border; }
   html { background: hsl(var(--background)); }
   body {
     margin: 0;
-    font-family: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background: hsl(var(--background));
@@ -89,7 +88,7 @@
     font-feature-settings: "ss01" 1, "cv11" 1;
   }
   h1, h2, h3, h4, h5, .font-display {
-    font-family: "Bricolage Grotesque", "Instrument Sans", sans-serif;
+    font-family: "Manrope", "Inter", sans-serif;
     letter-spacing: -0.025em;
   }
   ::selection { background: hsl(var(--copper) / .22); }
@@ -113,7 +112,7 @@
   .qy-page { min-height: 100%; color: hsl(var(--foreground)); }
   .qy-page > :first-child { animation: qyPageIn .28s ease-out both; }
   .qy-eyebrow {
-    font: 600 10px/1.3 "Instrument Sans", sans-serif;
+    font: 600 10px/1.3 "Inter", sans-serif;
     letter-spacing: .16em;
     text-transform: uppercase;
     color: hsl(var(--copper));
@@ -150,9 +149,9 @@
   }
   .qy-nav-item:hover { background: hsl(0 0% 100% / .065); color: #fff; }
   .qy-nav-item[data-active="true"], .qy-nav-item.is-active {
-    background: hsl(0 0% 100% / .10);
+    background: hsl(var(--primary) / .16);
     color: #fff;
-    box-shadow: inset 2px 0 0 hsl(var(--copper));
+    box-shadow: inset 2px 0 0 hsl(var(--primary));
   }
   .qy-nav-group-label {
     padding: 1.1rem .65rem .35rem;
@@ -163,27 +162,28 @@
   .qy-brand-mark {
     display: grid; place-items: center;
     width: 38px; height: 38px; border-radius: 11px;
-    background: #f7f3e9;
-    color: #0b1220;
+    background: #101828;
+    color: #fff;
     font-family: "Bricolage Grotesque", sans-serif;
     font-size: 22px; font-weight: 700;
-    box-shadow: 0 0 0 1px hsl(0 0% 100% / .10), 0 8px 24px hsl(0 0% 0% / .28);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / .35);
   }
   .qy-quick-create {
-    background: #8a3f18;
-    color: hsl(var(--primary-foreground));
-    box-shadow: 0 8px 22px hsl(var(--copper) / .25);
+    background: transparent;
+    color: #FFFFFF;
+    border: 1px solid hsl(var(--primary) / .85);
+    box-shadow: none;
   }
-  .qy-quick-create:hover { filter: brightness(1.06); }
+  .qy-quick-create:hover { background: hsl(var(--primary) / .16); }
 
   .qy-kpi { position: relative; overflow: hidden; }
   .qy-kpi:after {
     content: ""; position: absolute; right: -34px; top: -40px;
     width: 120px; height: 120px; border-radius: 50%;
-    background: radial-gradient(circle, hsl(var(--copper) / .10), transparent 70%);
+    background: radial-gradient(circle, hsl(var(--primary) / .08), transparent 70%);
     pointer-events: none;
   }
-  .qy-table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+  .qy-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
   .qy-page table { width: 100%; border-collapse: separate; border-spacing: 0; }
   .qy-page thead th {
     position: sticky; top: 0; z-index: 2;
@@ -208,8 +208,33 @@
   .qy-page input::placeholder, .qy-page textarea::placeholder { color: hsl(var(--muted-foreground) / .75); }
 
   .qy-page .rounded-2xl.border { border-color: hsl(var(--border)); }
-  .qy-page .shadow-sm { box-shadow: 0 1px 2px hsl(0 0% 0% / .04); }
-  .dark .qy-page .shadow-sm { box-shadow: 0 1px 2px hsl(0 0% 0% / .35); }
+  .qy-page .shadow-sm, .qy-page .shadow, .qy-page .shadow-md, .qy-page .shadow-lg, .qy-page .shadow-xl { box-shadow: none !important; }
+  .qy-page .rounded-2xl, .qy-page .rounded-3xl { border-radius: 10px !important; }
+  .qy-page .rounded-xl { border-radius: 10px; }
+  .qy-page button.rounded-full { border-radius: 8px; }
+  .qy-page tbody tr:hover { background: hsl(var(--primary) / .035); }
+  .qy-page .bg-slate-900 { background-color: hsl(var(--primary)) !important; }
+  .qy-page .hover\:bg-slate-800:hover { background-color: hsl(var(--primary) / .9) !important; }
+  .qy-page .qy-kpi { border: 1px solid hsl(var(--border)); }
+  @media (max-width: 767px) {
+    .qy-page button, .qy-page a[role="button"], .qy-page [data-testid$="-btn"] { min-height: 44px; }
+    .qy-page .qy-table-wrap { border: 0; background: transparent; }
+  }
+
+  /* Harmonisation des anciens accents décoratifs vers la palette bleu nuit / électrique. */
+  .bg-indigo-50, .bg-violet-50 { background-color: #F0F3FF !important; }
+  .bg-indigo-100, .bg-violet-100 { background-color: #E8ECFF !important; }
+  .text-indigo-500, .text-indigo-600, .text-indigo-700, .text-indigo-800,
+  .text-violet-500, .text-violet-700, .text-violet-800 { color: #3B56D9 !important; }
+  .border-indigo-200, .border-indigo-300, .border-violet-200, .border-violet-300 { border-color: #C9D2FF !important; }
+  .bg-indigo-600 { background-color: #5271FF !important; }
+
+  .bg-orange-50, .bg-orange-100, .bg-violet-50, .bg-violet-100 { background-color: #F0F3FF !important; }
+  .bg-orange-600, .bg-violet-600 { background-color: #5271FF !important; }
+  .text-orange-700, .text-orange-800, .text-violet-700, .text-violet-800 { color: #3B56D9 !important; }
+  .border-orange-200, .border-orange-300, .border-violet-200, .border-violet-300 { border-color: #C9D2FF !important; }
+  .hover\:bg-orange-50:hover, .hover\:bg-violet-50:hover, .hover\:bg-indigo-50:hover { background-color: #F0F3FF !important; }
+
   .qy-divider { height: 1px; background: hsl(var(--border)); }
   .qy-sheet { padding: 0; gap: 0; background: hsl(var(--card)); }
   .qy-sheet [data-sheet-header] {
