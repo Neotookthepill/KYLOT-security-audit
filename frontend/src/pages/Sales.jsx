@@ -539,7 +539,14 @@ export default function Sales() {
       const bucket = grouped[c.id || c.name] || ensure(c);
       return { ...bucket, objectif: c.objectif || 0 };
     }).sort((a, b) => b.ca - a.ca);
-    return { total: Number(summary.total || 0), byCommercial };
+    // En scope "own", summary.total est le CA brut des ventes (une vente DE
+    // compte pour son montant complet). Le commercial doit voir uniquement SA
+    // part : 50 % sur une vente DE, 100 % sinon.
+    const ownRow = ownScope
+      ? byCommercial.find((c) => norm(c.name) === norm(user?.name || "")) ||
+        byCommercial.find((c) => firstOf(c.name) === firstOf(user?.name || ""))
+      : null;
+    return { total: ownScope ? Number(ownRow?.ca || 0) : Number(summary.total || 0), byCommercial };
   }, [summary, commerciaux, user]);
 
   const exportCsv = async () => {
