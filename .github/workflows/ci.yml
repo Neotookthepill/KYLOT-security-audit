@@ -84,7 +84,13 @@ jobs:
         run: |
           for script in audit/security_adversarial_checks.py audit/security_adversarial_round2.py audit/security_adversarial_round3.py audit/security_e2e_matrix.py audit/security_hostile_inputs.py audit/security_scale_checks.py; do
             echo "=== $script"
-            python "$script" || { echo "::error::Audit failed: $script"; exit 1; }
+            output=$(python "$script" 2>&1) && status=0 || status=$?
+            printf '%s\n' "$output"
+            if [ "$status" -ne 0 ]; then
+              detail=$(printf '%s' "$output" | tail -8 | tr '\n' ' ')
+              echo "::error::$script failed: $detail"
+              exit 1
+            fi
           done
           python audit/security_route_business_fuzz.py
       - name: Reject medium and high severity Python security findings
