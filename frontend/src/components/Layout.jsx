@@ -283,11 +283,6 @@ export default function Layout() {
           </div>
           <div className="ml-auto flex items-center gap-1">
             {!isSuper && (
-              <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kylot:ai-open"))} data-testid="mobile-ai" aria-label="Ouvrir l’assistant Qylot" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
-                <Sparkles size={18} />
-              </button>
-            )}
-            {!isSuper && (
               <button type="button" onClick={() => setSearchOpen(true)} data-testid="global-search-btn-mobile" aria-label="Recherche globale" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
                 <Search size={18} />
               </button>
@@ -347,9 +342,9 @@ export default function Layout() {
                 </NavLink>
               );
             })}
-            <button type="button" onClick={() => setMobileOpen(true)} className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground" aria-label="Plus de navigation">
-              <Menu size={19} strokeWidth={1.8} />
-              Plus
+            <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kylot:ai-open"))} className="flex min-h-[52px] flex-col items-center gap-1 py-2.5 text-[10px] font-semibold text-primary" aria-label="Ouvrir l’assistant Qylot" data-testid="mobile-ai">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/12 text-primary"><Sparkles size={15} strokeWidth={2}/></span>
+              Assistant
             </button>
           </div>
         </nav>
