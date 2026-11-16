@@ -119,6 +119,29 @@ Problèmes :
 - La base temporaire a été vidée ; elle n'a pas pu être supprimée faute de permission `dropDatabase`.
 - Les snapshots Atlas/PITR ne sont pas activés selon la documentation interne ; ils n'ont pas été vérifiés dans Atlas.
 
+
+### Sauvegarde fraîche du 16 novembre 2026 — 14 h 07
+
+Une sauvegarde production fraîche a été créée après les corrections :
+
+```text
+backups/kylot-kylot_staging-20261116T215235Z.archive.gz
+taille    : 64 Mo
+SHA-256   : 3291937103fb58a10e52d0d98ad3f93a4589a4772be066d85349bfdcd16f23a7
+contenu   : 554 clients / 195 ventes / 151 projets
+```
+
+Le `--dryRun` de cette archive est valide.  
+La restauration complète de cette archive fraîche n'a pas été terminée ; la preuve de restauration complète reste celle de l'archive précédente (3 080 documents, 0 échec).
+
+Limites persistantes :
+
+```text
+pas de copie hors site
+pas de snapshot Atlas / PITR
+pas de restauration des index sur la sauvegarde complète
+```
+
 ### 3.6 Données
 
 Chiffres lus via API/MongoDB :
