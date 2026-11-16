@@ -48,6 +48,10 @@ photos source-only importées  : 29 / 29
 Les 2 BDC dupliqués existaient déjà dans la cible. Aucun BDC source-only ne
 correspondait à un BDC cible avant l'import.
 
+Équipe : 13 entrées dans les deux bases, mais 2 libellés source n'ont pas de
+correspondance exacte côté cible. Tous les emails utilisateurs source existent
+déjà dans la cible ; aucun compte de connexion n'a été recréé.
+
 Les identifiants source ne sont pas conservés : les clients, ventes et chantiers
 importés reçoivent de nouveaux identifiants cible, et les relations sont
 reconstruites par le script.
