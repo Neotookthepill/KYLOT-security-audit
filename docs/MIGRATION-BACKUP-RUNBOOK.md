@@ -5,9 +5,13 @@
 Archive locale protégée, non versionnée :
 
 ```text
-backups/20261116T063852-pre-post.tar.gz
-SHA-256 : 33a228f4d4c623d48632f8b2d29bfbf2b9648db429d9a6688dde5e25c9e822af
+backups/20261116T063852-full.tar.gz
+SHA-256 : e50396e26ca05e67a3a4dcaf358bb277dda486732f129c8ffe8482f70957bbb2
 ```
+
+Cette archive complète contient aussi les détails des 93 chantiers et les
+123 photos. L'ancienne archive `pre-post.tar.gz` ne contenait que les listes
+API, sans le contenu des photos.
 
 Contenu :
 
@@ -17,8 +21,8 @@ post-migration : 552 clients, 193 ventes, 93 chantiers
 + équipe, stock, événements, paramètres, utilisateurs
 ```
 
-Cette archive est un **export API**, pas un snapshot MongoDB Atlas.
-Elle ne contient pas les mots de passe.
+Cette archive est un **export API complet des objets et photos**, pas un
+snapshot MongoDB Atlas. Elle ne contient pas les mots de passe.
 
 ## Ce qui manque pour un vrai rollback
 
