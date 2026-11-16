@@ -87,7 +87,7 @@ class CounterAuditHTTPChecks(unittest.TestCase):
         self.assertIn(response.status_code, (400, 409), response.text)
         self.assertIsNotNone(run(self.db.clients.find_one({"id": "client-live"})))
 
-    def test_deleting_sale_preserves_linked_project_and_photos(self):
+    def test_deleting_sale_cascades_linked_project_and_photos(self):
         photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
         run(self.db.sales.insert_one({
             "id": "sale-history", "company_id": "company-a", "client_id": "client-history",
@@ -98,8 +98,9 @@ class CounterAuditHTTPChecks(unittest.TestCase):
             "client_id": "client-history", "status": "termine", "photos": [photo],
         }))
         response = self.client.delete("/api/sales/sale-history", headers=self.admin_headers)
-        self.assertIn(response.status_code, (400, 409), response.text)
-        self.assertIsNotNone(run(self.db.projects.find_one({"id": "project-history"})))
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIsNone(run(self.db.sales.find_one({"id": "sale-history"})))
+        self.assertIsNone(run(self.db.projects.find_one({"id": "project-history"})))
 
     def test_client_view_permission_does_not_grant_note_write_permission(self):
         run(self.db.clients.insert_one({"id": "client-own", "company_id": "company-a", "name": "Own Client"}))
