@@ -130,10 +130,8 @@
   .qy-page-subtitle { margin-top: .45rem; color: hsl(var(--muted-foreground)); font-size: .9rem; line-height: 1.5; }
 
   .qy-topbar {
-    background: hsl(var(--background) / .86);
+    background: hsl(var(--card));
     border-bottom: 1px solid hsl(var(--border));
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
   }
   .qy-sidebar {
     background: hsl(var(--sidebar));
@@ -268,6 +266,8 @@
 }
 
 .overline {
+  text-decoration: none;
+  text-decoration-line: none;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.7rem;
@@ -501,9 +501,9 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .dark .qy-page tbody td { border-color: #223044; }
 .dark .qy-page input, .dark .qy-page select, .dark .qy-page textarea { color: #f2eee5; }
 
-/* Les widgets d'une même rangée remplissent la hauteur : évite les trous visuels. */
-.qy-dashboard [data-testid^="widget-"] { display: flex; flex-direction: column; height: 100%; }
-.qy-dashboard [data-testid^="widget-"] > * { flex: 1; }
+/* Les widgets gardent leur hauteur naturelle : pas de grande zone vide dans une carte courte. */
+.qy-dashboard [data-testid^="widget-"] { display: flex; flex-direction: column; height: auto; align-self: start; }
+.qy-dashboard [data-testid^="widget-"] > * { flex: 0 0 auto; }
 /* Les cartes de synthèse ne doivent pas être étirées par une rangée de graphiques. */
 .qy-dashboard [data-testid="dashboard-commissions"],
 .qy-dashboard [data-testid="dashboard-overtime"] { flex: 0 0 auto !important; }
@@ -645,4 +645,28 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   .sales-table.hide-amount th:nth-child(7), .sales-table.hide-amount td:nth-child(7),
   .sales-table.hide-payment th:nth-child(8), .sales-table.hide-payment td:nth-child(8),
   .sales-table.hide-commercial th:nth-child(9), .sales-table.hide-commercial td:nth-child(9) { display: none !important; }
+}
+
+
+/* Dashboard : colonnes fluides pour éviter les grands trous sous les cartes courtes. */
+@media (min-width: 1024px) {
+  .qy-dashboard [data-testid="dashboard-grid"] {
+    display: block;
+    column-count: 2;
+    column-gap: 1.5rem;
+  }
+  .qy-dashboard [data-testid="dashboard-grid"] > div {
+    display: inline-block;
+    width: 100%;
+    margin: 0 0 1.5rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .qy-dashboard [data-widget-key="ca_hero"],
+  .qy-dashboard [data-widget-key="challenge"],
+  .qy-dashboard [data-widget-key="activity"],
+  .qy-dashboard [data-widget-key="ranking"] {
+    column-span: all;
+  }
+  .qy-dashboard [data-testid="dashboard-grid"] > div[data-widget-key="ca_hero"] { margin-top: 0; }
 }

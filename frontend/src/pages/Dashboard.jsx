@@ -887,7 +887,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" data-testid="dashboard-grid">
         {visibleOrder.map((k) => (
-          <div key={k} className={`col-span-1 h-full ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
+          <div key={k} data-widget-key={k} className={`col-span-1 h-full ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
             <WidgetShell id={k} editing={editing} dragging={dragging} size={sizeOf(k)}
               onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onHide={hideWidget} onResize={resizeWidget}>
               {renderers[k]()}
