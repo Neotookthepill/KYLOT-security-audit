@@ -171,6 +171,7 @@ class InputAndTransportChecks(unittest.TestCase):
             ("POST", "/auth/register"), ("POST", "/auth/login"), ("POST", "/auth/logout"),
             ("POST", "/auth/mfa/verify"),
             ("POST", "/auth/forgot-password"), ("POST", "/auth/reset-password"),
+            ("GET", "/auth/invitation/{token}"), ("POST", "/auth/accept-invitation"),
             ("POST", "/cron/rappel-chantiers-j1"), ("POST", "/cron/bilan-mensuel"),
             ("POST", "/stripe/webhook"),
             ("GET", "/health"), ("GET", "/healthz"), ("GET", "/api/health"), ("GET", "/api/healthz"),
