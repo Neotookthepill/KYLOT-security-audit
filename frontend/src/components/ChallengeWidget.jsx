@@ -236,7 +236,7 @@ export default function ChallengeWidget() {
               {podium.map((row, index) => (
                 <div
                   key={row.name}
-                  className={`rounded-xl border p-4 text-center ${index === 0 ? "border-primary/30 bg-[#F7F9FF]" : "border-slate-200 bg-white"} ${row.is_me ? "ring-2 ring-primary/40" : ""}`}
+                  className={`rounded-xl border p-4 text-center ${index === 0 ? "border-primary/30 bg-primary/10" : "border-border bg-card"} ${row.is_me ? "ring-2 ring-primary/40" : ""}`}
                   data-testid={`challenge-podium-${index + 1}`}
                 >
                   <div className="text-3xl">{MEDALS[index]}</div>
@@ -249,7 +249,7 @@ export default function ChallengeWidget() {
 
             <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
               <table className="qy-challenge-table w-full text-sm">
-                <thead className="bg-slate-50 text-left">
+                <thead className="bg-muted/60 text-left">
                   <tr>
                     <th className="px-3 py-2 overline whitespace-nowrap">Rang</th>
                     <th className="px-3 py-2 overline">Commercial</th>
@@ -259,7 +259,7 @@ export default function ChallengeWidget() {
                 </thead>
                 <tbody>
                   {ranking.map((row) => (
-                    <tr key={row.name} className={`border-t border-slate-100 ${row.is_me ? "bg-[#F0F3FF] font-medium" : ""}`} data-testid={`challenge-row-${row.name}`}>
+                    <tr key={row.name} className={`border-t border-slate-100 ${row.is_me ? "bg-primary/10 font-medium" : ""}`} data-testid={`challenge-row-${row.name}`}>
                       <td className="px-3 py-2">{row.rank <= 3 ? MEDALS[row.rank - 1] : row.rank}</td>
                       <td className="px-3 py-2">
                         <div className="font-medium">{row.name} {row.is_me && <span className="text-[10px] text-primary">(vous)</span>}</div>
@@ -286,7 +286,7 @@ export default function ChallengeWidget() {
 
             {data.me && (
               <p className="text-xs text-slate-500 mt-3">
-                Ta position : <b className="text-slate-900">#{data.me.rank}</b> — {pointsLabel(data.me, ch.criterion)}
+                Ta position : <b className="text-foreground">#{data.me.rank}</b> — {pointsLabel(data.me, ch.criterion)}
               </p>
             )}
           </>

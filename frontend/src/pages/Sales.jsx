@@ -747,12 +747,26 @@ export default function Sales() {
             <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · statuts comptés dans le CA</p>
           </div>
           <div className="p-4 sm:p-5">
-            <p className="overline flex items-center gap-1.5">
-              <Target size={12} className="text-slate-500" /> {isCommercial ? "Mon objectif" : "Objectif"}
-            </p>
-            <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums text-[#101828]" data-testid="sales-top-summary-objectif">
-              {effectiveObjectif > 0 ? fmtEur(effectiveObjectif) : <span className="text-slate-400 italic text-lg">Non défini</span>}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="overline flex items-center gap-1.5">
+                <Target size={12} className="text-slate-500" /> {isCommercial ? "Mon objectif" : "Objectif"}
+              </p>
+              {canEditObjectif && !isCommercial && !editingObjectif && (
+                <button onClick={() => { setObjectifInput(String(objectif)); setEditingObjectif(true); }} data-testid="objectif-edit-btn" aria-label="Modifier l’objectif" className="text-slate-400 hover:text-primary">
+                  <Pencil size={12} />
+                </button>
+              )}
+            </div>
+            {editingObjectif && !isCommercial ? (
+              <div className="flex items-center gap-2 mt-2">
+                <Input type="number" value={objectifInput} onChange={(e) => setObjectifInput(e.target.value)} className="h-9" data-testid="objectif-input" />
+                <Button size="sm" onClick={saveObjectif} data-testid="objectif-save-btn"><Check size={14} /></Button>
+              </div>
+            ) : (
+              <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums text-foreground" data-testid="sales-top-summary-objectif">
+                {effectiveObjectif > 0 ? fmtEur(effectiveObjectif) : <span className="text-slate-400 italic text-lg">Non défini</span>}
+              </p>
+            )}
             <p className="text-[11px] text-slate-500 mt-1">
               {objectifReached
                 ? `Dépassé de ${fmtEur(stats.total - effectiveObjectif)}`
@@ -785,6 +799,41 @@ export default function Sales() {
           Cet emplacement d'origine est laissé vide pour ne pas dupliquer la barre. */}
 
       {/* 1. Sales table */}
+      {/* Analyse commerciale : remontée avant le tableau pour éviter un long scroll */}
+{!isCommercial && (
+      <Card className="border-slate-200 shadow-sm overflow-hidden mt-6" data-testid="commercials-summary">
+        <div className="p-4 border-b border-slate-200 flex items-center gap-2 flex-wrap">
+          <p className="font-display text-lg font-semibold">CA par commercial</p>
+          <span className="text-xs text-slate-500">(hors annulé & litige)</span>
+          <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1"><Wallet size={12} /> Comptant</span>
+            <span className="flex items-center gap-1"><Banknote size={12} /> Financement</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-slate-200 bg-slate-50/60">
+                <th className="px-4 py-3 overline">Commercial</th>
+                <th className="px-4 py-3 overline text-right">Chiffre d’affaires</th>
+                <th className="px-3 py-3 overline text-right">Ventes</th>
+                {SOURCES.map((s) => (
+                  <th key={s.value} className="px-2.5 py-3 overline text-right">{s.label}</th>
+                ))}
+                <th className="px-3 py-3 overline text-right">Objectif</th>
+                <th className="px-4 py-3 overline">Progression</th>
+                <th className="px-3 py-3 overline text-right">Comptant</th>
+                <th className="px-3 py-3 overline text-right">Fin.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.byCommercial.map((c) => (<CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} onObjectifSaved={reloadTeamAndObjectif} />))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      )}
+
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex flex-wrap items-center gap-2" data-testid="sales-search-bar">
           <Search size={16} className="text-slate-400 shrink-0" />
@@ -1123,101 +1172,7 @@ export default function Sales() {
         </div>
       </div>
 
-      {/* 2. CA total & Objectif — with gauge.
-          iter81 : pour un commercial, le bloc affiche la performance SOCIÉTÉ (companyCmp) ;
-          les 3 KPI du haut affichent déjà sa performance PERSO. */}
-      <Card className="border-slate-200 shadow-sm overflow-hidden mt-6" data-testid="objectif-summary">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-2">
-          <Target size={16} className="text-slate-500" />
-          <p className="font-display text-lg font-semibold">CA total & objectif</p>
-          {isCommercial && <span className="text-[10px] text-slate-400 uppercase tracking-wider">Périmètre société</span>}
-        </div>
-        {(() => {
-          // iter81 : bascule sur les données société pour un commercial.
-          const gaugeCa = isCommercial ? (companyCmp?.ca_total ?? 0) : stats.total;
-          const gaugeObj = isCommercial ? (companyCmp?.objectif ?? 0) : objectif;
-          const gaugeRem = Math.max(0, (gaugeObj || 0) - (gaugeCa || 0));
-          const gaugeReached = gaugeObj > 0 && gaugeCa >= gaugeObj;
-          const canSeeCompanyCa = !isCommercial || (companyCmp?.can_view_ca !== false);
-          const canSeeCompanyObj = !isCommercial || (companyCmp?.can_view_objectif !== false);
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 p-6 items-center">
-              <ObjectifGauge ca={gaugeCa} objectif={gaugeObj} />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5">
-                  <p className="overline">CA réalisé</p>
-                  <p className="font-display text-3xl font-semibold mt-2" data-testid="total-ca">
-                    {canSeeCompanyCa ? fmtEur2(gaugeCa) : <span className="text-slate-400 italic text-lg">Masqué</span>}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">{isCommercial ? "société · hors annulé & litige" : "hors annulé & litige"}</p>
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5">
-                  <div className="flex items-center justify-between">
-                    <p className="overline">Objectif</p>
-                    {canEditObjectif && !editingObjectif && !isCommercial && (
-                      <button onClick={() => { setObjectifInput(String(objectif)); setEditingObjectif(true); }} data-testid="objectif-edit-btn" aria-label="Modifier l’objectif" className="text-slate-400 hover:text-slate-900">
-                        <Pencil size={13} />
-                      </button>
-                    )}
-                  </div>
-                  {editingObjectif && !isCommercial ? (
-                    <div className="flex items-center gap-2 mt-2">
-                      <Input type="number" value={objectifInput} onChange={(e) => setObjectifInput(e.target.value)} className="h-9" data-testid="objectif-input" />
-                      <Button size="sm" onClick={saveObjectif} data-testid="objectif-save-btn"><Check size={14} /></Button>
-                    </div>
-                  ) : (
-                    <p className="font-display text-3xl font-semibold mt-2" data-testid="objectif-value">
-                      {canSeeCompanyObj ? fmtEur2(gaugeObj) : <span className="text-slate-400 italic text-lg">Masqué</span>}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-5">
-                  <p className="overline">{gaugeReached ? "Dépassement" : "Reste à faire"}</p>
-                  <p className={`font-display text-3xl font-semibold mt-2 ${gaugeReached ? "text-emerald-700" : ""}`}>
-                    {gaugeReached ? `+ ${fmtEur2(gaugeCa - gaugeObj)}` : fmtEur2(gaugeRem)}
-                  </p>
-                  {gaugeReached && <p className="text-xs text-emerald-700 mt-1 font-medium">🎯 Objectif atteint !</p>}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-      </Card>
 
-      {/* 3. CA par commercial — with progress bars (masqué pour le rôle commercial — iter80) */}
-      {!isCommercial && (
-      <Card className="border-slate-200 shadow-sm overflow-hidden mt-6" data-testid="commercials-summary">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-2 flex-wrap">
-          <p className="font-display text-lg font-semibold">CA par commercial</p>
-          <span className="text-xs text-slate-500">(hors annulé & litige)</span>
-          <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1"><Wallet size={12} /> Comptant</span>
-            <span className="flex items-center gap-1"><Banknote size={12} /> Financement</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-slate-200 bg-slate-50/60">
-                <th className="px-4 py-3 overline">Commercial</th>
-                <th className="px-4 py-3 overline text-right">Chiffre d’affaires</th>
-                <th className="px-3 py-3 overline text-right">Ventes</th>
-                {SOURCES.map((s) => (
-                  <th key={s.value} className="px-2.5 py-3 overline text-right">{s.label}</th>
-                ))}
-                <th className="px-3 py-3 overline text-right">Objectif</th>
-                <th className="px-4 py-3 overline">Progression</th>
-                <th className="px-3 py-3 overline text-right">Comptant</th>
-                <th className="px-3 py-3 overline text-right">Fin.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.byCommercial.map((c) => (<CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} onObjectifSaved={reloadTeamAndObjectif} />))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-      )}
 
       <Sheet open={!!panelSale} onOpenChange={(v) => !v && setPanelSale(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md" data-testid="sale-side-panel">

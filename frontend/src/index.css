@@ -670,3 +670,15 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   }
   .qy-dashboard [data-testid="dashboard-grid"] > div[data-widget-key="ca_hero"] { margin-top: 0; }
 }
+
+
+/* Mode sombre : neutraliser les surfaces claires héritées. */
+.dark .bg-white,
+.dark .bg-slate-50,
+.dark .bg-slate-100 { background-color: hsl(var(--card)) !important; }
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 { color: hsl(var(--foreground)) !important; }
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 { border-color: hsl(var(--border)) !important; }

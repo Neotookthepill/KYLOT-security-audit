@@ -314,8 +314,8 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-between">
                       <div className={`text-xs font-semibold mb-1 ${isToday ? "text-blue-600" : isOff ? "text-slate-400" : "text-slate-500"}`}>{cell.getDate()}</div>
                       {canManageAbs && (
-                        <button onClick={() => openNewEvent(cellIso)} className="opacity-0 hover:opacity-100 group-hover:opacity-100 text-slate-300 hover:text-violet-600 transition" title="Nouvel événement">
-                          <Plus size={11} />
+                        <button onClick={() => openNewEvent(cellIso)} className="opacity-60 hover:opacity-100 text-slate-400 hover:text-primary transition" title="Créer un événement / une tâche" aria-label="Créer un événement ou une tâche" data-testid={`cal-quick-add-${cellIso}`}>
+                          <Plus size={12} />
                         </button>
                       )}
                     </div>
