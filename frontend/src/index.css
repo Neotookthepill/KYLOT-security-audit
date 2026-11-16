@@ -682,3 +682,24 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark .border-slate-100,
 .dark .border-slate-200,
 .dark .border-slate-300 { border-color: hsl(var(--border)) !important; }
+
+/* Intro de marque : plein écran, sans bloquer les routes protégées. */
+.qy-intro {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  background: #101828; color: #fff; opacity: 1; transition: opacity .42s ease;
+}
+.qy-intro.is-light { background: #F5F7FA; color: #101828; }
+.qy-intro.is-leaving { opacity: 0; pointer-events: none; }
+.qy-intro-inner { display: grid; justify-items: center; width: min(78vw, 390px); }
+.qy-intro-logo { width: clamp(96px, 18vw, 156px); height: auto; animation: qyIntroLogo .9s cubic-bezier(.2,.75,.2,1) both; }
+.qy-intro-word { margin-top: 1rem; font: 700 1.7rem/1 "Manrope", sans-serif; letter-spacing: -.04em; animation: qyIntroText .7s .18s ease-out both; }
+.qy-intro-line { width: 120px; height: 2px; margin-top: 1.15rem; overflow: hidden; background: rgba(145,167,242,.22); border-radius: 2px; }
+.qy-intro-line span { display: block; width: 100%; height: 100%; background: #5271FF; transform-origin: left; animation: qyIntroLine 1.25s .1s ease-out both; }
+.qy-intro-caption { margin-top: .8rem; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; opacity: .62; animation: qyIntroText .7s .35s ease-out both; }
+.qy-intro.is-light .qy-intro-line { background: #DDE3EC; }
+@keyframes qyIntroLogo { from { opacity: 0; transform: scale(.86) translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes qyIntroText { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes qyIntroLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .qy-intro-logo, .qy-intro-word, .qy-intro-line span, .qy-intro-caption { animation: none; } }
+.qy-brand-mark { background: transparent !important; box-shadow: none !important; }
+.qy-brand-mark img { object-fit: contain; }

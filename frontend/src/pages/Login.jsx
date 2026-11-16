@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowUpRight, Check, Compass } from "lucide-react";
+import IntroSplash from "@/components/IntroSplash";
 
 const PROOF = [
   "Ventes et commissions centralisées",
@@ -69,6 +70,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] text-[#111827]" data-testid="login-page">
+      <IntroSplash />
       <div className="grid min-h-screen lg:grid-cols-[1.08fr_.92fr]">
         {/* Brand panel */}
         <section className="relative hidden overflow-hidden bg-[#111827] px-12 py-12 text-[#F5F7FA] lg:flex lg:flex-col xl:px-20">
@@ -77,8 +79,8 @@ export default function Login() {
           <div className="pointer-events-none absolute -right-24 top-1/3 h-[380px] w-[380px] rounded-full border border-[#5271FF]/15" />
 
           <div className="relative flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-xl bg-[#F5F7FA]" data-testid="login-logo">
-              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full rounded-xl object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg?v=2" alt="Qylot" className="h-full w-full object-contain" />}
+            <div className="grid h-12 w-12 place-items-center overflow-visible" data-testid="login-logo">
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain" /> : <img src="/brand/qylot-logo-nuit-azur.png" alt="Qylot" className="h-full w-full object-contain" />}
             </div>
             <div>
               <div className="font-display text-[22px] font-semibold leading-none tracking-[-.02em]">{appName}</div>
@@ -112,8 +114,8 @@ export default function Login() {
         {/* Form panel */}
         <section className="flex min-h-screen flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg bg-[#111827]">
-              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain p-1" /> : <img src="/brand/qylot-mark-light.svg?v=2" alt="Qylot" className="h-full w-full object-contain" />}
+            <div className="grid h-10 w-10 place-items-center overflow-visible">
+              {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain" /> : <img src="/brand/qylot-logo-nuit-azur.png" alt="Qylot" className="h-full w-full object-contain" />}
             </div>
             <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>
           </div>

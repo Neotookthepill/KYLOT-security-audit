@@ -53,7 +53,7 @@ async function mockApi(page) {
     else if (p === '/api/absences' || p === '/api/off-days' || p === '/api/events' || p === '/api/reinterventions') body = [];
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
-  await page.addInitScript((u) => sessionStorage.setItem('kylot_auth_user', JSON.stringify(u)), user);
+  await page.addInitScript((u) => { sessionStorage.setItem('kylot_auth_user', JSON.stringify(u)); sessionStorage.setItem('qylot-intro-seen', '1'); }, user);
 }
 
 async function closeOnboarding(page) {
