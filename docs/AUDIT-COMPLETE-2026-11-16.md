@@ -196,21 +196,21 @@ Aucun mot de passe n'est affiché dans ce rapport.
 
 | ID | Sévérité | Constat | Preuve | Impact |
 |---|---|---|---|---|
-| F-01 | **P1** | Production déployée en retard | version `796d928` ; HEAD `ce7773f` ; bundle prod sans tooltip | Les correctifs vendus/testés ne sont pas en production |
+| F-01 | **Fermé** | Déploiement production | `36ad02a` ; bundle `main.f4b3a782.js` ; rapport sans doublons | Vérifié après déploiement |
 | F-02 | **P1** | MFA admin non enrôlée | `mfa_enabled=false` ; grace au 19/23 nov. ; `MFA_ENFORCE_ADMINS=true` | Blocage admin après échéance, ou contournement si enforcement désactivé |
 | F-03 | **P1** | Restauration complète non prouvée | script corrigé ; test partiel 745 docs OK ; restore complet bloqué | Rollback complet non garanti |
 | F-04 | **P1** | Dépendance email/IA à Emergent | `EMAIL_BASE_URL`, `EMERGENT_LLM_KEY` | Perte des emails et de l'IA si Emergent/abonnement s'arrête |
-| F-05 | **P3** | Suite backend complète historiquement incomplète | test corrigé ; 155/155 local ; CI complète verte sur `f7ccbb6` | fermé |
+| F-05 | **Fermé** | Suite backend complète historiquement incomplète | test corrigé ; 155/155 local ; CI complète verte | fermé |
 | F-06 | **P1** | Assistant BDC indisponible | QA 502 ; production 503 | Fonction annoncée non utilisable |
 | F-07 | **P1** | Comptes QA inutilisables au départ | 401 commercial_A/B/technicien_A ; remédié | Tests équipe bloqués avant remédiation |
 | F-08 | **P2** | Performance Commissions | 3,82 s QA / 4,91 s prod | Attente, perception de bug |
 | F-09 | **P2** | Version QA non traçable | `qa-2026-11-09` statique | Impossible de savoir quel commit est testé |
 | F-10 | **P2** | `/api/settings` lisible par technicien/prospecteur | 200 pour rôles sans `settings.view` | Exposition de objectifs, paliers, configuration interne |
 | F-11 | **P2** | Écarts de projets/qualité de données | 151 projets prod vs 86 source ; 2 groupes BDC | Réconciliation métier incomplète |
-| F-12 | **P2** | Doublons rapport en production | `Thomas` + `Thomas Delporte` | Reporting faux |
+| F-12 | **Fermé** | Doublons rapport en production | vérifié après déploiement : `Thomas Delporte`, `LA DIRECTION`, `Lucelia Delporte` | corrigé |
 | F-13 | **P2** | Abonnement non confirmé | source et code 39/69/99 | Risque de promesse commerciale erronée |
 | F-14 | **P2** | Mobile physique non testé | pas d'iPhone/Android réel | Bugs Safari/Chrome non détectés |
-| F-15 | **P2** | Correctifs UI non déployés en production | tooltip, logo, assistant, planning, DE, suppression | Écarts UX entre QA et production |
+| F-15 | **Partiel** | Correctifs UI en production | tooltip présent ; CSS planning ambre présent ; logo/assistant à vérifier visuellement | reste contrôle visuel |
 | F-16 | **P3** | Deux paires BDC/client ambiguës | mêmes client/BDC, montants/dates différents | À qualifier manuellement |
 
 **Aucun P0 démontré** : pas de contournement d'authentification, pas d'accès inter-tenant démontré, pas de secret exposé.
@@ -339,6 +339,31 @@ Audits sécurité           : 105/105
 - Restauration : script corrigé pour les sauvegardes `tar.gz` ; test ciblé 745 documents réussi.
 - Comptes QA : 11/11 connectés après réinitialisation des mots de passe QA.
 - Aucune donnée de production modifiée.
+
+## 10 bis. Vérification après déploiement du 16 novembre 2026
+
+Déploiement vérifié :
+
+```text
+production /api/version : 36ad02a9da09c44ae2ca2f430b1fd4d4d902f729
+bundle frontend         : main.f4b3a782.js
+```
+
+Contrôles effectués après déploiement :
+
+| Contrôle | Résultat |
+|---|---|
+| `/api/health` | 200 |
+| Rapport mensuel production | doublons Thomas/Lucelia/Direction corrigés |
+| Tooltip progression annuelle | présent dans le bundle |
+| CSS planning ambre | présent |
+| `/api/commissions` | 3,36–3,40 s (contre 4,9 s au premier appel) |
+| IA BDC production | 503, volontairement désactivée |
+| MFA admin | toujours non enrôlée |
+| Comptes QA | 11/11 OK |
+| Données QA | 554 clients / 195 ventes / 151 projets |
+
+Le déploiement production a donc corrigé le retard de version et les doublons de rapport.
 
 ## 11. Conclusion
 
