@@ -106,14 +106,14 @@ class SalesCommissionEdgeTests(unittest.TestCase):
         self.assertEqual(rows[0]["commission_month"], "2027-01")
         self.assertEqual(rows[0]["commission_amount"], 160.49)
 
-    def test_cancelled_and_litige_sales_are_visible_but_flagged(self):
+    def test_cancelled_and_litige_sales_are_excluded_from_commissions(self):
         for status in ("annule", "litige"):
             created = self._sale(status=status, bdc=status, amount=500, commission_rate=0.1)
             self.assertEqual(created.status_code, 200, created.text)
         rows = self.client.get("/api/commissions", headers=self.headers).json()
         statuses = {r["status"] for r in rows}
-        self.assertIn("annule", statuses)
-        self.assertIn("litige", statuses)
+        self.assertNotIn("annule", statuses)
+        self.assertNotIn("litige", statuses)
 
 
 if __name__ == "__main__":
