@@ -108,3 +108,6 @@ frontend/node_modules/.cache/default-development/12.pack
 frontend/node_modules/.cache/default-development/14.pack
 frontend/node_modules/.cache/default-development/17.pack
 frontend/node_modules/.cache/default-development/18.pack
+
+# Accès temporaires locaux
+.secrets/
