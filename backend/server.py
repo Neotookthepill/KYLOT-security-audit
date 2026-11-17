@@ -330,6 +330,10 @@ MFA_DIGITS = 6
 MFA_CHALLENGE_MINUTES = 5
 MFA_RECOVERY_CODE_COUNT = 10
 MFA_ENFORCE_ADMINS = (os.environ.get("MFA_ENFORCE_ADMINS") or "false").strip().lower() in ("1", "true", "yes")
+# Le pilote QA ne doit pas bloquer les comptes admin sur la MFA.
+# La production conserve strictement la valeur configurée dans Render.
+if _RUNTIME_ENV == "staging":
+    MFA_ENFORCE_ADMINS = False
 try:
     MFA_GRACE_DAYS = max(1, min(90, int(os.environ.get("MFA_GRACE_DAYS") or "7")))
 except ValueError:
@@ -8021,6 +8025,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "overtime_alert_threshold": s.get("overtime_alert_threshold", 30.0),
         "overtime_eligible": list(overtime_eligible) if isinstance(overtime_eligible, list) else None,
         "notifications": {k: bool(prefs.get(k, False)) for k in NOTIFICATION_CATEGORIES},
+        "mfa_required": MFA_ENFORCE_ADMINS,
         "commission_rates": _all_rates if can_view_commission_config else [],
         "dashboard_widgets": {k: bool(widgets.get(k, default_widgets[k])) for k in default_widgets},
         "sale_status_order": list(s.get("sale_status_order")) if isinstance(s.get("sale_status_order"), list) else None,

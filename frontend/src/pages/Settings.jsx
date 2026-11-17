@@ -471,7 +471,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <MfaSettingsCard />
+        {settings?.mfa_required !== false && <MfaSettingsCard />}
 
         {/* Primes par palier CA */}
         <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-bonuses">
