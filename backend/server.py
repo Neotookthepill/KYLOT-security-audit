@@ -3501,16 +3501,15 @@ async def create_sale(data: SaleIn, user: dict = Depends(get_current_user)):
         logger.warning(f"bonus check on create_sale failed: {_e}")
     # Auto-create project unless the sale is cancelled or in litigation
     if sale["status"] not in ("annule", "litige"):
-        project_date = data.desired_intervention_date
-        if project_date in ("attente_financement", "attente_14j"):
-            project_date = None
+        project_date = _sale_project_date({"desired_intervention_date": data.desired_intervention_date, "sale_date": data.sale_date})
+        is_14j = data.desired_intervention_date == "attente_14j"
         proj = with_company({
             "id": str(uuid.uuid4()),
             "sale_id": sid,
             "client_id": c["id"],
             "service": data.service,
             "prestations": prestas,
-            "status": ("en_cours" if project_date else "a_planifier"),
+            "status": ("a_planifier" if is_14j else ("en_cours" if project_date else "a_planifier")),
             "priority": "moyenne",
             "scheduled_date": project_date,
             "assigned_to": [],
@@ -3631,12 +3630,11 @@ async def update_sale(sid: str, data: SaleUpdate, user: dict = Depends(get_curre
     if sale and sale.get("status") not in ("annule", "litige"):
         existing = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}))
         if not existing:
-            pdate = sale.get("desired_intervention_date")
-            if pdate in ("attente_financement", "attente_14j"):
-                pdate = None
+            pdate = _sale_project_date(sale)
+            is_14j = sale.get("desired_intervention_date") == "attente_14j"
             proj = with_company({
                 "id": str(uuid.uuid4()), "sale_id": sid, "client_id": sale["client_id"],
-                "service": sale["service"], "status": ("en_cours" if pdate else "a_planifier"), "priority": "moyenne",
+                "service": sale["service"], "status": ("a_planifier" if is_14j else ("en_cours" if pdate else "a_planifier")), "priority": "moyenne",
                 "scheduled_date": pdate, "assigned_to": [],
                 "duration_days": 1, "notes": "", "photos": [], "created_at": now_iso(),
             }, user)
@@ -3772,6 +3770,18 @@ def _sale_intervention_date(value) -> Optional[str]:
     return None
 
 
+def _sale_project_date(sale: dict) -> Optional[str]:
+    """Date de rappel planning : J+15 pour le délai 14 jours, sinon date réelle."""
+    raw = (sale.get("desired_intervention_date") or "").strip()
+    if raw == "attente_14j":
+        try:
+            day = date.fromisoformat((sale.get("sale_date") or "")[:10])
+            return (day + timedelta(days=15)).isoformat()
+        except Exception:
+            return None
+    return _sale_intervention_date(raw)
+
+
 def _assigned_names(value) -> list[str]:
     if isinstance(value, list):
         raw = value
@@ -3784,16 +3794,19 @@ def _assigned_names(value) -> list[str]:
 
 async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
     """Aligne les chantiers d'une vente sur sa date d'intervention, sans doublon."""
-    pdate = _sale_intervention_date(sale.get("desired_intervention_date"))
+    pdate = _sale_project_date(sale)
     if not pdate:
         return 0
+    is_14j = sale.get("desired_intervention_date") == "attente_14j"
     changed = 0
     rows = await db.projects.find(cq(user, {"sale_id": sale.get("id"), "cancelled": {"$ne": True}}), {"_id": 0, "id": 1, "status": 1, "scheduled_date": 1}).to_list(10)
     for row in rows:
         fields = {}
         if row.get("scheduled_date") != pdate:
             fields["scheduled_date"] = pdate
-        if row.get("status") == "a_planifier":
+        if is_14j and row.get("status") != "a_planifier":
+            fields["status"] = "a_planifier"
+        elif not is_14j and row.get("status") == "a_planifier":
             fields["status"] = "en_cours"
         if fields:
             await db.projects.update_one(cq(user, {"id": row["id"]}), {"$set": fields})

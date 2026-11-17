@@ -30,24 +30,98 @@ function FlyTo({ target }) {
 function CitySearch({ onFound }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setBusy(true);
+      try {
+        const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(term)}&type=municipality&limit=6`);
+        const features = ((await r.json()).features || []);
+        if (!cancelled) {
+          setSuggestions(features);
+          setOpen(features.length > 0);
+        }
+      } catch (_) {
+        if (!cancelled) { setSuggestions([]); setOpen(false); }
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    }, 260);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [q]);
+
+  const choose = (feature) => {
+    const [lng, lat] = feature.geometry.coordinates;
+    const label = feature.properties.city || feature.properties.label;
+    setQ(label);
+    setSuggestions([]);
+    setOpen(false);
+    document.activeElement?.blur?.();
+    onFound({ lat, lng, label });
+  };
+
   const go = async (e) => {
     e.preventDefault();
     if (!q.trim()) return;
+    if (suggestions[0]) { choose(suggestions[0]); return; }
     setBusy(true);
     try {
       const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q.trim())}&type=municipality&limit=1`);
       const f = ((await r.json()).features || [])[0];
       if (!f) { toast.error("Ville introuvable"); return; }
-      const [lng, lat] = f.geometry.coordinates;
-      onFound({ lat, lng, label: f.properties.city || f.properties.label });
+      choose(f);
     } catch { toast.error("Recherche impossible"); }
     finally { setBusy(false); }
   };
+
   return (
-    <form onSubmit={go} className="relative w-full sm:w-72" data-testid="map-city-search-form">
+    <form onSubmit={go} className="relative w-full sm:w-72" data-testid="map-city-search-form" autoComplete="off">
       <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Aller à une ville…" className="pl-9 pr-9" data-testid="map-city-search-input" />
+      <Input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        placeholder="Aller à une ville…"
+        className="pl-9 pr-9"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        data-testid="map-city-search-input"
+      />
       {busy && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
+      {open && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-[500] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl" role="listbox" aria-label="Suggestions de villes" data-testid="map-city-suggestions">
+          {suggestions.map((f) => {
+            const label = f.properties.city || f.properties.label;
+            const context = [f.properties.postcode, f.properties.context].filter(Boolean).join(" · ");
+            return (
+              <button
+                key={f.properties.id || f.properties.label}
+                type="button"
+                role="option"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => choose(f)}
+                className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left last:border-0 hover:bg-slate-50"
+                data-testid={`map-city-suggestion-${f.properties.city || f.properties.label}`}
+              >
+                <MapPin size={13} className="shrink-0 text-primary" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-slate-900">{label}</span>
+                  {context && <span className="block truncate text-[10px] text-slate-500">{context}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </form>
   );
 }
