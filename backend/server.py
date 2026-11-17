@@ -503,9 +503,14 @@ async def _apply_overtime_eligibility_gate(u: dict) -> None:
             t_first = t_tokens[0] if t_tokens else ""
             t_email = (t.get("email") or "").strip().lower()
             # iter126 : 4 stratégies de match — full string, prénom identique, tokens inclus, email.
-            match_full = my_name_n and t_name_n and my_name_n == t_name_n
-            match_email = my_email and t_email and t_email == my_email
-            if match_full or match_email:
+            match_full = bool(my_name_n and t_name_n and my_name_n == t_name_n)
+            match_email = bool(my_email and t_email and t_email == my_email)
+            # Le compte utilisateur contient souvent le nom complet
+            # (« Sebastien Hurtel ») alors que le membre d'équipe est saisi
+            # avec le prénom seul (« Sébastien »). Sans ce rapprochement, la
+            # permission overtime était neutralisée malgré le flag admin.
+            match_first = bool(my_first and t_first and my_first == t_first)
+            if match_full or match_email or match_first:
                 if t.get("overtime_enabled"):
                     eligible = True
                 break
