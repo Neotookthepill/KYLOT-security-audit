@@ -4930,7 +4930,10 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
                 comm += amt * 0.5 * rate_1 + amt * 0.5 * rate_2
             else:
                 comm += amt * rate_1
-            ca += amt; count += 1
+            # Un commercial en scope "own" ne doit voir que SA part d'une
+            # vente DE (50 %), pas le montant complet de la vente.
+            ca += amt * (0.5 if (sales_scope == "own" and is_de) else 1.0)
+            count += 1
             _add_ranking_share(by_com, s, amt)
         return {"ca": ca, "count": count, "commission_total": comm, "by_com": by_com}
 
