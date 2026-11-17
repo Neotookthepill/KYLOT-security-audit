@@ -788,3 +788,27 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 @media (prefers-reduced-motion: reduce) {
   .qy-page-loader-mark::before, .qy-page-loader-mark img, .qy-page-loader-dots span { animation: none; }
 }
+
+/* Planning sombre : les statuts doivent rester lisibles, jamais se fondre dans le fond. */
+.dark .text-amber-950 { color: #ffe4a3 !important; }
+.dark .qy-calendar-task { opacity: 1 !important; color: #f2eee5 !important; }
+.dark .qy-calendar-task[data-status="a_planifier"] {
+  background: #243044 !important;
+  border-color: #3a4a62 !important;
+  color: #e6edf5 !important;
+}
+.dark .qy-calendar-task[data-status="en_cours"] {
+  background: #3a2d15 !important;
+  border-color: #6b5524 !important;
+  color: #ffe4a3 !important;
+}
+.dark .qy-calendar-task[data-status="termine"] {
+  background: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: #ffffff !important;
+}
+.dark .qy-calendar-task[data-status="encaisse"] {
+  background: #123229 !important;
+  border-color: #245c4c !important;
+  color: #a7f3d0 !important;
+}

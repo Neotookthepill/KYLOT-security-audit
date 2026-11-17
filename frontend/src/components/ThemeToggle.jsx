@@ -15,7 +15,6 @@ export default function ThemeToggle({ tone = "light", className = "", compact = 
       onClick={() => setTheme(next)}
       data-testid="theme-toggle"
       aria-label={label}
-      title={`${label} — cliquer pour changer`}
       className={cn(
         "inline-flex items-center justify-center rounded-lg transition-colors",
         compact ? "h-9 w-9" : "h-9 gap-2 px-2.5 text-xs font-medium",
