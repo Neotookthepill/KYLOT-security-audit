@@ -28,9 +28,9 @@ const ALL_FEATURES = [
 ];
 
 const PLANS = [
-  { key: "essentiel", lookup_key: "keylot_essentiel_monthly", label: "Essentiel", price: 59.99, max: 3, range: "1 à 3 utilisateurs", tagline: "L'essentiel pour bien démarrer" },
-  { key: "equipe", lookup_key: "keylot_equipe_monthly", label: "Équipe", price: 99.99, max: 8, range: "4 à 8 utilisateurs", popular: true, tagline: "Pour les équipes en pleine croissance" },
-  { key: "entreprise", lookup_key: "keylot_entreprise_monthly", label: "Entreprise", price: 139.99, max: null, range: "9 à 15 utilisateurs", tagline: "Sans limite d'utilisateurs (+10 € HT/u au-delà de 15)" },
+  { key: "essentiel", lookup_key: "keylot_essentiel_monthly", label: "Essentiel", price: 59.99, engagement12: 49.99, annualMonthly: 44.99, annualTotal: 539.88, max: 3, range: "1 à 3 utilisateurs", tagline: "L'essentiel pour bien démarrer" },
+  { key: "equipe", lookup_key: "keylot_equipe_monthly", label: "Équipe", price: 99.99, engagement12: 89.99, annualMonthly: 84.99, annualTotal: 1019.88, max: 8, range: "4 à 8 utilisateurs", popular: true, tagline: "Pour les équipes en pleine croissance" },
+  { key: "entreprise", lookup_key: "keylot_entreprise_monthly", label: "Entreprise", price: 139.99, engagement12: 129.99, annualMonthly: 124.99, annualTotal: 1499.88, max: null, range: "9 à 15 utilisateurs", tagline: "Sans limite d'utilisateurs (+10 € HT/u au-delà de 15)" },
 ];
 
 const fmtPrice = (n) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
@@ -183,6 +183,10 @@ export default function Abonnement() {
                   <span className="text-sm text-slate-500 ml-1">HT / mois</span>
                 </div>
                 <p className="text-sm text-slate-700 font-medium mt-1">{p.range}</p>
+                <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-[11px] leading-snug text-slate-600">
+                  <p><span className="font-semibold text-slate-800">{fmtPrice(p.engagement12)} € HT/mois</span> · Engagement 12 mois</p>
+                  <p><span className="font-semibold text-slate-800">{fmtPrice(p.annualMonthly)} € HT/mois équiv.</span> · {fmtPrice(p.annualTotal)} € HT payés en une fois</p>
+                </div>
                 {p.key === "entreprise" && (
                   <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                     <ArrowRight size={11} /> Puis <strong className="mx-0.5">+10 € HT / mois</strong> par utilisateur supplémentaire au-delà de 15.

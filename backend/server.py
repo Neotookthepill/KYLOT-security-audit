@@ -6828,7 +6828,9 @@ async def dashboard_annual(year: int = Query(..., ge=2000, le=2100), user: dict 
     dir_keys = [k for k in by_key if k == "direction" or k.startswith("direction ") or k == "la direction"]
     dir_canonical = next((by_key[k] for k in ("la direction", "direction client", "direction") if k in by_key), None)
     if dir_canonical:
-        for k in dir_keys: aliases[k] = dir_canonical
+        # Le client veut une seule ligne « Direction », pas « LA DIRECTION ».
+        dir_display = "Direction"
+        for k in dir_keys: aliases[k] = dir_display
     full_by_first = {}
     for k, display in by_key.items():
         if " " in k and k not in dir_keys:
