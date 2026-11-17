@@ -8976,9 +8976,9 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 PLAN_USER_LIMITS = {
     # iter168 : grille tarifaire simplifiée (v2) — 100 % des fonctionnalités partout,
     # seul le nombre d'utilisateurs actifs varie. Au-delà de 15 : Entreprise + 10 €/u.
-    "keylot_essentiel_monthly": 3,     # 39 € HT
-    "keylot_equipe_monthly": 8,        # 69 € HT
-    "keylot_entreprise_monthly": None, # 99 € HT + 10 €/u au-delà de 15
+    "keylot_essentiel_monthly": 3,     # 59,99 € HT
+    "keylot_equipe_monthly": 8,        # 99,99 € HT
+    "keylot_entreprise_monthly": None, # 139,99 € HT + 10 €/u au-delà de 15
     # Rétro-compatibilité anciens plans
     "keylot_small_monthly": 3,
     "keylot_medium_monthly": 8,
@@ -8986,9 +8986,9 @@ PLAN_USER_LIMITS = {
 }
 
 PLAN_PRICING = {
-    "keylot_essentiel_monthly": {"price": 39, "label": "Essentiel", "max_users": 3},
-    "keylot_equipe_monthly": {"price": 69, "label": "Équipe", "max_users": 8},
-    "keylot_entreprise_monthly": {"price": 99, "label": "Entreprise", "max_users": None, "extra_price_per_user": 10, "extra_threshold": 15},
+    "keylot_essentiel_monthly": {"price": 59.99, "label": "Essentiel", "max_users": 3},
+    "keylot_equipe_monthly": {"price": 99.99, "label": "Équipe", "max_users": 8},
+    "keylot_entreprise_monthly": {"price": 139.99, "label": "Entreprise", "max_users": None, "extra_price_per_user": 10, "extra_threshold": 15},
 }
 
 # Rétro-compatibilité — les anciens lookup_keys pointent vers les nouveaux labels.
@@ -9015,7 +9015,7 @@ def _suggested_plan(active_users: int) -> str:
 
 
 def _compute_price(plan: str, active_users: int) -> dict:
-    """iter168 : Entreprise = 99 € base + 10 €/u au-delà de 15 utilisateurs."""
+    """iter168 : Entreprise = 139,99 € base + 10 €/u au-delà de 15 utilisateurs."""
     p = _resolve_plan(plan)
     info = PLAN_PRICING.get(p) or PLAN_PRICING["keylot_essentiel_monthly"]
     base = info["price"]
@@ -9454,9 +9454,9 @@ async def subscription_catalog(user: dict = Depends(get_current_user)):
     return {
         "trial_days": TRIAL_DAYS,
         "plans": [
-            {"key": "essentiel", "lookup_key": "keylot_essentiel_monthly", "label": "Essentiel", "price": 39, "max_users": 3, "range_label": "1 à 3 utilisateurs"},
-            {"key": "equipe", "lookup_key": "keylot_equipe_monthly", "label": "Équipe", "price": 69, "max_users": 8, "range_label": "4 à 8 utilisateurs", "popular": True},
-            {"key": "entreprise", "lookup_key": "keylot_entreprise_monthly", "label": "Entreprise", "price": 99, "max_users": None, "range_label": "9 à 15 utilisateurs (puis +10 € HT / mois par utilisateur supplémentaire)", "extra_price_per_user": 10, "extra_threshold": 15},
+            {"key": "essentiel", "lookup_key": "keylot_essentiel_monthly", "label": "Essentiel", "price": 59.99, "max_users": 3, "range_label": "1 à 3 utilisateurs"},
+            {"key": "equipe", "lookup_key": "keylot_equipe_monthly", "label": "Équipe", "price": 99.99, "max_users": 8, "range_label": "4 à 8 utilisateurs", "popular": True},
+            {"key": "entreprise", "lookup_key": "keylot_entreprise_monthly", "label": "Entreprise", "price": 139.99, "max_users": None, "range_label": "9 à 15 utilisateurs (puis +10 € HT / mois par utilisateur supplémentaire)", "extra_price_per_user": 10, "extra_threshold": 15},
         ],
         "notice": "Toutes les fonctionnalités QYLOT sont incluses dans chaque formule. Votre abonnement évolue simplement avec la taille de votre équipe.",
     }

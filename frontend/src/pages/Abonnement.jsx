@@ -28,10 +28,12 @@ const ALL_FEATURES = [
 ];
 
 const PLANS = [
-  { key: "essentiel", lookup_key: "keylot_essentiel_monthly", label: "Essentiel", price: 39, max: 3, range: "1 à 3 utilisateurs", tagline: "L'essentiel pour bien démarrer" },
-  { key: "equipe", lookup_key: "keylot_equipe_monthly", label: "Équipe", price: 69, max: 8, range: "4 à 8 utilisateurs", popular: true, tagline: "Pour les équipes en pleine croissance" },
-  { key: "entreprise", lookup_key: "keylot_entreprise_monthly", label: "Entreprise", price: 99, max: null, range: "9 à 15 utilisateurs", tagline: "Sans limite d'utilisateurs (+10 € HT/u au-delà de 15)" },
+  { key: "essentiel", lookup_key: "keylot_essentiel_monthly", label: "Essentiel", price: 59.99, max: 3, range: "1 à 3 utilisateurs", tagline: "L'essentiel pour bien démarrer" },
+  { key: "equipe", lookup_key: "keylot_equipe_monthly", label: "Équipe", price: 99.99, max: 8, range: "4 à 8 utilisateurs", popular: true, tagline: "Pour les équipes en pleine croissance" },
+  { key: "entreprise", lookup_key: "keylot_entreprise_monthly", label: "Entreprise", price: 139.99, max: null, range: "9 à 15 utilisateurs", tagline: "Sans limite d'utilisateurs (+10 € HT/u au-delà de 15)" },
 ];
+
+const fmtPrice = (n) => new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
 
 const fmtDate = (iso) => {
   if (!iso) return "—";
@@ -116,11 +118,11 @@ export default function Abonnement() {
               </div>
               <p className="font-display text-2xl font-semibold mt-1">
                 {currentPlan.label}
-                <span className="text-slate-500 font-normal text-lg"> — {totalPrice ?? currentPlan.price} € HT / mois</span>
+                <span className="text-slate-500 font-normal text-lg"> — {fmtPrice(totalPrice ?? currentPlan.price)} € HT / mois</span>
               </p>
               {extraUsers > 0 && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Base Entreprise {currentPlan.price} € + {extraUsers} utilisateur{extraUsers > 1 ? "s" : ""} supplémentaire{extraUsers > 1 ? "s" : ""} × 10 € = <strong>{extraPrice} €</strong> HT/mois d'extras.
+                  Base Entreprise {fmtPrice(currentPlan.price)} € + {extraUsers} utilisateur{extraUsers > 1 ? "s" : ""} supplémentaire{extraUsers > 1 ? "s" : ""} × 10 € = <strong>{extraPrice} €</strong> HT/mois d'extras.
                 </p>
               )}
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
@@ -176,7 +178,7 @@ export default function Abonnement() {
               <p className="text-sm text-slate-600 mt-1">{p.tagline}</p>
               <div className="mt-3">
                 <div className="flex items-baseline gap-1">
-                  <span className="font-display text-5xl font-semibold">{p.price}</span>
+                  <span className="font-display text-5xl font-semibold">{fmtPrice(p.price)}</span>
                   <span className="font-display text-2xl">€</span>
                   <span className="text-sm text-slate-500 ml-1">HT / mois</span>
                 </div>

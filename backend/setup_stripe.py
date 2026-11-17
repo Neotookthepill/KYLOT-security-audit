@@ -12,19 +12,19 @@ CATALOG = [
         "emergent_product_id": "keylot_essentiel",
         "name": "KYLOT — Essentiel",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_essentiel_monthly", "amount": 3900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_essentiel_monthly", "amount": 5999, "currency": "eur", "interval": "month"}],
     },
     {
         "emergent_product_id": "keylot_equipe",
         "name": "KYLOT — Équipe",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_equipe_monthly", "amount": 6900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_equipe_monthly", "amount": 9999, "currency": "eur", "interval": "month"}],
     },
     {
         "emergent_product_id": "keylot_entreprise",
         "name": "KYLOT — Entreprise",
         "tax_code": "txcd_10103001",
-        "prices": [{"lookup_key": "keylot_entreprise_monthly", "amount": 9900, "currency": "eur", "interval": "month"}],
+        "prices": [{"lookup_key": "keylot_entreprise_monthly", "amount": 13999, "currency": "eur", "interval": "month"}],
     },
 ]
 
