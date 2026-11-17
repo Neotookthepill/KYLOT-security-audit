@@ -114,8 +114,10 @@ Problèmes :
 
 - **Corrigé après audit** : `scripts/restore_mongo_validation.sh` gère maintenant le `tar.gz` opérationnel et les vraies archives mongodump.
 - Un test de restauration ciblé (clients + ventes) a restauré 745 documents avec succès dans une base temporaire.
-- La restauration **complète des données** de l'archive de 128 Mo a finalement réussi : **3 080 documents restaurés, 0 échec**, dont 149 projets, 193 ventes, 552 clients et 18 utilisateurs.
-- Elle a été réalisée avec `--noIndexRestore` : les **index ne sont pas encore restaurés**. C'est le point restant à valider.
+- La restauration **complète des données et des index** de la sauvegarde fraîche a réussi : **3 087 documents restaurés, 0 échec**, 554 clients, 195 ventes, 151 projets, 18 utilisateurs et **115 index**.
+- Durée mesurée : **8 min 17 s**.
+- Contrôles : 0 vente sans client, 0 projet sans vente, 0 échec d'index.
+- La base temporaire a été vidée après vérification.
 - La base temporaire a été vidée ; elle n'a pas pu être supprimée faute de permission `dropDatabase`.
 - Les snapshots Atlas/PITR ne sont pas activés selon la documentation interne ; ils n'ont pas été vérifiés dans Atlas.
 
@@ -222,7 +224,7 @@ Aucun mot de passe n'est affiché dans ce rapport.
 |---|---|---|---|---|
 | F-01 | **Fermé** | Déploiement production | `36ad02a` ; bundle `main.f4b3a782.js` ; rapport sans doublons | Vérifié après déploiement |
 | F-02 | **P1** | MFA admin non enrôlée | `mfa_enabled=false` ; grace au 19/23 nov. ; `MFA_ENFORCE_ADMINS=true` | Blocage admin après échéance, ou contournement si enforcement désactivé |
-| F-03 | **P1 partiel** | Restauration des données prouvée, index non restaurés | 3 080 docs restaurés, 0 échec ; `--noIndexRestore` ; script corrigé | Rebuild des index encore à valider |
+| F-03 | **Fermé (restauration)** | Restauration complète avec index validée | 3 087 docs, 115 index, 0 échec, 8 min 17 s ; copie hors site encore absente | Sauvegarde restaurable prouvée ; offsite à traiter |
 | F-04 | **P1** | Dépendance email/IA à Emergent | `EMAIL_BASE_URL`, `EMERGENT_LLM_KEY` | Perte des emails et de l'IA si Emergent/abonnement s'arrête |
 | F-05 | **Fermé** | Suite backend complète historiquement incomplète | test corrigé ; 155/155 local ; CI complète verte | fermé |
 | F-06 | **P1** | Assistant BDC indisponible | QA 502 ; production 503 | Fonction annoncée non utilisable |

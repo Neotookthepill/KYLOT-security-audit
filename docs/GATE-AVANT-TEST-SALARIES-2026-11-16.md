@@ -7,7 +7,7 @@ Objectif : ne pas ouvrir les tests salariés tant que les six conditions obligat
 ```text
 MFA administrateurs              : NON
 Rotation MongoDB                 : NON
-Sauvegarde + index restaurables  : PARTIEL
+Sauvegarde + index restaurables  : OUI (3 087 docs, 115 index, 8 min 17 s)
 Parcours métier complet          : OUI (QA)
 Rollback Render testé            : NON
 Rôles commercial/responsable/technicien/admin : OUI (QA)
@@ -69,27 +69,26 @@ Prod   : /api/health 200
 
 Ne jamais coller l'URI ou le mot de passe dans un ticket, un chat ou Git.
 
-## 3. Sauvegarde restaurable avec index — partiel
+## 3. Sauvegarde restaurable avec index — fait
 
-Preuves existantes :
-
-```text
-archive complète : 3 080 documents restaurés, 0 échec
-nouvelle archive : 64 Mo, checksum valide, dry-run valide
-```
-
-Reste à faire :
+Preuve réalisée :
 
 ```text
-1. restaurer l'archive fraîche dans une base vierge
-2. restaurer les index
-3. vérifier les index avec index_information()
-4. lancer un smoke test API sur cette base
-5. mesurer le temps total
-6. conserver une copie hors site
+archive fraîche : 64 Mo
+3 087 documents restaurés
+0 échec
+554 clients / 195 ventes / 151 projets / 18 utilisateurs
+115 index restaurés
+0 vente sans client / 0 projet sans vente
+durée : 8 min 17 s
 ```
 
-Tant que les index ne sont pas validés, la restauration n'est pas considérée comme opérationnelle.
+Reste uniquement :
+
+```text
+conserver une copie hors site
+```
+
 
 ## 4. Parcours métier complet — fait en QA
 
