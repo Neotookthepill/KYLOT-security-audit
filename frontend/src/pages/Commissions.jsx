@@ -218,13 +218,14 @@ export default function Commissions() {
   const monthTabs = useMemo(() => {
     const now = currentMonth();
     const arr = [];
-    // iter205 : mois passés d'abord (plus ancien → plus récent), puis courant, puis futurs
-    for (let i = pastMonths; i >= 1; i--) {
+    // Le mois courant doit être le premier onglet et la vue par défaut.
+    // Les mois précédents restent accessibles juste après.
+    arr.push({ key: now, label: `Ce mois — ${monthLabel(now)}` });
+    for (let i = 1; i <= pastMonths; i++) {
       const k = shiftMonth(now, -i);
       const prefix = i === 1 ? "Mois préc." : `-${i} mois`;
       arr.push({ key: k, label: `${prefix} — ${monthLabel(k)}` });
     }
-    arr.push({ key: now, label: `Ce mois — ${monthLabel(now)}` });
     for (let i = 1; i <= extraMonths; i++) {
       const k = shiftMonth(now, i);
       const prefix = i === 1 ? "Mois prochain" : `+${i} mois`;

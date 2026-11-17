@@ -6807,6 +6807,49 @@ async def dashboard_annual(year: int = Query(..., ge=2000, le=2100), user: dict 
     team = await db.team_members.find(cq(user, {"type": "commercial"}), {"_id": 0, "name": 1, "objectif": 1}).to_list(500)
     obj_map = {(t.get("name") or ""): float(t.get("objectif") or 0) for t in team}
 
+    # Regroupe les alias de noms pour la progression annuelle, comme pour le
+    # rapport mensuel : « Thomas »/« Thomas Delporte », « Direction client »/
+    # « LA DIRECTION », etc. Sans cela deux lignes apparaissent pour la même
+    # personne dans les graphiques.
+    import unicodedata as _ud
+    def _annual_key(value):
+        text = " ".join((value or "").replace("\u00a0", " ").split())
+        return " ".join(_ud.normalize("NFKD", text).encode("ascii", "ignore").decode().lower().split())
+    raw_names = set(bucket.keys()) | set(obj_map.keys())
+    if scope != "own":
+        async for u in db.users.find(cq(user, {"role": {"$in": ["commercial", "responsable"]}}), {"_id": 0, "name": 1}):
+            nm = (u.get("name") or "").strip()
+            if nm: raw_names.add(nm)
+    by_key = {}
+    for nm in raw_names:
+        k = _annual_key(nm)
+        if k: by_key.setdefault(k, nm)
+    aliases = dict(by_key)
+    dir_keys = [k for k in by_key if k == "direction" or k.startswith("direction ") or k == "la direction"]
+    dir_canonical = next((by_key[k] for k in ("la direction", "direction client", "direction") if k in by_key), None)
+    if dir_canonical:
+        for k in dir_keys: aliases[k] = dir_canonical
+    full_by_first = {}
+    for k, display in by_key.items():
+        if " " in k and k not in dir_keys:
+            full_by_first.setdefault(k.split(" ", 1)[0], set()).add(display)
+    for k, display in by_key.items():
+        if " " not in k and k not in dir_keys and len(full_by_first.get(k, set())) == 1:
+            aliases[k] = next(iter(full_by_first[k]))
+    def _annual_canonical(value):
+        k = _annual_key(value)
+        return aliases.get(k, value)
+    merged_bucket = defaultdict(lambda: [0.0] * 12)
+    for nm, values in bucket.items():
+        target = _annual_canonical(nm)
+        for i, v in enumerate(values): merged_bucket[target][i] += v
+    bucket = merged_bucket
+    merged_obj = {}
+    for nm, val in obj_map.items():
+        merged_obj[_annual_canonical(nm)] = val
+    obj_map = merged_obj
+    known_names = {_annual_canonical(n) for n in raw_names}
+
     # iter196 — Confidentialité : un commercial (scope "own") ne voit QUE SA propre ligne.
     # `known_names` doit donc être restreint à son propre nom (et à ceux issus du bucket
     # calculé sur SES ventes). En scope "team"/"all" (admin/responsable), on ajoute tous
@@ -6822,6 +6865,10 @@ async def dashboard_annual(year: int = Query(..., ge=2000, le=2100), user: dict 
         async for u in db.users.find(cq(user, {"role": {"$in": ["commercial", "responsable"]}}), {"_id": 0, "name": 1}):
             nm = u.get("name") or ""
             if nm: known_names.add(nm)
+    # Les noms ajoutés depuis les users/team doivent aussi passer par les alias
+    # (notamment « Direction Client » → « LA DIRECTION »).
+    known_names = {_annual_canonical(n) for n in known_names if n}
+
     # Dédoublonnage : un prénom seul (« Thomas ») fusionne dans le nom complet unique (« Thomas Delporte »)
     import unicodedata as _ud
     def _nk(x):

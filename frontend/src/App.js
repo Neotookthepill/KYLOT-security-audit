@@ -120,7 +120,7 @@ function AppRoutes() {
         <Route path="journal" element={<PermRoute perm={["users","manage"]}><Journal /></PermRoute>} />
         <Route path="entreprises" element={<PermRoute superOnly><Companies /></PermRoute>} />
         <Route path="parametres" element={<PermRoute perm={["settings","modify"]}><Settings /></PermRoute>} />
-        <Route path="abonnement" element={<PermRoute perm={["settings","modify"]}><Abonnement /></PermRoute>} />
+        <Route path="abonnement" element={<PermRoute perm={["settings","modify"]} allowRoles={["admin","super_admin"]}><Abonnement /></PermRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

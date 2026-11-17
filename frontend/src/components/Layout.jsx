@@ -208,7 +208,7 @@ export default function Layout() {
             <ChevronsRight size={17} />
           </button>
         )}
-        {!isSuper && (
+        {(user?.role === "admin" || user?.role === "super_admin") && !isSuper && (
           <NavLink to="/abonnement" data-testid="nav-subscription" onClick={closeMobile} title={compact ? "Abonnement" : undefined} className={({ isActive }) => cn("qy-nav-item", isActive && "is-active", compact && "justify-center px-0")}>
             <Star size={17} strokeWidth={1.9} />
             {!compact && <span>Abonnement</span>}
