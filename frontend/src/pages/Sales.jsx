@@ -1147,14 +1147,63 @@ export default function Sales() {
             const st = statusMap[s.status] || STATUS_MAP[s.status];
             const commercial = s.commercial || "—";
             return (
-              <button
+              <div
                 key={`mobile-${s.id}`}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => setPanelSale(s)}
-                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50"
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPanelSale(s); } }}
+                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50 cursor-pointer"
                 data-testid={`sale-mobile-row-${s.id}`}
               >
-                <span className={`inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || s.status}</span>
+                {canEditSaleAny ? (
+                  <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold hover:ring-2 hover:ring-slate-300 transition ${st?.cls || "bg-slate-200 text-slate-700"}`}
+                          data-testid={`sale-mobile-status-trigger-${s.id}`}
+                          aria-label="Changer le statut de la vente"
+                          title="Cliquer pour changer le statut"
+                        >
+                          {st?.label || s.status}
+                          <ChevronDown size={10} className="opacity-70" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-52">
+                        <div className="flex items-center justify-between pr-1">
+                          <DropdownMenuLabel className="text-xs text-slate-500">Changer le statut</DropdownMenuLabel>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setStatusManagerOpen(true); }}
+                            className="h-6 w-6 grid place-items-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition"
+                            title="Modifier les statuts"
+                            data-testid={`sale-mobile-status-edit-${s.id}`}
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        </div>
+                        <DropdownMenuSeparator />
+                        {statuses.map((opt) => (
+                          <DropdownMenuItem
+                            key={opt.value}
+                            onSelect={() => changeStatus(s.id, opt.value)}
+                            disabled={opt.value === s.status}
+                            className="text-xs cursor-pointer"
+                            data-testid={`sale-mobile-status-option-${s.id}-${opt.value}`}
+                          >
+                            <span className={`inline-block h-2 w-2 rounded-full mr-2 ${opt.cls.split(" ")[0]}`} />
+                            <span className="flex-1">{opt.label}</span>
+                            {opt.value === s.status && <Check size={12} className="text-slate-500" />}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                ) : (
+                  <span className={`inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || s.status}</span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-sm font-semibold text-slate-900">{s.client_name || "—"}</span>
@@ -1165,7 +1214,7 @@ export default function Sales() {
                     <span className="shrink-0">Détail ›</span>
                   </span>
                 </span>
-              </button>
+              </div>
             );
           })}
         </div>
