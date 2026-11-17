@@ -254,6 +254,30 @@ function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
   );
 }
 
+function StatusSelect({ sale, statuses, statusMap, canEdit, onChange }) {
+  const st = statusMap[sale.status] || STATUS_MAP[sale.status];
+  const classes = st?.cls || "bg-slate-200 text-slate-700";
+  if (!canEdit) {
+    return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${classes}`} data-testid={`sale-status-trigger-${sale.id}`}>{st?.label || sale.status}</span>;
+  }
+  return (
+    <span className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <select
+        value={sale.status}
+        onChange={(e) => { e.stopPropagation(); onChange(sale.id, e.target.value); }}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Changer le statut de la vente"
+        title="Changer le statut"
+        data-testid={`sale-status-trigger-${sale.id}`}
+        className={`appearance-none cursor-pointer rounded-md py-0.5 pl-2 pr-6 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${classes}`}
+      >
+        {statuses.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+      <ChevronDown size={11} className="pointer-events-none absolute right-1.5 opacity-70" aria-hidden="true" />
+    </span>
+  );
+}
+
 export default function Sales() {
   const { user, can, loading: authLoading } = useAuth();
   const { commerciaux, reload: reloadTeam } = useTeam();
@@ -952,55 +976,7 @@ export default function Sales() {
                     data-testid={`sale-row-${s.id}`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {canEditSaleAny ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold hover:ring-2 hover:ring-slate-300 transition ${st?.cls || "bg-slate-200 text-slate-700"}`}
-                              data-testid={`sale-status-trigger-${s.id}`}
-                              title="Cliquer pour changer le statut"
-                            >
-                              {st?.label || s.status}
-                              <ChevronDown size={11} className="opacity-70" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="w-52">
-                            <div className="flex items-center justify-between pr-1">
-                              <DropdownMenuLabel className="text-xs text-slate-500">Changer le statut</DropdownMenuLabel>
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setStatusManagerOpen(true); }}
-                                className="h-6 w-6 grid place-items-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition"
-                                title="Modifier les statuts (renommer, couleur, ajouter, supprimer)"
-                                data-testid={`sale-status-edit-${s.id}`}
-                              >
-                                <Pencil size={12} />
-                              </button>
-                            </div>
-                            <DropdownMenuSeparator />
-                            {statuses.map((opt) => (
-                              <DropdownMenuItem
-                                key={opt.value}
-                                onSelect={() => changeStatus(s.id, opt.value)}
-                                disabled={opt.value === s.status}
-                                className="text-xs cursor-pointer"
-                                data-testid={`sale-status-option-${s.id}-${opt.value}`}
-                              >
-                                <span className={`inline-block h-2 w-2 rounded-full mr-2 ${opt.cls.split(" ")[0]}`} />
-                                <span className="flex-1">{opt.label}</span>
-                                {opt.value === s.status && <Check size={12} className="text-slate-500" />}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}
-                          data-testid={`sale-status-trigger-${s.id}`}
-                        >
-                          {st?.label || s.status}
-                        </span>
-                      )}
+                      <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} />
                       {/* iter185 : le badge « Il reste Xj / Jour J / Délai dépassé » n'apparaît
                           QUE tant que le statut est encore « En attente prog » (attente_prog).
                           Dès que le statut bascule (En attente FI, Chèque récupéré, Annulé,
@@ -1156,54 +1132,7 @@ export default function Sales() {
                 className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50 cursor-pointer"
                 data-testid={`sale-mobile-row-${s.id}`}
               >
-                {canEditSaleAny ? (
-                  <span onClick={(e) => e.stopPropagation()} className="shrink-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className={`inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold hover:ring-2 hover:ring-slate-300 transition ${st?.cls || "bg-slate-200 text-slate-700"}`}
-                          data-testid={`sale-mobile-status-trigger-${s.id}`}
-                          aria-label="Changer le statut de la vente"
-                          title="Cliquer pour changer le statut"
-                        >
-                          {st?.label || s.status}
-                          <ChevronDown size={10} className="opacity-70" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-52">
-                        <div className="flex items-center justify-between pr-1">
-                          <DropdownMenuLabel className="text-xs text-slate-500">Changer le statut</DropdownMenuLabel>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setStatusManagerOpen(true); }}
-                            className="h-6 w-6 grid place-items-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition"
-                            title="Modifier les statuts"
-                            data-testid={`sale-mobile-status-edit-${s.id}`}
-                          >
-                            <Pencil size={12} />
-                          </button>
-                        </div>
-                        <DropdownMenuSeparator />
-                        {statuses.map((opt) => (
-                          <DropdownMenuItem
-                            key={opt.value}
-                            onSelect={() => changeStatus(s.id, opt.value)}
-                            disabled={opt.value === s.status}
-                            className="text-xs cursor-pointer"
-                            data-testid={`sale-mobile-status-option-${s.id}-${opt.value}`}
-                          >
-                            <span className={`inline-block h-2 w-2 rounded-full mr-2 ${opt.cls.split(" ")[0]}`} />
-                            <span className="flex-1">{opt.label}</span>
-                            {opt.value === s.status && <Check size={12} className="text-slate-500" />}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </span>
-                ) : (
-                  <span className={`inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || s.status}</span>
-                )}
+                <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-sm font-semibold text-slate-900">{s.client_name || "—"}</span>
