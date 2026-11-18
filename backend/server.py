@@ -3973,7 +3973,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
         # Load projects for this company (no assigned_to prefilter — do it in Python)
         # Ne jamais charger les base64 des photos dans une liste : 200+ Mo de
         # data-URI suffisent à faire tomber une instance Render 512 Mo.
-        all_projs = await db.projects.find(q, {"_id": 0, "photos.src": 0}).sort("created_at", -1).to_list(5000)
+        all_projs = await db.projects.find(q, {"_id": 0, "photos": 0}).sort("created_at", -1).to_list(5000)
         projects = []
         for p in all_projs:
             at = p.get("assigned_to")
@@ -3996,7 +3996,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
                 {"client_id": {"$in": client_ids}},
                 {"sale_id": {"$in": sale_ids}},
             ]
-        cursor = db.projects.find(q, {"_id": 0, "photos.src": 0}).sort("created_at", -1).skip(offset)
+        cursor = db.projects.find(q, {"_id": 0, "photos": 0}).sort("created_at", -1).skip(offset)
         if limit > 0:
             cursor = cursor.limit(limit)
         projects = await cursor.to_list(limit if limit > 0 else 5000)
@@ -4038,15 +4038,11 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     # login lors du chargement du Planning. Les photos complètes sont récupérées à la
     # demande via `GET /api/projects/{pid}` (ouverture de la fiche chantier).
     for p in projects:
-        raw_photos = p.get("photos") or []
-        slim = []
-        for ph in raw_photos:
-            if isinstance(ph, dict):
-                slim.append({k: v for k, v in ph.items() if k != "src"})
-            else:
-                slim.append({})  # strip raw string
-        p["photo_count"] = len(raw_photos)
-        p["photos"] = slim
+        # La projection ci-dessus exclut volontairement les base64 de la liste :
+        # les charger faisait dépasser la mémoire Render sur les gros chantiers.
+        # Le détail GET /projects/{pid} renvoie les photos complètes.
+        p["photo_count"] = int(p.get("photo_count") or 0)
+        p["photos"] = []
     return projects
 
 
