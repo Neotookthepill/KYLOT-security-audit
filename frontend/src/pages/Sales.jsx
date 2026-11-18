@@ -254,6 +254,13 @@ function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
   );
 }
 
+const PROJECT_COMPLETION_SALE_STATUSES = new Set([
+  "commercial_cheque",
+  "argent_recupere",
+  "stat_mtkktzqu",
+  "stat_mtkktyzi",
+]);
+
 function StatusSelect({ sale, statuses, statusMap, canEdit, onChange }) {
   const st = statusMap[sale.status] || STATUS_MAP[sale.status];
   const classes = st?.cls || "bg-slate-200 text-slate-700";
@@ -421,12 +428,19 @@ export default function Sales() {
       throw err;
     }
   };
-  const changeStatus = async (id, status) => {
+  const applyStatusChange = async (id, status, { projectId = null, markProjectDone = false } = {}) => {
     // Optimistic UI
     setSales((prev) => prev.map((x) => (x.id === id ? { ...x, status } : x)));
     try {
       await api.put(`/sales/${id}`, { status });
-      toast.success(`Statut mis à jour → ${statusMap[status]?.label || STATUS_MAP[status]?.label || status}`);
+      let projectUpdated = false;
+      if (markProjectDone && projectId) {
+        await api.put(`/projects/${projectId}`, { status: "encaisse" });
+        projectUpdated = true;
+      }
+      toast.success(projectUpdated
+        ? "Statut mis à jour · chantier passé à Terminé"
+        : `Statut mis à jour → ${statusMap[status]?.label || STATUS_MAP[status]?.label || status}`);
       await load(pageOffset);
       // iter52: broadcast pour que Kanban / Planning / Stock rafraîchissent sans reconnexion
       window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id, status } }));
@@ -434,6 +448,24 @@ export default function Sales() {
       toast.error(formatApiError(err));
       load();
     }
+  };
+
+  const changeStatus = async (id, status) => {
+    // Certains statuts d'encaissement doivent proposer de clôturer le chantier
+    // s'il est encore "À encaisser" dans le planning.
+    if (PROJECT_COMPLETION_SALE_STATUSES.has(status)) {
+      try {
+        const { data } = await api.get("/planning/projects?limit=5000");
+        const project = (data || []).find((p) => p.sale_id === id && !p.cancelled && p.status === "termine");
+        if (project) {
+          setPendingProjectCompletion({ saleId: id, status, projectId: project.id });
+          return;
+        }
+      } catch (_) {
+        // En cas d'échec de lecture, on enregistre seulement le statut de la vente.
+      }
+    }
+    await applyStatusChange(id, status);
   };
   const loadObjectif = async () => {
     const r = await api.get("/settings");
@@ -608,6 +640,7 @@ export default function Sales() {
   }, [isCommercial, period]);
   const commercialOptions = useMemo(() => (commerciaux || []).map((c) => ({ value: c.name, label: c.name })), [commerciaux]);
   const [confirmDelete, setConfirmDelete] = useState(null); // sale to delete
+  const [pendingProjectCompletion, setPendingProjectCompletion] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [prefill, setPrefill] = useState(null);
   const [statusManagerOpen, setStatusManagerOpen] = useState(false);
@@ -1211,6 +1244,42 @@ export default function Sales() {
       <UnmatchedCommercialsDialog open={unmatchedOpen} onOpenChange={setUnmatchedOpen} onBound={() => { load(); loadUnmatched(); }} />
       <EditSaleSheet sale={editingSale} open={!!editingSale} onOpenChange={(v) => !v && setEditingSale(null)} onSaved={() => { load(); window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { edited: true } })); }} />
       <SaleDetailDialog sale={viewSale} open={!!viewSale} onOpenChange={(v) => !v && setViewSale(null)} statusMap={statusMap} />
+
+      <AlertDialog
+        open={!!pendingProjectCompletion}
+        onOpenChange={(v) => { if (!v) setPendingProjectCompletion(null); }}
+      >
+        <AlertDialogContent data-testid="sale-project-completion-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chantier à encaisser</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous passer ce chantier de <span className="font-semibold text-slate-900">“À encaisser”</span> à <span className="font-semibold text-slate-900">“Terminé”</span> dans le planning ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-testid="sale-project-completion-no"
+              onClick={() => {
+                const pending = pendingProjectCompletion;
+                setPendingProjectCompletion(null);
+                if (pending) applyStatusChange(pending.saleId, pending.status);
+              }}
+            >
+              Non, laisser à encaisser
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="sale-project-completion-yes"
+              onClick={() => {
+                const pending = pendingProjectCompletion;
+                setPendingProjectCompletion(null);
+                if (pending) applyStatusChange(pending.saleId, pending.status, { projectId: pending.projectId, markProjectDone: true });
+              }}
+            >
+              Oui, passer à Terminé
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!confirmDelete} onOpenChange={(v) => !v && setConfirmDelete(null)}>
         <AlertDialogContent data-testid="sale-delete-confirm">
