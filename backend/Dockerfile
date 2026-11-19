@@ -11,7 +11,8 @@ RUN groupadd --system --gid 10001 kylot \
 
 COPY backend/requirements-core.txt /tmp/requirements-core.txt
 RUN python -m pip install --upgrade pip \
-    && python -m pip install --requirement /tmp/requirements-core.txt
+    && python -m pip install --requirement /tmp/requirements-core.txt \
+    && python -m pip install --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ emergentintegrations==0.2.0
 
 COPY --chown=kylot:kylot backend /app/backend
 
