@@ -35,7 +35,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ReturnDocument
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import DuplicateKeyError, OperationFailure
 from pydantic import BaseModel, Field, EmailStr, ValidationError, field_validator, model_validator
 from zoneinfo import ZoneInfo
 from backend.tenant_repo import TenantRepository
@@ -10999,6 +10999,17 @@ async def on_startup():
         except Exception:
             _preserve_before[_c] = -1
     logger.info(f"[persistence] Volumes AVANT migrations : {_preserve_before}")
+    async def _compat_index(collection, keys, **kwargs):
+        """Crée un index sans faire tomber le service si un index équivalent
+        existe déjà sous un autre nom (migration manuelle/ancienne version)."""
+        try:
+            return await collection.create_index(keys, **kwargs)
+        except OperationFailure as exc:
+            if exc.code in (85, 86):
+                logger.warning("Index équivalent déjà présent sous un autre nom ; ignoré: %s", keys)
+                return None
+            raise
+
     await db.users.create_index("email", unique=True)
     await db.clients.create_index("name")
     await db.sales.create_index("client_id")
@@ -11042,9 +11053,9 @@ async def on_startup():
     await db.sales.create_index([("company_id", 1), ("commercial_user_id", 1)])
     await db.sales.create_index([("company_id", 1), ("commercial_2_user_id", 1)])
     await db.sales.create_index([("company_id", 1), ("status", 1)])
-    await db.sales.create_index([("company_id", 1), ("status", 1), ("sale_date", -1)])
+    await _compat_index(db.sales, [("company_id", 1), ("status", 1), ("sale_date", -1)])
     await db.projects.create_index([("company_id", 1), ("scheduled_date", 1)])
-    await db.projects.create_index([("company_id", 1), ("cancelled", 1), ("scheduled_date", -1)])
+    await _compat_index(db.projects, [("company_id", 1), ("cancelled", 1), ("scheduled_date", -1)])
     await db.projects.create_index([("company_id", 1), ("status", 1)])
     await db.projects.create_index([("company_id", 1), ("assigned_to", 1)])
     await db.projects.create_index([("company_id", 1), ("created_at", -1)])
@@ -11056,10 +11067,10 @@ async def on_startup():
     await db.audit_log.create_index([("company_id", 1), ("at", -1)])
     await db.audit_log.create_index("at_dt", expireAfterSeconds=AUDIT_RETENTION_DAYS * 86400)
     await db.stock_movements.create_index([("company_id", 1), ("at", -1)])
-    await db.off_days.create_index([("company_id", 1), ("date", 1)])
-    await db.absences.create_index([("company_id", 1), ("date_from", 1)])
-    await db.events.create_index([("company_id", 1), ("date", 1)])
-    await db.reinterventions.create_index([("company_id", 1), ("scheduled_date", 1)])
+    await _compat_index(db.off_days, [("company_id", 1), ("date", 1)])
+    await _compat_index(db.absences, [("company_id", 1), ("date_from", 1)])
+    await _compat_index(db.events, [("company_id", 1), ("date", 1)])
+    await _compat_index(db.reinterventions, [("company_id", 1), ("scheduled_date", 1)])
     try:
         await db.stock_movements.create_index("id", unique=True, sparse=True)
     except Exception:
