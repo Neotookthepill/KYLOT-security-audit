@@ -4258,6 +4258,31 @@ async def remove_project_photo(pid: str, data: ProjectPhotoRemove, user: dict = 
     return {"ok": True, "photo_count": len(updated.get("photos") or [])}
 
 
+_PROJECT_DONE_SALE_PRESERVE = {"chantier_fini", "commercial_cheque", "argent_recupere", "annule", "litige", "non_financable", "stat_mthsyx7z"}
+
+
+async def _sync_sale_after_project_completion(user: dict, sale_id: Optional[str]) -> Optional[dict]:
+    """Une validation de chantier doit aussi faire avancer la vente liée.
+
+    Sans cela, le planning pouvait afficher « termine » alors que la vente
+    restait en « PROG » dans Ventes/Commissions. Les statuts déjà encaissés ou
+    annulés ne sont jamais rétrogradés.
+    """
+    if not sale_id:
+        return None
+    sale = await db.sales.find_one(cq(user, {"id": sale_id}), {"_id": 0})
+    if not sale:
+        return None
+    if sale.get("status") in _PROJECT_DONE_SALE_PRESERVE:
+        return sale
+    await db.sales.update_one(
+        cq(user, {"id": sale_id}),
+        {"$set": {"status": "chantier_fini", "chantier_fini_at": now_iso()}},
+    )
+    sale["status"] = "chantier_fini"
+    return sale
+
+
 @api_router.put("/projects/{pid}")
 async def update_project(pid: str, data: ProjectUpdate, background_tasks: BackgroundTasks, user: dict = Depends(get_current_user)):
     check_perm(user, "projects", "edit")
@@ -4289,6 +4314,7 @@ async def update_project(pid: str, data: ProjectUpdate, background_tasks: Backgr
     ):
         updates["status"] = "en_cours"
     _will_start = updates.get("status") == "en_cours" and exists.get("status") != "en_cours"
+    _will_finish = updates.get("status") == "termine" and exists.get("status") != "termine"
     # iter48: RBAC + traçabilité photos.
     # Si la clé "photos" est envoyée, on compare avec l'existant :
     #   - un ajout de photo nécessite has_perm(user, "photos", "add")
@@ -4307,6 +4333,8 @@ async def update_project(pid: str, data: ProjectUpdate, background_tasks: Backgr
         seen = set()
         updates["assigned_to"] = [x for x in clean if not (x in seen or seen.add(x))]
     await db.projects.update_one(cq(user, {"id": pid}), {"$set": updates})
+    if updates.get("status") == "termine" and exists.get("status") != "termine":
+        await _sync_sale_after_project_completion(user, exists.get("sale_id"))
     updated = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     # iter176 : journalise les changements de statut chantier + réassignations pour
     # l'historique B2B (jamais éditable côté user, gate admin sur GET /api/audit).
@@ -4320,6 +4348,8 @@ async def update_project(pid: str, data: ProjectUpdate, background_tasks: Backgr
     if _will_start and updated:
         # Ne bloque pas l'enregistrement de la fiche pour l'envoi d'email.
         background_tasks.add_task(_notify_project, user, updated, "started")
+    if _will_finish and updated:
+        background_tasks.add_task(_notify_project, user, updated, "terminated")
     return updated
 
 @api_router.delete("/projects/{pid}")
@@ -13020,13 +13050,7 @@ async def complete_project(pid: str, data: ProjectCompleteIn, user: dict = Depen
     client = {}
     commercial_users: List[dict] = []
     if project.get("sale_id"):
-        sale = await db.sales.find_one(cq(user, {"id": project["sale_id"]}), {"_id": 0})
-        if sale and sale.get("status") not in ("chantier_fini", "commercial_cheque", "argent_recupere", "annule"):
-            await db.sales.update_one(
-                cq(user, {"id": sale["id"]}),
-                {"$set": {"status": "chantier_fini", "chantier_fini_at": now}},
-            )
-            sale["status"] = "chantier_fini"
+        sale = await _sync_sale_after_project_completion(user, project["sale_id"])
         if sale:
             client = await db.clients.find_one(cq(user, {"id": sale.get("client_id")}), {"_id": 0}) or {}
             # iter156 : résolution robuste du commercial (fuzzy + user_id direct) pour

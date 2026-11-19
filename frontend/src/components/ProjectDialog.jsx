@@ -261,6 +261,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       toast.success("Chantier mis à jour");
       // iter216 : broadcast Kanban ↔ Planning sync
       try { window.dispatchEvent(new CustomEvent("kylot:project-updated", { detail: { id: project.id, status: form.status } })); } catch (_) {}
+      try { window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id: project.sale_id, status: form.status === "termine" ? "chantier_fini" : undefined } })); } catch (_) {}
       onSaved?.();
       onClose();
     } catch (err) { toast.error(formatApiError(err)); }
@@ -413,6 +414,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       if (r.data?.partial) {
         toast.success(`Journée du ${new Date(r.data.day + "T00:00:00").toLocaleDateString("fr-FR")} validée — ${r.data.remaining.length} intervention(s) restante(s). Le chantier reste en cours.`);
         try { window.dispatchEvent(new CustomEvent("kylot:project-updated", { detail: { id: project.id } })); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id: project.sale_id } })); } catch (_) {}
         setCompleteOpen(false);
         setCompleteNote("");
         setCompleteDay(null);
@@ -425,6 +427,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
         : "Chantier validé.");
       // iter216 : broadcast Kanban ↔ Planning sync (statut passe à `termine`)
       try { window.dispatchEvent(new CustomEvent("kylot:project-updated", { detail: { id: project.id, status: "termine" } })); } catch (_) {}
+      try { window.dispatchEvent(new CustomEvent("kylot:sales-updated", { detail: { id: project.sale_id, status: "chantier_fini" } })); } catch (_) {}
       setCompleteOpen(false);
       setCompleteNote("");
       onSaved?.();

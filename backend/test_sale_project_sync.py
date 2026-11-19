@@ -61,6 +61,14 @@ class SaleProjectSyncTests(unittest.TestCase):
         self.client.close()
         self.mongo.close()
 
+    def test_marking_project_termine_updates_linked_sale(self):
+        r = self.client.put(
+            "/api/projects/project-sync", json={"status": "termine"}, headers=self.headers
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        sale = asyncio.run(self.db.sales.find_one({"id": "sale-sync"}))
+        self.assertEqual(sale["status"], "chantier_fini")
+
     def test_sale_date_programs_existing_project_without_duplicate(self):
         first = self.client.put(
             "/api/sales/sale-sync", headers=self.headers,
