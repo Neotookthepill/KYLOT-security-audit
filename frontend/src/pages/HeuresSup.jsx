@@ -86,8 +86,8 @@ function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRef
         disabled={saving}
         placeholder="—"
         className={`w-full h-10 sm:h-9 px-1 text-center text-sm sm:text-xs rounded font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900
-          ${approved ? "border border-emerald-400 bg-emerald-50 text-emerald-900" :
-            refused ? "border border-red-400 bg-red-50 text-red-900 line-through" :
+          ${approved ? "border border-emerald-600 bg-emerald-500 text-white shadow-sm" :
+            refused ? "border border-red-600 bg-red-500 text-white line-through shadow-sm" :
             pending ? "border border-dashed border-amber-400 bg-amber-50 text-amber-900" :
             "border border-transparent hover:border-slate-200 focus:border-slate-300 text-slate-800 font-normal"}`}
         title={titleText}
@@ -395,8 +395,8 @@ export default function HeuresSup() {
               <p className="font-display text-lg font-semibold">Saisie journalière</p>
               <p className="text-xs text-slate-500 mt-0.5">
                 <span className="inline-block w-2 h-2 rounded-sm border border-dashed border-amber-400 bg-amber-50 mr-1 align-middle" /> à valider &nbsp;·&nbsp;
-                <span className="inline-block w-2 h-2 rounded-sm border border-emerald-400 bg-emerald-50 mr-1 align-middle" /> validé &nbsp;·&nbsp;
-                <span className="inline-block w-2 h-2 rounded-sm border border-red-400 bg-red-50 mr-1 align-middle" /> refusé
+                <span className="inline-block w-2 h-2 rounded-sm border border-emerald-600 bg-emerald-500 mr-1 align-middle" /> validé &nbsp;·&nbsp;
+                <span className="inline-block w-2 h-2 rounded-sm border border-red-600 bg-red-500 mr-1 align-middle" /> refusé
               </p>
             </div>
             {canManageAccess && (
