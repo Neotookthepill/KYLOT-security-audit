@@ -18,7 +18,6 @@ import BonusesProgress from "@/components/BonusesProgress";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import CommissionHistory from "@/components/CommissionHistory";
 import PageLoader from "@/components/PageLoader";
-import { isSaleCommissionable } from "@/lib/workflows";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 
@@ -267,10 +266,10 @@ export default function Commissions() {
     // Les autres pages (Dashboard, Rapport, Ventes) restent sur `sale_date`.
     const rowMonth = r.commission_month || (r.sale_date || "").slice(0, 7) || currentMonth();
     const matchesMonth = rowMonth === activeMonth;
-    // iter205 : « non finançable » = pas de paiement possible → exclu des commissions
-    // (au même titre que annulé et litige).
-    const commissionable = isSaleCommissionable(r.status);
-    return matchesText && matchesCommercial && matchesMonth && commissionable;
+    // L'API /commissions ne renvoie déjà que les statuts commissionnables.
+    // Ne pas refiltrer ici avec un mapping frontend incomplet : cela masquait
+    // les statuts personnalisés (ex. « virement reçu ») comme le BDC 2342.
+    return matchesText && matchesCommercial && matchesMonth;
   }), [rows, q, commercialFilter, activeMonth]);
 
   const totals = useMemo(() => {
