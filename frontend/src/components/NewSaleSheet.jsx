@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Check, ChevronDown } from "lucide-react";
 import { ChequeInstallmentsSelect } from "@/components/ChequeInstallmentsSelect";
 import { ProspecteurField, prospecteurPayload } from "@/components/ProspecteurField";
-import { SALE_STATUSES, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload, currentMonth, commissionMonthOptions } from "@/lib/saleConstants";
+import { SALE_STATUSES, STATUS_COLORS, STATUS_COLOR_HEX, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload, currentMonth, commissionMonthOptions } from "@/lib/saleConstants";
 import useTeam from "@/lib/useTeam";
 import useCommissionRates from "@/lib/useCommissionRates";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -610,7 +610,18 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5"><Label>Statut</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                <SelectTrigger data-testid="sale-status" aria-label="Statut de la vente"><SelectValue /></SelectTrigger>
+                {(() => {
+                  const selected = statuses.find((st) => st.value === form.status);
+                  const colorKey = selected?.color || "slate";
+                  const hex = STATUS_COLOR_HEX[colorKey] || STATUS_COLOR_HEX.slate;
+                  const dot = STATUS_COLORS.find((c) => c.key === colorKey)?.dot || STATUS_COLORS[0].dot;
+                  return (
+                    <SelectTrigger data-testid="sale-status" aria-label="Statut de la vente" style={selected ? { backgroundColor: `${hex}18`, color: hex } : undefined}>
+                      <span className={`mr-2 inline-block h-2 w-2 shrink-0 rounded-full ${dot}`} />
+                      <SelectValue />
+                    </SelectTrigger>
+                  );
+                })()}
                 <SelectContent>
                   {statuses.map((s) => (<SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>))}
                 </SelectContent>
