@@ -331,6 +331,8 @@ export default function Sales() {
   const [viewSale, setViewSale] = useState(null);
   const [panelSale, setPanelSale] = useState(null);
   const [panelProject, setPanelProject] = useState(null);
+  const mobileSentinelRef = useRef(null);
+  const mobileLoadingRef = useRef(false);
   const salesColumnsKey = `kylot:sales:columns:${user?.id || "anon"}`;
   const [hiddenCols, setHiddenCols] = useState(() => {
     try {
@@ -386,9 +388,9 @@ export default function Sales() {
     return { from: iso(first), to: iso(last), label: "Ce mois" };
   }, [period, customFrom, customTo]);
 
-  const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 10 : 100);
+  const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
 
-  const load = async (nextOffset = 0) => {
+  const load = async (nextOffset = 0, { append = false } = {}) => {
     setSalesLoading(true);
     try {
       const params = new URLSearchParams({
@@ -404,8 +406,9 @@ export default function Sales() {
         api.get(`/sales?${params.toString()}`),
         api.get(`/sales/summary?from_date=${encodeURIComponent(bounds.from)}&to_date=${encodeURIComponent(bounds.to)}`),
       ]);
-      setSales(rows.data || []);
-      setPageTotal(Number(rows.headers?.["x-total-count"] || (rows.data || []).length));
+      const incoming = rows.data || [];
+      setSales((prev) => (append && nextOffset > 0 ? [...prev, ...incoming] : incoming));
+      setPageTotal(Number(rows.headers?.["x-total-count"] || incoming.length));
       setPageOffset(Math.max(0, nextOffset));
       setSummary(aggregates.data || { count: 0, total: 0, by_commercial: [] });
       setLoadError(false);
@@ -416,6 +419,23 @@ export default function Sales() {
   // la dernière recherche, pas la fermeture du premier rendu.
   const loadRef = useRef(load);
   loadRef.current = load;
+
+  // Mobile : une seule liste, les pages suivantes s'ajoutent au scroll.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return undefined;
+    if (!window.matchMedia("(max-width: 767px)").matches) return undefined;
+    const el = mobileSentinelRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting || mobileLoadingRef.current) return;
+      if (pageOffset + sales.length >= pageTotal) return;
+      mobileLoadingRef.current = true;
+      loadRef.current(pageOffset + sales.length, { append: true })
+        .finally(() => { mobileLoadingRef.current = false; });
+    }, { rootMargin: "300px 0px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pageOffset, sales.length, pageTotal]);
 
   // Optimistic PATCH helper for inline edits. Rolls back on error.
   const patchSale = async (id, patch) => {
@@ -1200,10 +1220,13 @@ export default function Sales() {
               </div>
             );
           })}
+          <div ref={mobileSentinelRef} className="md:hidden flex items-center justify-center py-4 text-xs text-slate-500" data-testid="sales-mobile-sentinel">
+            {salesLoading ? "Chargement…" : pageOffset + sales.length < pageTotal ? "Faites défiler pour charger plus" : `${sales.length} vente${sales.length > 1 ? "s" : ""}`}
+          </div>
         </div>
       </Card>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+      <div className="mt-4 hidden md:flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
         <span>{pageTotal === 0 ? "0 vente" : `${pageOffset + 1}–${Math.min(pageOffset + sales.length, pageTotal)} sur ${pageTotal}`}</span>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={pageOffset === 0 || salesLoading} onClick={() => load(Math.max(0, pageOffset - pageSize()))} data-testid="sales-prev">Précédent</Button>
