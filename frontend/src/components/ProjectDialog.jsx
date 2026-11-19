@@ -100,6 +100,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
   const canAddPhotos = can("photos", "add");
   const canViewPhotos = can("photos", "view");
   const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [completeNote, setCompleteNote] = useState("");
@@ -244,6 +245,8 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
   };
 
   const save = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.put(`/projects/${project.id}`, {
         status: form.status,
@@ -261,6 +264,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
       onSaved?.();
       onClose();
     } catch (err) { toast.error(formatApiError(err)); }
+    finally { setSaving(false); }
   };
 
   // iter213 : gestion des jours supplémentaires (non consécutifs).
@@ -439,12 +443,12 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto" data-testid="project-dialog">
+      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 text-[13px]" closeClassName="right-2 top-16" data-testid="project-dialog">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
-              <DialogTitle className="font-display text-2xl">{project.client_name}</DialogTitle>
-              <p className="text-sm text-slate-600">{project.service}</p>
+              <DialogTitle className="font-display text-xl">{project.client_name}</DialogTitle>
+              <p className="text-xs text-slate-600">{project.service}</p>
             </div>
             {/* iter159 v3 : la pastille "Confirmé" est visible pour TOUS les rôles qui accèdent
                 à la fiche (technicien, sous-traitant, commercial, admin). Seuls admin/responsable/
@@ -723,7 +727,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Fermer</Button>
+          <Button variant="outline" size="sm" onClick={onClose}>Fermer</Button>
           {!alreadyDone && canCompleteChantier && (
             <Button
               onClick={() => setCompleteOpen(true)}
@@ -736,7 +740,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               <CheckCheck size={14} className="mr-1.5" /> {completeBtnLabel}
             </Button>
           )}
-          <Button onClick={save} data-testid="project-save-btn">Enregistrer</Button>
+          <Button size="sm" onClick={save} disabled={saving} data-testid="project-save-btn">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
 

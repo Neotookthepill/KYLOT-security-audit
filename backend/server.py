@@ -4259,7 +4259,7 @@ async def remove_project_photo(pid: str, data: ProjectPhotoRemove, user: dict = 
 
 
 @api_router.put("/projects/{pid}")
-async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get_current_user)):
+async def update_project(pid: str, data: ProjectUpdate, background_tasks: BackgroundTasks, user: dict = Depends(get_current_user)):
     check_perm(user, "projects", "edit")
     # iter206 : charge d'abord par (company_id, id), puis vérifie le scope par
     # matching FUZZY (accent-insensible, tokens partagés) au lieu d'un regex strict.
@@ -4318,7 +4318,8 @@ async def update_project(pid: str, data: ProjectUpdate, user: dict = Depends(get
         )
     # iter159 : email au(x) technicien(s)/sous-traitant(s) quand le chantier passe en "En cours"
     if _will_start and updated:
-        await _notify_project(user, updated, "started")
+        # Ne bloque pas l'enregistrement de la fiche pour l'envoi d'email.
+        background_tasks.add_task(_notify_project, user, updated, "started")
     return updated
 
 @api_router.delete("/projects/{pid}")
@@ -4357,7 +4358,7 @@ async def restore_project(pid: str, user: dict = Depends(get_current_user)):
 # iter159 : Confirmation d'un chantier (bouton "Confirmer" dans la fiche).
 # Bascule project.confirmed = true/false et envoie un email aux assignés si activation.
 @api_router.post("/projects/{pid}/confirm")
-async def confirm_project(pid: str, user: dict = Depends(get_current_user)):
+async def confirm_project(pid: str, background_tasks: BackgroundTasks, user: dict = Depends(get_current_user)):
     check_perm(user, "projects", "edit")
     proj = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     if not proj:
@@ -4370,7 +4371,7 @@ async def confirm_project(pid: str, user: dict = Depends(get_current_user)):
     await db.projects.update_one(cq(user, {"id": pid}), {"$set": upd})
     updated = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
     if new_val and updated:
-        await _notify_project(user, updated, "confirmed")
+        background_tasks.add_task(_notify_project, user, updated, "confirmed")
     return updated
 
 

@@ -291,7 +291,7 @@ export default function CalendarPage() {
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200">
           {DAYS.map((d) => (
-            <div key={d} className="px-3 py-2 overline border-r last:border-r-0 border-slate-200 text-center">{d}</div>
+            <div key={d} className="px-2 py-1.5 overline border-r last:border-r-0 border-slate-200 text-center">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7">
@@ -306,7 +306,7 @@ export default function CalendarPage() {
             return (
               <div
                 key={key}
-                className={`min-h-[110px] p-2 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
+                className={`min-h-[92px] p-1.5 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
                 data-testid={cell ? `cal-day-${cellIso}` : undefined}
               >
                 {cell && (
@@ -401,7 +401,7 @@ export default function CalendarPage() {
                           <button
                             key={`${p.id}-${p._dayIndex}`}
                             onClick={() => { if (!isProspect) setEditing({ ...p, _contextDate: p._cellDate || cellIso }); }}
-                            className={`qy-calendar-task w-full text-left text-[11px] px-1.5 py-1 rounded border transition-colors ${statusColors[effectiveStatus] || statusColors.a_planifier} truncate ${isProspect ? "cursor-default" : "cursor-pointer"}`}
+                            className={`qy-calendar-task w-full text-left text-[10px] px-1.5 py-0.5 rounded border transition-colors ${statusColors[effectiveStatus] || statusColors.a_planifier} truncate ${isProspect ? "cursor-default" : "cursor-pointer"}`}
                             data-status={effectiveStatus}
                             title={isProspect ? `${p.client_name} — ${[p.client_address, p.client_postal_code, p.client_city].filter(Boolean).join(" ")}` : `${p.client_name} — ${p.service}${assigned ? " · " + assigned : ""}${p._totalDays > 1 ? " · Jour " + (p._dayIndex + 1) + "/" + p._totalDays : ""}`}
                             data-testid={`cal-event-${p.id}-${p._dayIndex}`}
