@@ -46,10 +46,45 @@ function normalizeSettings(s) {
   return { ...s, app_name: ["KEYLOT", "QYLOT", "KYLOT"].includes(oldName) ? "Qylot" : s.app_name };
 }
 
+function hexToHsl(hex) {
+  const m = String(hex || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let sat = 0;
+  if (max !== min) {
+    const d = max - min;
+    sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(sat * 100)}% ${Math.round(l * 100)}%`;
+}
+
 function applyToRoot(s) {
   const root = document.documentElement;
+  const primaryHsl = hexToHsl(s.theme_primary);
+  const accentHsl = hexToHsl(s.theme_accent);
   root.style.setProperty("--brand", s.theme_primary);
   root.style.setProperty("--brand-accent", s.theme_accent);
+  if (primaryHsl) {
+    root.style.setProperty("--primary", primaryHsl);
+    root.style.setProperty("--ring", primaryHsl);
+    root.style.setProperty("--sidebar", primaryHsl);
+  }
+  if (accentHsl) {
+    root.style.setProperty("--accent", accentHsl);
+    root.style.setProperty("--info", accentHsl);
+    root.style.setProperty("--copper", accentHsl);
+  }
   root.style.setProperty("--font-app", `"${s.font_family}", "Inter", sans-serif`);
   // Le design par défaut garde Manrope pour les titres ; dès que l'entreprise
   // choisit une autre typographie, les titres suivent aussi ce choix.
