@@ -261,7 +261,7 @@ const PROJECT_COMPLETION_SALE_STATUSES = new Set([
   "stat_mtkktyzi",
 ]);
 
-function StatusSelect({ sale, statuses, statusMap, canEdit, onChange }) {
+function StatusSelect({ sale, statuses, statusMap, canEdit, onChange, compact = false }) {
   const st = statusMap[sale.status] || STATUS_MAP[sale.status];
   const classes = st?.cls || "bg-slate-200 text-slate-700";
   if (!canEdit) {
@@ -276,7 +276,7 @@ function StatusSelect({ sale, statuses, statusMap, canEdit, onChange }) {
         aria-label="Changer le statut de la vente"
         title="Changer le statut"
         data-testid={`sale-status-trigger-${sale.id}`}
-        className={`appearance-none cursor-pointer rounded-md py-0.5 pl-2 pr-6 text-xs font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${classes}`}
+        className={`appearance-none cursor-pointer rounded-md py-0.5 pl-2 pr-6 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${compact ? "max-w-[8.5rem] text-[10px] pl-1.5 pr-5" : "text-xs"} ${classes}`}
       >
         {statuses.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
@@ -1162,18 +1162,18 @@ export default function Sales() {
                 tabIndex={0}
                 onClick={() => setPanelSale(s)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPanelSale(s); } }}
-                className="flex w-full items-center gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50 cursor-pointer"
+                className="flex w-full items-start gap-3 border-b border-slate-100 py-3 pl-4 pr-4 text-left last:border-0 hover:bg-slate-50 cursor-pointer"
                 data-testid={`sale-mobile-row-${s.id}`}
               >
-                <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-3">
-                    <span className="truncate text-sm font-semibold text-slate-900">{s.client_name || "—"}</span>
+                    <span className="min-w-0 truncate text-[15px] font-semibold leading-snug text-slate-900">{s.client_name || "—"}</span>
                     <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{fmtEur(s.amount)}</span>
                   </span>
-                  <span className="mt-0.5 flex items-center justify-between gap-3 text-[10px] text-slate-500">
-                    <span className="truncate">{s.sale_date || "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
-                    <span className="shrink-0">Détail ›</span>
+                  <span className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-slate-500">
+                    <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} compact />
+                    <span className="min-w-0 truncate">{s.sale_date || "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
+                    <span className="ml-auto shrink-0">Détail ›</span>
                   </span>
                 </span>
               </div>
