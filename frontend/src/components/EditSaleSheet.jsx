@@ -74,6 +74,7 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
       desired_intervention_date: sale.desired_intervention_date || "",
       status: sale.status || "commercial_cheque",
       notes: sale.notes || "",
+      commission_month: sale.commission_month || currentMonth(),
       prospecteur_id: sale.prospecteur_id || "",
       prospecteur_commission: sale.prospecteur_commission ?? "",
     });
@@ -121,6 +122,7 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
         desired_intervention_date: form.desired_intervention_date || null,
         status: form.status,
         notes: form.notes,
+        commission_month: form.commission_month || currentMonth(),
         ...prospecteurPayload(form),
       });
       toast.success("Vente mise à jour");
@@ -407,6 +409,17 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
 
           <div className="space-y-1.5"><Label>Notes</Label>
             <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="edit-sale-notes" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Mois de paiement de la commission</Label>
+            <Select value={form.commission_month || currentMonth()} onValueChange={(v) => setForm({ ...form, commission_month: v })}>
+              <SelectTrigger data-testid="edit-sale-commission-month" aria-label="Mois de paiement de la commission"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {commissionMonthOptions().map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-slate-500">Modifier ce mois déplace la commission ; elle ne peut pas être comptée dans deux mois.</p>
           </div>
         </div>
 

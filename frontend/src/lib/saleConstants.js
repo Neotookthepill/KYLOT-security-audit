@@ -69,6 +69,21 @@ export const SALE_STATUSES = [
 
 export const STATUS_MAP = SALE_STATUSES.reduce((acc, s) => { acc[s.value] = s; return acc; }, {});
 
+/** Mois proposés pour le paiement d'une commission : mois courant, 3 suivants, puis passé. */
+export const commissionMonthOptions = () => {
+  const now = currentMonth();
+  const out = [{ value: now, label: `Ce mois — ${monthLabel(now)}` }];
+  for (let i = 1; i <= 3; i++) {
+    const v = shiftMonth(now, i);
+    out.push({ value: v, label: `Mois prochain${i > 1 ? ` +${i}` : ""} — ${monthLabel(v)}` });
+  }
+  for (let i = 1; i <= 12; i++) {
+    const v = shiftMonth(now, -i);
+    out.push({ value: v, label: `${i === 1 ? "Mois précédent" : `-${i} mois`} — ${monthLabel(v)}` });
+  }
+  return out;
+};
+
 // iter124 : construit une liste ordonnée + un map à partir du payload complet
 // renvoyé par GET /api/sale-statuses (inclut les statuts CUSTOM ajoutés par l'admin).
 // Chaque item du payload a { value, label, color, active, default, system, hides_from_projects }.

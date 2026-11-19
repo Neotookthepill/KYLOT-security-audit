@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { Check, ChevronDown } from "lucide-react";
 import { ChequeInstallmentsSelect } from "@/components/ChequeInstallmentsSelect";
 import { ProspecteurField, prospecteurPayload } from "@/components/ProspecteurField";
-import { SALE_STATUSES, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload } from "@/lib/saleConstants";
+import { SALE_STATUSES, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload, currentMonth, commissionMonthOptions } from "@/lib/saleConstants";
 import useTeam from "@/lib/useTeam";
 import useCommissionRates from "@/lib/useCommissionRates";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -193,7 +193,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
     financement_amount: "", comptant_installments: 1,
     commission_rate: 0, commission_rate_2: null, commission_type: "fixed", commission_type_2: "fixed", discount_percent: null, evolutive_ca_threshold: 30000, evolutive_rate_below: 0.10, evolutive_rate_above: 0.13, commercial: "", commercial_2: "", is_de: false, commercial_share: 0.5, source: "",
     sale_date: today(), desired_intervention_date: "",
-    status: "en_cours", notes: "",
+    status: "en_cours", notes: "", commission_month: currentMonth(),
   });
   const [saving, setSaving] = useState(false);
   const requestIdRef = useRef(null);
@@ -267,7 +267,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
       setClientMode("existing");
       setSelectedClientId("");
       setNewClient({ name: "", phone: "", email: "", address: "", postal_code: "", city: "", notes: "" });
-      setForm({ bdc: "", service: "", amount: "", payment_method: "cheque", payment_installments: 1, financement_amount: "", comptant_installments: 1, commission_rate: 0, commission_rate_2: null, commission_type: "fixed", commission_type_2: "fixed", evolutive_ca_threshold: 30000, evolutive_rate_below: 0.10, evolutive_rate_above: 0.13, commercial: "", commercial_2: "", is_de: false, commercial_share: 0.5, source: "", sale_date: today(), desired_intervention_date: "", status: "en_cours", notes: "" });
+      setForm({ bdc: "", service: "", amount: "", payment_method: "cheque", payment_installments: 1, financement_amount: "", comptant_installments: 1, commission_rate: 0, commission_rate_2: null, commission_type: "fixed", commission_type_2: "fixed", evolutive_ca_threshold: 30000, evolutive_rate_below: 0.10, evolutive_rate_above: 0.13, commercial: "", commercial_2: "", is_de: false, commercial_share: 0.5, source: "", sale_date: today(), desired_intervention_date: "", status: "en_cours", notes: "", commission_month: currentMonth() });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -312,6 +312,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
         desired_intervention_date: form.desired_intervention_date || null,
         status: form.status,
         notes: form.notes,
+        commission_month: form.commission_month || currentMonth(),
         ...prospecteurPayload(form),
       };
       payload.client_request_id = requestIdRef.current;
@@ -630,6 +631,17 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
 
           <div className="space-y-1.5"><Label>Notes</Label>
             <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Mois de paiement de la commission</Label>
+            <Select value={form.commission_month || currentMonth()} onValueChange={(v) => setForm({ ...form, commission_month: v })}>
+              <SelectTrigger data-testid="sale-commission-month" aria-label="Mois de paiement de la commission"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {commissionMonthOptions().map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-slate-500">La commission sera classée dans ce mois. Utile pour régulariser une ancienne vente.</p>
           </div>
         </div>
 
