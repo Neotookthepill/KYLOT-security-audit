@@ -233,6 +233,20 @@ export default function Commissions() {
     return arr;
   }, [extraMonths, pastMonths]);
 
+  // Sélecteur principal : mois suivant | mois en cours | mois précédent.
+  // Toujours visible pour l'admin et le commercial, quel que soit le mois courant.
+  const primaryMonthTabs = useMemo(() => {
+    const now = currentMonth();
+    const next = shiftMonth(now, 1);
+    const prev = shiftMonth(now, -1);
+    return [
+      { key: next, label: monthLabel(next), role: "next" },
+      { key: now, label: monthLabel(now), role: "current" },
+      { key: prev, label: monthLabel(prev), role: "previous" },
+    ];
+  }, []);
+  const primaryMonthKeys = useMemo(() => new Set(primaryMonthTabs.map((t) => t.key)), [primaryMonthTabs]);
+
   const paymentMonthOptions = useMemo(() => {
     const now = currentMonth();
     const arr = [];
@@ -372,7 +386,23 @@ export default function Commissions() {
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Filtres défilants">
+      <div className="mb-3 grid grid-cols-3 gap-2" data-testid="commissions-primary-months">
+        {primaryMonthTabs.map((t) => {
+          const isActive = activeMonth === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveMonth(t.key)}
+              className={`min-w-0 rounded-lg border px-2 py-2 text-xs sm:text-sm font-semibold capitalize truncate transition-colors ${isActive ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900"}`}
+              data-testid={`month-tab-${t.key}`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Autres mois défilants">
         {isAdmin && (
           <button
             onClick={() => bumpPastMonths(1)}
@@ -384,7 +414,7 @@ export default function Commissions() {
             <Minus size={13} />
           </button>
         )}
-        {monthTabs.filter((t) => showHidden || !hiddenMonths.has(t.key)).map((t) => {
+        {monthTabs.filter((t) => !primaryMonthKeys.has(t.key) && (showHidden || !hiddenMonths.has(t.key))).map((t) => {
           const isHidden = hiddenMonths.has(t.key);
           const isCurrent = t.key === currentMonth();
           const isActive = activeMonth === t.key;
