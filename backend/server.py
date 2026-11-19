@@ -38,6 +38,7 @@ from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field, EmailStr, ValidationError, field_validator, model_validator
 from zoneinfo import ZoneInfo
+from backend.tenant_repo import TenantRepository
 
 
 # ---------------- Setup ----------------
@@ -2104,6 +2105,7 @@ async def list_clients(
 ):
     """Liste paginée et filtrable des clients, avec scope RBAC."""
     check_perm(user, "clients", "view", "own")
+    repo = TenantRepository(db, user)
     query = await _client_scope_query(user)
     if client_id:
         query["id"] = client_id
@@ -2125,8 +2127,8 @@ async def list_clients(
             elem["sub_status_key"] = sub_status_key
         query["categories"] = {"$elemMatch": elem}
     if limit > 0:
-        response.headers["X-Total-Count"] = str(await db.clients.count_documents(query))
-    cursor = db.clients.find(query, {"_id": 0}).sort("created_at", -1).skip(offset)
+        response.headers["X-Total-Count"] = str(await repo.count("clients", query))
+    cursor = repo.find("clients", query, {"_id": 0}).sort("created_at", -1).skip(offset)
     if limit > 0:
         cursor = cursor.limit(limit)
     docs = await cursor.to_list(limit if limit > 0 else 20000)
@@ -2139,7 +2141,8 @@ async def list_clients(
             p_q = cq(user, {"client_id": {"$in": ids}, "cancelled": {"$ne": True}})
             if projects_scope == "own" and user.get("role") not in ("technicien", "sous_traitant"):
                 p_q["sale_id"] = {"$in": await _own_sale_ids(user)}
-            prows = await db.projects.find(
+            prows = await repo.find(
+                "projects",
                 p_q,
                 {"_id": 0, "client_id": 1, "status": 1, "scheduled_date": 1, "assigned_to": 1},
             ).sort("scheduled_date", -1).to_list(max(len(ids), 1) * 4)
@@ -2159,8 +2162,9 @@ async def list_clients(
 @api_router.get("/clients/category-counts")
 async def client_category_counts(user: dict = Depends(get_current_user)):
     check_perm(user, "clients", "view", "own")
+    repo = TenantRepository(db, user)
     query = await _client_scope_query(user)
-    rows = await db.clients.find(query, {"_id": 0, "categories": 1}).to_list(20000)
+    rows = await repo.find("clients", query, {"_id": 0, "categories": 1}).to_list(20000)
     counts = {"all": len(rows), "categories": {}}
     for row in rows:
         for cat in row.get("categories") or []:
