@@ -3229,6 +3229,7 @@ async def list_sales(
     user: dict = Depends(get_current_user),
 ):
     check_perm(user, "sales", "view", "own")
+    repo = TenantRepository(db, user)
     scope = perm_scope(user, "sales", "view")
     q = cq(user)
     if scope == "own":
@@ -3292,7 +3293,7 @@ async def list_sales(
         else:
             q["$or"] = tag_conditions
     if limit > 0:
-        response.headers["X-Total-Count"] = str(await db.sales.count_documents(q))
+        response.headers["X-Total-Count"] = str(await repo.count("sales", q))
     order = [v for v in (status_order or "").split("|") if v][:50]
     if order:
         rank_expr = {
@@ -3313,15 +3314,15 @@ async def list_sales(
         if limit > 0:
             pipeline.append({"$limit": limit})
         pipeline.append({"$project": {"_id": 0, "_status_rank": 0}})
-        sales = await db.sales.aggregate(pipeline).to_list(limit if limit > 0 else 5000)
+        sales = await (await repo.aggregate("sales", pipeline)).to_list(limit if limit > 0 else 5000)
     else:
-        cursor = db.sales.find(q, {"_id": 0}).sort("created_at", -1).skip(offset)
+        cursor = repo.find("sales", q, {"_id": 0}).sort("created_at", -1).skip(offset)
         if limit > 0:
             cursor = cursor.limit(limit)
         sales = await cursor.to_list(limit if limit > 0 else 5000)
     # enrich with client name
     ids = list({s.get("client_id") for s in sales if s.get("client_id")})
-    clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
+    clients = await repo.find("clients", {"id": {"$in": ids}}, {"_id": 0}).to_list(5000)
     cmap = {c["id"]: c for c in clients}
     for s in sales:
         c = cmap.get(s.get("client_id"), {})
@@ -3849,6 +3850,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     quel que soit le statut de la vente sauf `annule`. Le Kanban Chantiers (`keep_closed=False`)
     garde son ancien comportement : masque `argent_recupere`, `annule`, `litige`."""
     scope = perm_scope(user, perm_resource, "view")
+    repo = TenantRepository(db, user)
     q = cq(user)
     if status:
         q["status"] = status
@@ -3965,7 +3967,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
         # Load projects for this company (no assigned_to prefilter — do it in Python)
         # Ne jamais charger les base64 des photos dans une liste : 200+ Mo de
         # data-URI suffisent à faire tomber une instance Render 512 Mo.
-        all_projs = await db.projects.find(q, {"_id": 0, "photos": 0}).sort("created_at", -1).to_list(5000)
+        all_projs = await repo.find("projects", q, {"_id": 0, "photos": 0}).sort("created_at", -1).to_list(5000)
         projects = []
         for p in all_projs:
             at = p.get("assigned_to")
@@ -3988,13 +3990,13 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
                 {"client_id": {"$in": client_ids}},
                 {"sale_id": {"$in": sale_ids}},
             ]
-        cursor = db.projects.find(q, {"_id": 0, "photos": 0}).sort("created_at", -1).skip(offset)
+        cursor = repo.find("projects", q, {"_id": 0, "photos": 0}).sort("created_at", -1).skip(offset)
         if limit > 0:
             cursor = cursor.limit(limit)
         projects = await cursor.to_list(limit if limit > 0 else 5000)
 
     ids = list({p["client_id"] for p in projects})
-    clients = await db.clients.find(cq(user, {"id": {"$in": ids}}), {"_id": 0}).to_list(5000)
+    clients = await repo.find("clients", {"id": {"$in": ids}}, {"_id": 0}).to_list(5000)
     cmap = {c["id"]: c for c in clients}
     # Enrich with commercial(s) + prestations from the source sale (DE-aware)
     sale_ids = list({p.get("sale_id") for p in projects if p.get("sale_id")})
