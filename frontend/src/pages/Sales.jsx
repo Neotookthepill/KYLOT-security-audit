@@ -330,6 +330,7 @@ export default function Sales() {
   const [editingSale, setEditingSale] = useState(null);
   const [viewSale, setViewSale] = useState(null);
   const [panelSale, setPanelSale] = useState(null);
+  const [panelProject, setPanelProject] = useState(null);
   const salesColumnsKey = `kylot:sales:columns:${user?.id || "anon"}`;
   const [hiddenCols, setHiddenCols] = useState(() => {
     try {
@@ -643,6 +644,19 @@ export default function Sales() {
   const commercialOptions = useMemo(() => (commerciaux || []).map((c) => ({ value: c.name, label: c.name })), [commerciaux]);
   const [confirmDelete, setConfirmDelete] = useState(null); // sale to delete
   const [pendingProjectCompletion, setPendingProjectCompletion] = useState(null);
+
+  useEffect(() => {
+    if (!panelSale) { setPanelProject(null); return; }
+    let cancelled = false;
+    api.get("/planning/projects?limit=5000")
+      .then((r) => {
+        if (cancelled) return;
+        const linked = (r.data || []).find((p) => p.sale_id === panelSale.id && !p.cancelled);
+        setPanelProject(linked || null);
+      })
+      .catch(() => { if (!cancelled) setPanelProject(null); });
+    return () => { cancelled = true; };
+  }, [panelSale]);
   const [deleting, setDeleting] = useState(false);
   const [prefill, setPrefill] = useState(null);
   const [statusManagerOpen, setStatusManagerOpen] = useState(false);
@@ -1216,6 +1230,7 @@ export default function Sales() {
                   <div><p className="overline">Source</p><p className="mt-1 font-medium">{src?.label || panelSale.source || "—"}</p></div>
                   <div><p className="overline">Règlement</p><p className="mt-1 font-medium">{formatPayment(panelSale.payment_method, panelSale.payment_installments)}</p></div>
                   <div><p className="overline">Commercial</p><p className="mt-1 font-medium">{panelSale.commercial || "—"}{panelSale.is_de && panelSale.commercial_2 ? ` + ${panelSale.commercial_2}` : ""}</p></div>
+                  <div className="col-span-2"><p className="overline">Technicien(s) sur le chantier</p><p className="mt-1 font-medium">{panelProject?.assigned_to?.length ? panelProject.assigned_to.join(", ") : "Non attribué"}</p></div>
                 </div>
                 <div className="mt-5 border-t border-slate-200 pt-4">
                   <p className="overline">Coordonnées</p>
