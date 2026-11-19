@@ -15,7 +15,7 @@ import ImportClientPdfDialog from "@/components/ImportClientPdfDialog";
 import UnmatchedCommercialsDialog from "@/components/UnmatchedCommercialsDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SALE_STATUSES, STATUS_MAP, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
+import { SALE_STATUSES, STATUS_MAP, STATUS_COLOR_HEX, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
 import { statusCountsCA } from "@/lib/workflows";
 import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
@@ -264,6 +264,7 @@ const PROJECT_COMPLETION_SALE_STATUSES = new Set([
 function StatusSelect({ sale, statuses, statusMap, canEdit, onChange, compact = false }) {
   const st = statusMap[sale.status] || STATUS_MAP[sale.status];
   const classes = st?.cls || "bg-slate-200 text-slate-700";
+  const colorHex = STATUS_COLOR_HEX[st?.color] || STATUS_COLOR_HEX.slate;
   if (!canEdit) {
     return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${classes}`} data-testid={`sale-status-trigger-${sale.id}`}>{st?.label || sale.status}</span>;
   }
@@ -277,6 +278,7 @@ function StatusSelect({ sale, statuses, statusMap, canEdit, onChange, compact = 
         title="Changer le statut"
         data-testid={`sale-status-trigger-${sale.id}`}
         className={`appearance-none cursor-pointer rounded-md py-0.5 pl-2 pr-6 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${compact ? "max-w-[8.5rem] text-[10px] pl-1.5 pr-5" : "text-xs"} ${classes}`}
+        style={{ backgroundColor: `${colorHex}20`, color: colorHex }}
       >
         {statuses.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
       </select>
