@@ -51,6 +51,10 @@ function applyToRoot(s) {
   root.style.setProperty("--brand", s.theme_primary);
   root.style.setProperty("--brand-accent", s.theme_accent);
   root.style.setProperty("--font-app", `"${s.font_family}", "Inter", sans-serif`);
+  // Le design par défaut garde Manrope pour les titres ; dès que l'entreprise
+  // choisit une autre typographie, les titres suivent aussi ce choix.
+  const displayFont = s.font_family === "Instrument Sans" ? "Manrope" : s.font_family;
+  root.style.setProperty("--font-display", `"${displayFont}", "Manrope", "Inter", sans-serif`);
   loadFont(s.font_family);
   document.body.style.fontFamily = `"${s.font_family}", "Inter", sans-serif`;
 }
