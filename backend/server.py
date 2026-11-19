@@ -7603,7 +7603,7 @@ class SettingsIn(BaseModel):
     @field_validator("notifications")
     @classmethod
     def validate_notification_keys(cls, value: Optional[Dict[str, bool]]) -> Optional[Dict[str, bool]]:
-        allowed = {"new_sales", "objectives", "planning", "overtime", "project_alerts", "events", "chantier_started", "chantier_confirmed", "chantier_terminated"}
+        allowed = {"new_sales", "objectives", "planning", "overtime", "project_alerts", "events", "chantier_started", "chantier_confirmed", "chantier_terminated", "attente_14j_jourj_notif"}
         if value is not None and not set(value).issubset(allowed):
             raise ValueError("Catégorie de notification inconnue")
         return value
