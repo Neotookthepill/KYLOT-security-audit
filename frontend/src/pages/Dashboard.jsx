@@ -7,7 +7,7 @@ import {
   TrendingUp, Euro, Users, HardHat, CheckCircle2, Clock, Trophy,
   Bell, ArrowRight, ArrowUp, ArrowDown, Percent, Wallet, Sparkles,
   CalendarClock, GripVertical, EyeOff, Eye, RotateCcw, Settings2, Plus, Check,
-  ChevronLeft, ChevronRight, CalendarDays, X, User as UserIcon, UserCheck, UserX,
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarDays, X, User as UserIcon, UserCheck, UserX,
   Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -148,7 +148,7 @@ const isLegacyDefault = (arr) => Array.isArray(arr) && arr.length === LEGACY_DEF
  * Wraps every widget block and injects: drag handle + hide button when in edit mode.
  * Uses native HTML5 DnD (works on desktop). Long-press touch fallback is deferred.
  */
-function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onDrop, onHide, onResize, children }) {
+function WidgetShell({ id, editing, dragging, size, isMobile, onDragStart, onDragOver, onDrop, onHide, onResize, onMoveUp, onMoveDown, canMoveUp, canMoveDown, children }) {
   return (
     <div
       draggable={editing}
@@ -164,18 +164,43 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
             <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 text-white text-[10px] font-semibold px-2 py-0.5 shadow pointer-events-auto cursor-grab active:cursor-grabbing" title="Glisser pour déplacer">
               <GripVertical size={10} /> Déplacer
             </span>
-            <button
-              type="button"
-              onClick={() => onHide(id)}
-              className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-white border border-slate-300 text-slate-700 text-[10px] font-semibold px-2 py-0.5 shadow hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition"
-              title="Masquer ce bloc"
-              data-testid={`widget-hide-${id}`}
-            >
-              <EyeOff size={10} /> Masquer
-            </button>
+            <div className="pointer-events-auto flex items-center gap-1">
+              {isMobile && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onMoveUp}
+                    disabled={!canMoveUp}
+                    className="grid h-7 w-7 place-items-center rounded-full border border-slate-300 bg-white text-slate-700 shadow disabled:opacity-30"
+                    title="Monter ce bloc"
+                    aria-label="Monter ce bloc"
+                    data-testid={`widget-move-up-${id}`}
+                  ><ChevronUp size={14} /></button>
+                  <button
+                    type="button"
+                    onClick={onMoveDown}
+                    disabled={!canMoveDown}
+                    className="grid h-7 w-7 place-items-center rounded-full border border-slate-300 bg-white text-slate-700 shadow disabled:opacity-30"
+                    title="Descendre ce bloc"
+                    aria-label="Descendre ce bloc"
+                    data-testid={`widget-move-down-${id}`}
+                  ><ChevronDown size={14} /></button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => onHide(id)}
+                className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-300 text-slate-700 text-[10px] font-semibold px-2 py-0.5 shadow hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition"
+                title="Masquer ce bloc"
+                data-testid={`widget-hide-${id}`}
+              >
+                <EyeOff size={10} /> Masquer
+              </button>
+            </div>
           </div>
-          {/* iter182 — Contrôles de redimensionnement (⅓ ½ ⅔ plein) */}
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-auto">
+          {/* iter182 — Contrôles de redimensionnement (⅓ ½ ⅔ plein).
+              Sur mobile, ils sont rendus dans un panneau fixe sous la carte. */}
+          <div className={isMobile ? "hidden" : "absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-auto"}>
             <div className="inline-flex items-center gap-0.5 rounded-full bg-white border border-slate-300 shadow px-1 py-0.5" title="Redimensionner ce bloc">
               <Maximize2 size={10} className="text-slate-400 ml-1" />
               {ALLOWED_SIZES.map((s) => (
@@ -195,6 +220,21 @@ function WidgetShell({ id, editing, dragging, size, onDragStart, onDragOver, onD
         </>
       )}
       {children}
+      {editing && isMobile && (
+        <div className="relative z-10 mt-2 flex flex-wrap items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white/95 px-2 py-1.5 shadow-sm">
+          <Maximize2 size={11} className="text-slate-400" />
+          {ALLOWED_SIZES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onResize(id, s)}
+              className={`min-h-7 rounded-md px-2 text-[11px] font-semibold ${size === s ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"}`}
+              title={`Taille ${SIZE_LABEL[s]}`}
+              data-testid={`widget-mobile-size-${id}-${s}`}
+            >{SIZE_LABEL[s]}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -774,6 +814,20 @@ export default function Dashboard() {
     .filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)))
     .filter((k) => !isMobile || mobileAll || MOBILE_PRIMARY.has(k));
   const hiddenAvailable = order.filter((k) => renderers[k] && showByAdmin(k) && hidden.includes(k) && k !== "stats");
+  // Réorganisation tactile fiable : on échange deux blocs visibles, sans dépendre
+  // du drag HTML5 qui n'existe pas sur téléphone.
+  const moveWidget = (id, delta) => {
+    const list = visibleOrder;
+    const idx = list.indexOf(id);
+    const target = list[idx + delta];
+    if (!target) return;
+    const next = [...order];
+    const a = next.indexOf(id), b = next.indexOf(target);
+    if (a < 0 || b < 0) return;
+    [next[a], next[b]] = [next[b], next[a]];
+    setOrder(next);
+    saveConfig(next, hidden, sizes);
+  };
   // Mapping col-span statique (Tailwind purge les classes dynamiques — on doit les lister)
   const SPAN_CLASS = { 4: "lg:col-span-4", 6: "lg:col-span-6", 8: "lg:col-span-8", 12: "lg:col-span-12" };
 
@@ -886,14 +940,21 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" data-testid="dashboard-grid">
-        {visibleOrder.map((k) => (
+        {visibleOrder.map((k) => {
+          const visibleIndex = visibleOrder.indexOf(k);
+          return (
           <div key={k} data-widget-key={k} className={`col-span-1 h-full ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
-            <WidgetShell id={k} editing={editing} dragging={dragging} size={sizeOf(k)}
-              onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onHide={hideWidget} onResize={resizeWidget}>
+            <WidgetShell id={k} editing={editing} dragging={dragging} size={sizeOf(k)} isMobile={isMobile}
+              onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onHide={hideWidget} onResize={resizeWidget}
+              onMoveUp={() => moveWidget(k, -1)}
+              onMoveDown={() => moveWidget(k, 1)}
+              canMoveUp={visibleIndex > 0}
+              canMoveDown={visibleIndex < visibleOrder.length - 1}>
               {renderers[k]()}
             </WidgetShell>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {isMobile && (

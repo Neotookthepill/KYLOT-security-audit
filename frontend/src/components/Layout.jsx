@@ -112,7 +112,12 @@ export default function Layout() {
   const appName = settings.app_name || "Qylot";
   const canSettings = can("settings", "modify");
   const canCreateSale = can("sales", "create");
-  const mobileNav = nav.filter((n) => ["/", "/ventes", "/planning", "/clients"].includes(n.to)).slice(0, 4);
+  // Les commerciaux n'ont pas besoin de l'onglet Clients dans la barre basse :
+  // Commissions est leur action quotidienne. Les autres profils gardent Clients.
+  const mobilePaths = user?.role === "commercial"
+    ? ["/", "/ventes", "/planning", "/commissions"]
+    : ["/", "/ventes", "/planning", "/clients"];
+  const mobileNav = nav.filter((n) => mobilePaths.includes(n.to)).slice(0, 4);
   const today = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
 
   const closeMobile = () => setMobileOpen(false);
