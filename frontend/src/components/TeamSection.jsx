@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Users2, Hammer, Check, Pencil, Mail, MailX, Eye, EyeOff, Clock, Building2 } from "lucide-react";
+import { X, Plus, Users2, Hammer, Check, Pencil, Mail, MailX, Eye, EyeOff, Clock, Building2, Copy, UserPlus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import useTeam from "@/lib/useTeam";
 
@@ -19,6 +20,65 @@ const LABELS = {
   // Stocké dans le champ existant `hidden_from_ranking` (inversé : hidden=true → NON).
   hidden_from_ranking: "Apparaître dans le classement commercial",
 };
+
+function InviteTeamMemberButton({ member, onChanged }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(member.email || "");
+  const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState("");
+  if (member.user_id || !member._account_less) return null;
+  const submit = async () => {
+    const value = (email || "").trim().toLowerCase();
+    if (!value || !value.includes("@")) return toast.error("Email requis pour inviter");
+    setBusy(true);
+    try {
+      const { data } = await api.post(`/team/${member.id}/invite`, { email: value });
+      setLink(data?.invite_url || "");
+      toast.success(data?.linked ? "Compte existant relié à la fiche" : "Invitation créée");
+      onChanged?.();
+    } catch (err) { toast.error(formatApiError(err)); }
+    finally { setBusy(false); }
+  };
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => { setEmail(member.email || ""); setLink(""); setOpen(true); }}
+        className="text-slate-400 hover:text-indigo-700 shrink-0"
+        title="Ajouter un email et inviter ce membre"
+        aria-label={`Inviter ${member.name}`}
+        data-testid={`team-invite-${member.id}`}
+      ><UserPlus size={14} /></button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Inviter {member.name}</DialogTitle>
+            <DialogDescription>
+              La fiche et son historique sont conservés. Le membre n’a pas encore de compte.
+            </DialogDescription>
+          </DialogHeader>
+          {!link ? (
+            <div className="space-y-3">
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@domaine.fr" data-testid="team-invite-email" />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+                <Button onClick={submit} disabled={busy} data-testid="team-invite-submit">Créer l’invitation</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-emerald-700">Invitation créée. Copiez ce lien et transmettez-le au membre :</p>
+              <div className="flex gap-2">
+                <Input readOnly value={link} className="font-mono text-xs" data-testid="team-invite-link" />
+                <Button variant="outline" onClick={() => navigator.clipboard?.writeText(link)} aria-label="Copier le lien"><Copy size={14} /></Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 function CommercialList({ members, onChanged }) {
   const [adding, setAdding] = useState("");
@@ -245,6 +305,7 @@ function CommercialList({ members, onChanged }) {
                   >
                     {m.hidden_from_ranking ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
+                  <InviteTeamMemberButton member={m} onChanged={onChanged} />
                   <button onClick={() => setEditing({ id: m.id, objectif: m.objectif || 0, email: m.email || "" })} className="text-slate-400 hover:text-slate-700" data-testid={`team-obj-edit-${m.id}`} aria-label="Modifier"><Pencil size={12} /></button>
                   <button onClick={() => remove(m)} className="text-slate-400 hover:text-red-600" data-testid={`team-commercial-${m.id}-remove`} aria-label={`Supprimer ${m.name}`}><X size={14} /></button>
                   </div>
@@ -416,6 +477,7 @@ function TechnicienList({ members, onChanged }) {
                   >
                     <Clock size={13} />
                   </button>
+                  <InviteTeamMemberButton member={m} onChanged={onChanged} />
                   <button onClick={() => setEditing({ id: m.id, name: m.name })} className="text-slate-400 hover:text-slate-700" data-testid={`team-tech-edit-${m.id}`} aria-label="Renommer"><Pencil size={12} /></button>
                 </>
               )}
@@ -452,13 +514,73 @@ function TechnicienList({ members, onChanged }) {
   );
 }
 
-export default function TeamSection() {
-  const { commerciaux, techniciens, sousTraitants, reload } = useTeam();
+function ProspecteurList({ members, onChanged }) {
+  const [adding, setAdding] = useState("");
+  const [addingEmail, setAddingEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const safeMembers = (Array.isArray(members) ? members : []).filter((m) => m && m.id);
+
+  const add = async () => {
+    const name = adding.trim();
+    if (!name) return;
+    setBusy(true);
+    try {
+      await api.post("/team", { name, type: "prospecteur", email: (addingEmail || "").trim().toLowerCase() });
+      toast.success(`${name} ajouté comme prospecteur (sans compte)`);
+      setAdding(""); setAddingEmail(""); onChanged?.();
+    } catch (err) { toast.error(formatApiError(err)); }
+    finally { setBusy(false); }
+  };
+  const remove = async (m) => {
+    if (!window.confirm(`Supprimer ${m.name} ?`)) return;
+    try { await api.delete(`/team/${m.id}`); toast.success(`${m.name} retiré`); onChanged?.(); }
+    catch (err) { toast.error(formatApiError(err)); }
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+    <Card className="border-slate-200 shadow-sm" data-testid="team-prospecteurs">
+      <div className="p-4 border-b border-slate-200 flex items-center gap-2">
+        <UserPlus size={16} className="text-violet-600" />
+        <p className="font-display text-lg font-semibold">Prospecteurs</p>
+        <Badge className="bg-violet-100 text-violet-800 border-0 ml-auto">{safeMembers.length}</Badge>
+      </div>
+      <div className="p-4">
+        <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
+          {safeMembers.length === 0 && <p className="text-sm text-slate-500">Aucun prospecteur.</p>}
+          {safeMembers.map((m) => (
+            <div key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-slate-100 hover:bg-slate-50" data-testid={`prospecteur-${m.id}`}>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{m.name}</div>
+                {m.email ? (
+                  <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 truncate"><Mail size={10} className="shrink-0" />{m.email}</div>
+                ) : (
+                  <div className="text-[11px] text-amber-600 flex items-center gap-1 mt-0.5"><MailX size={10} />Sans compte — email facultatif</div>
+                )}
+              </div>
+              <InviteTeamMemberButton member={m} onChanged={onChanged} />
+              <button onClick={() => remove(m)} className="text-slate-400 hover:text-red-600 shrink-0" aria-label={`Supprimer ${m.name}`} data-testid={`prospecteur-${m.id}-remove`}><X size={14} /></button>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-2 mt-3 sm:grid-cols-[1fr_1fr_auto]">
+          <Input value={adding} onChange={(e) => setAdding(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Nom du prospecteur" data-testid="team-prospecteur-input" />
+          <Input type="email" value={addingEmail} onChange={(e) => setAddingEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="Email (facultatif)" data-testid="team-prospecteur-email-input" />
+          <Button onClick={add} disabled={busy || !adding.trim()} data-testid="team-prospecteur-add-btn"><Plus size={14} className="mr-1" /> Ajouter</Button>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-2">Sans compte, il peut être associé aux ventes et rendez-vous. L’invitation se fait ensuite depuis sa fiche, sans perdre son historique.</p>
+      </div>
+    </Card>
+  );
+}
+
+export default function TeamSection() {
+  const { commerciaux, techniciens, sousTraitants, prospecteurs, reload } = useTeam();
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 mt-6">
       <CommercialList members={commerciaux} onChanged={reload} />
       <TechnicienList members={techniciens} onChanged={reload} />
       <SousTraitantList members={sousTraitants} onChanged={reload} />
+      <ProspecteurList members={prospecteurs} onChanged={reload} />
     </div>
   );
 }
@@ -568,6 +690,7 @@ function SousTraitantList({ members, onChanged }) {
                 )}
               </div>
               <Badge className="bg-teal-50 text-teal-700 border-0 text-[10px] shrink-0">Sous-traitant</Badge>
+              <InviteTeamMemberButton member={m} onChanged={onChanged} />
               <button onClick={() => removeRole(m)} className="text-slate-400 hover:text-red-600 shrink-0" aria-label={`Retirer ${m.name}`} title="Retirer le rôle Sous-traitant (le compte est conservé)" data-testid={`sous-traitant-${m.id}-remove`}><X size={14} /></button>
             </div>
           ))}

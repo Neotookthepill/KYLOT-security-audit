@@ -6507,7 +6507,7 @@ async def list_team(
 
 @api_router.post("/team")
 async def create_team_member(data: TeamMemberIn, user: dict = Depends(require_admin)):
-    if data.type not in ("commercial", "technicien", "sous_traitant"):
+    if data.type not in ("commercial", "technicien", "sous_traitant", "prospecteur", "responsable_prospecteur"):
         raise HTTPException(status_code=400, detail="Type invalide")
     name = data.name.strip()
     if not name:
@@ -6619,6 +6619,79 @@ async def update_team_member(tid: str, data: TeamMemberUpdate, user: dict = Depe
     after = await db.team_members.find_one(cq(user, {"id": tid}), {"_id": 0})
     await log_audit(user, "update", "team_member", tid, before=current, after=after)
     return after
+
+class TeamInviteIn(BaseModel):
+    email: Optional[str] = Field(default=None, max_length=320)
+
+
+@api_router.post("/team/{tid}/invite")
+async def invite_team_member(tid: str, data: TeamInviteIn, user: dict = Depends(require_admin)):
+    """Invite un membre existant sans lui recréer une fiche.
+
+    L'email est optionnel pour la fiche, mais obligatoire pour inviter.
+    L'historique (ventes/prospection) reste attaché à la fiche puis est migré
+    vers le compte utilisateur lors de l'invitation.
+    """
+    member = await db.team_members.find_one(cq(user, {"id": tid}), {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+    email = (data.email or member.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Ajoutez une adresse email pour inviter ce membre")
+    role = {"commercial": "commercial", "technicien": "technicien", "sous_traitant": "sous_traitant",
+            "prospecteur": "prospecteur", "responsable_prospecteur": "responsable_prospecteur"}.get(member.get("type"), "commercial")
+    existing = await db.users.find_one(cq(user, {"email": email}), {"_id": 0, "id": 1, "name": 1, "role": 1, "is_active": 1})
+    now = datetime.now(timezone.utc)
+    if existing:
+        # Compte déjà existant : on relie la fiche, sans changer son rôle.
+        uid = existing["id"]
+        if existing.get("is_active"):
+            await db.team_members.update_one(cq(user, {"id": tid}), {"$set": {"email": email, "user_id": uid}})
+            if member.get("type") in ("prospecteur", "responsable_prospecteur"):
+                await db.sales.update_many(cq(user, {"prospecteur_id": tid}), {"$set": {"prospecteur_id": uid, "prospecteur_name": member.get("name") or ""}})
+            return {"ok": True, "linked": True, "user": existing, "invite_url": None}
+    admin = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0}) or {}  # nosec B105
+    plan = admin.get("subscription_plan") or "keylot_essentiel_monthly"
+    limit = PLAN_USER_LIMITS.get(plan, 3)
+    if limit is not None:
+        current = await db.users.count_documents(cq(user))
+        if current >= limit:
+            raise HTTPException(status_code=402, detail=f"Limite du plan atteinte ({current}/{limit} utilisateurs). Passez à un forfait supérieur.")
+    if existing:
+        uid = existing["id"]
+        raw = secrets.token_urlsafe(32)
+        await db.users.update_one(cq(user, {"id": uid}), {"$set": {
+            "invite_token_hash": hashlib.sha256(raw.encode()).hexdigest(),
+            "invite_pending": True, "is_active": False,
+            "invite_created_at": now, "invite_expires_at": now + timedelta(days=7),
+        }})
+    else:
+        await _ensure_unique_user_name(user, member.get("name") or email)
+        raw = secrets.token_urlsafe(32)
+        uid = str(uuid.uuid4())
+        doc = with_company({
+            "id": uid, "email": email, "name": member.get("name") or email,
+            "password_hash": hash_password(secrets.token_urlsafe(32)),
+            "role": role, "is_active": False, "invite_pending": True,
+            "invite_token_hash": hashlib.sha256(raw.encode()).hexdigest(),
+            "invite_created_at": now, "invite_expires_at": now + timedelta(days=7),
+            "permissions": get_default_permissions(role),
+            "subscription_plan": admin.get("subscription_plan"),
+            "subscription_status": admin.get("subscription_status"),
+            "stripe_subscription_id": admin.get("stripe_subscription_id"),
+            "created_at": now_iso(),
+        }, user)
+        await db.users.insert_one(doc)
+        try:
+            await _sync_user_team_membership(user, doc)
+        except Exception as _e:
+            logger.warning(f"team sync after team invite failed: {_e}")
+    await db.team_members.update_one(cq(user, {"id": tid}), {"$set": {"email": email, "user_id": uid}})
+    if member.get("type") in ("prospecteur", "responsable_prospecteur"):
+        await db.sales.update_many(cq(user, {"prospecteur_id": tid}), {"$set": {"prospecteur_id": uid, "prospecteur_name": member.get("name") or ""}})
+    await log_audit(user, "invite", "team_member", tid, after={"email": email, "user_id": uid})
+    return {"ok": True, "linked": False, "user_id": uid, "invite_url": _invite_url(raw), "expires_in_days": 7}
+
 
 @api_router.delete("/team/{tid}")
 async def delete_team_member(tid: str, user: dict = Depends(require_admin)):
@@ -10780,7 +10853,7 @@ async def _sync_user_team_membership(user: dict, u: dict) -> None:
     existing = []
     if or_clauses:
         existing = await db.team_members.find({"company_id": company, "$or": or_clauses}, {"_id": 0}).to_list(50)
-    target_type = "commercial" if role == "commercial" else ("technicien" if role == "technicien" else None)
+    target_type = role if role in ("commercial", "technicien", "prospecteur", "responsable_prospecteur", "sous_traitant") else None
     # 2) Si le rôle ne correspond à aucun bloc → supprime toutes les entrées liées, aucun résidu
     if not target_type:
         for e in existing:
@@ -13337,6 +13410,9 @@ PROSPECT_VIEW_ALL_ROLES = ("admin", "responsable", "responsable_prospecteur")
 async def _prospecteur_fields(user: dict, pid: Optional[str], commission: Optional[float]) -> dict:
     p = await db.users.find_one(cq(user, {"id": pid, "role": {"$in": ["prospecteur", "responsable_prospecteur"]}}), {"_id": 0, "id": 1, "name": 1}) if pid else None
     if not p:
+        # Un prospecteur peut exister dans team_members sans compte utilisateur.
+        p = await db.team_members.find_one(cq(user, {"id": pid, "type": {"$in": ["prospecteur", "responsable_prospecteur"]}}), {"_id": 0, "id": 1, "name": 1}) if pid else None
+    if not p:
         return {"prospecteur_id": "", "prospecteur_name": "", "prospecteur_commission": 0.0}
     allowed = user.get("role") in PROSPECT_COMM_ROLES
     return {"prospecteur_id": p["id"], "prospecteur_name": p.get("name") or "",
@@ -13357,7 +13433,16 @@ class ProspectCommissionIn(BaseModel):
 
 @api_router.get("/prospecteurs")
 async def list_prospecteurs(user: dict = Depends(get_current_user)):
-    return await db.users.find(cq(user, {"role": {"$in": ["prospecteur", "responsable_prospecteur"]}}), {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(500)
+    rows = await db.users.find(cq(user, {"role": {"$in": ["prospecteur", "responsable_prospecteur"]}}), {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(500)
+    seen = {(r.get("id") or "").strip() for r in rows}
+    seen_names = {(r.get("name") or "").strip().lower() for r in rows}
+    async for tm in db.team_members.find(cq(user, {"type": {"$in": ["prospecteur", "responsable_prospecteur"]}}), {"_id": 0, "id": 1, "name": 1, "type": 1, "user_id": 1}).sort("name", 1):
+        if tm.get("user_id") or tm.get("id") in seen or (tm.get("name") or "").strip().lower() in seen_names:
+            continue
+        seen.add(tm.get("id"))
+        seen_names.add((tm.get("name") or "").strip().lower())
+        rows.append({"id": tm["id"], "name": tm.get("name") or "", "role": tm.get("type") or "prospecteur"})
+    return sorted(rows, key=lambda x: (x.get("name") or "").lower())
 
 
 @api_router.get("/prospection")

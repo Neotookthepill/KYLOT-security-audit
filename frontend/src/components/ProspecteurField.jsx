@@ -45,7 +45,7 @@ export const ProspecteurField = ({ form, setForm, testPrefix }) => {
         </div>
       )}
       {list.length === 0 && (
-        <p className="col-span-2 text-[11px] text-slate-500">Aucun prospecteur : créez un utilisateur avec le rôle « Prospecteur ».</p>
+        <p className="col-span-2 text-[11px] text-slate-500">Aucun prospecteur : ajoutez-en un dans Équipe (sans compte obligatoire).</p>
       )}
     </div>
   );

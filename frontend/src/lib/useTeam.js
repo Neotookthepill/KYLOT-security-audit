@@ -10,25 +10,28 @@ export default function useTeam() {
   const [commerciaux, setCommerciaux] = useState(cache.commerciaux || []);
   const [techniciens, setTechniciens] = useState(cache.techniciens || []);
   const [sousTraitants, setSousTraitants] = useState(cache.sousTraitants || []);
+  const [prospecteurs, setProspecteurs] = useState(cache.prospecteurs || []);
   const [loading, setLoading] = useState(!cache.commerciaux);
 
   const load = useCallback(async () => {
     try {
-      const [c, t, st, users] = await Promise.all([
+      const [c, t, st, p, users] = await Promise.all([
         api.get("/team?type=commercial"),
         api.get("/team?type=technicien"),
         api.get("/team?type=sous_traitant").catch(() => ({ data: [] })),
+        api.get("/team?type=prospecteur").catch(() => ({ data: [] })),
         api.get("/users"),
       ]);
       // iter90 : coerce en Array pour tolérer une réponse malformée
       const asArr = (x) => (Array.isArray(x) ? x : []);
-      const cData = asArr(c.data);
-      const tData = asArr(t.data);
+      const cData = asArr(c.data).map((m) => ({ ...m, _account_less: true }));
+      const tData = asArr(t.data).map((m) => ({ ...m, _account_less: true }));
       // iter135 : fusionne users (role=sous_traitant) + team_members (type=sous_traitant)
       // en dédupliquant par email OU nom normalisé. Les entries `team_members` (sans compte)
       // portent un marker `_account_less: true` pour que la UI puisse router les actions.
       const userSt = asArr(users.data).filter((u) => u && u.role === "sous_traitant");
       const tmSt = asArr(st.data).map((m) => ({ ...m, _account_less: true }));
+      const pData = asArr(p.data).map((m) => ({ ...m, _account_less: true }));
       const norm = (s) => (s || "").trim().toLowerCase();
       const seen = new Set();
       const merged = [];
@@ -40,10 +43,11 @@ export default function useTeam() {
         const key = norm(m.email) || `n:${norm(m.name)}`;
         if (!seen.has(key)) { seen.add(key); merged.push(m); }
       }
-      cache = { commerciaux: cData, techniciens: tData, sousTraitants: merged, ts: Date.now() };
+      cache = { commerciaux: cData, techniciens: tData, sousTraitants: merged, prospecteurs: pData, ts: Date.now() };
       setCommerciaux(cData);
       setTechniciens(tData);
       setSousTraitants(merged);
+      setProspecteurs(pData);
       notifyAll();
     } catch (e) {
       // ignore, keep old data
@@ -69,5 +73,5 @@ export default function useTeam() {
     };
   }, [load]);
 
-  return { commerciaux, techniciens, sousTraitants, loading, reload: load };
+  return { commerciaux, techniciens, sousTraitants, prospecteurs, loading, reload: load };
 }
