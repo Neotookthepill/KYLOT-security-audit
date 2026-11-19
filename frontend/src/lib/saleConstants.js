@@ -1,3 +1,4 @@
+import { isSaleCountedInCA, isSaleCommissionable } from "@/lib/workflows";
 // Central helper for sale statuses (labels + Tailwind classes)
 // Order below = QYLOT default (top → bottom). Companies can override via
 // settings.sale_status_order (list of values consumed by orderStatuses()) OR
@@ -85,6 +86,8 @@ export const resolveStatusesFromPayload = (payload) => {
       default: !!s.default,
       system: !!s.system,
       hides_from_projects: !!s.hides_from_projects,
+      countsCA: typeof s.countsCA === "boolean" ? s.countsCA : isSaleCountedInCA(s.value),
+      commissionable: typeof s.commissionable === "boolean" ? s.commissionable : isSaleCommissionable(s.value),
     }));
 };
 export const buildStatusMap = (list) => (Array.isArray(list) ? list : SALE_STATUSES).reduce((acc, s) => { acc[s.value] = s; return acc; }, {});

@@ -13407,7 +13407,12 @@ async def update_prospection_commission(sid: str, data: ProspectCommissionIn, us
 async def get_sale_statuses(user: dict = Depends(get_current_user)):
     cid = company_id_of(user)
     s = await db.settings.find_one({"company_id": cid, "kind": "global"}, {"_id": 0}) or {}
-    return _resolve_statuses(s)
+    statuses = _resolve_statuses(s)
+    caps = await _sale_status_capabilities(user)
+    # Le frontend doit recevoir les capacités métier, pas seulement le libellé.
+    # Sinon un statut personnalisé comme « virement reçu » est traité comme inconnu
+    # et disparaît des commissions / du CA.
+    return [{**st, **caps.get(st.get("value"), {"countsCA": False, "commissionable": False})} for st in statuses]
 
 
 @api_router.get("/sale-statuses/usage")

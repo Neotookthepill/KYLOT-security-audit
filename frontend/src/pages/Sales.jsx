@@ -17,7 +17,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SALE_STATUSES, STATUS_MAP, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
-import { isSaleCountedInCA } from "@/lib/workflows";
+import { statusCountsCA } from "@/lib/workflows";
 import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
@@ -970,7 +970,7 @@ export default function Sales() {
           )}
         </div>
         {(queries.length > 0 || q.trim()) && (() => {
-          const act = filtered.filter((s) => isSaleCountedInCA(s.status));
+          const act = filtered.filter((s) => statusCountsCA(s.status, statusMap));
           return (
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-baseline gap-x-6 gap-y-1" data-testid="sales-search-summary">
               <span className="text-sm text-slate-600">Résultat de la recherche : <b className="text-slate-900" data-testid="sales-search-count">{pageTotal} vente{pageTotal > 1 ? "s" : ""}</b></span>

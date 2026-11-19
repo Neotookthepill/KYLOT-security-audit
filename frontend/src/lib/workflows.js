@@ -32,6 +32,13 @@ const DEFAULT_SALE_PHASE = Object.freeze({
   litige: "dispute",
   annule: "cancelled",
   non_financable: "non_financable",
+  // Statuts personnalisés de la version client : sans ce mapping, ils étaient
+  // considérés comme « inconnus » et disparaissaient du CA / des commissions.
+  stat_mtllrgv5: "in_progress",
+  stat_mtkktzqu: "pending_cheque",
+  stat_mtkktyzi: "paid",
+  stat_mthsyx7z: "non_financable",
+  stat_mtkmkm8l: "dispute",
 });
 
 /**
@@ -52,6 +59,20 @@ export const isSaleTerminal = (status, overrides) => salePhaseMeta(status, overr
 export const isSaleCommissionable = (status, overrides) => salePhaseMeta(status, overrides).commissionable;
 export const isSaleCountedInCA = (status, overrides) => salePhaseMeta(status, overrides).countsCA;
 export const isSalePaid = (status) => salePhase(status) === "paid";
+
+/** Capacités fournies par /sale-statuses (source de vérité pour les statuts custom). */
+export function statusCountsCA(status, statuses = []) {
+  const row = Array.isArray(statuses)
+    ? statuses.find((s) => s.value === status)
+    : statuses?.[status];
+  return typeof row?.countsCA === "boolean" ? row.countsCA : isSaleCountedInCA(status);
+}
+export function statusCommissionable(status, statuses = []) {
+  const row = Array.isArray(statuses)
+    ? statuses.find((s) => s.value === status)
+    : statuses?.[status];
+  return typeof row?.commissionable === "boolean" ? row.commissionable : isSaleCommissionable(status);
+}
 
 /**
  * Le chantier a des états stables ; `cancelled` reste un champ séparé.

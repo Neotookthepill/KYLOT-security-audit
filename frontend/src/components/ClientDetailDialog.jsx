@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
-import { isSaleCountedInCA } from "@/lib/workflows";
+import { statusCountsCA } from "@/lib/workflows";
+import { resolveStatusesFromPayload } from "@/lib/saleConstants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
   const [reinters, setReinters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reinterOpen, setReinterOpen] = useState(false);
+  const [statuses, setStatuses] = useState([]);
 
   const loadReinters = async () => {
     if (!client) return;
@@ -29,6 +31,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
     setLoading(true);
     Promise.all([
       api.get("/sales").then((r) => setSales(r.data.filter((s) => s.client_id === client.id))),
+      api.get("/sale-statuses").then((r) => setStatuses(resolveStatusesFromPayload(r.data))).catch(() => {}),
       loadReinters(),
     ]).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -36,7 +39,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
 
   if (!client) return null;
 
-  const active = sales.filter((s) => isSaleCountedInCA(s.status));
+  const active = sales.filter((s) => statusCountsCA(s.status, statuses));
   const totalCA = active.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0);
 
   return (

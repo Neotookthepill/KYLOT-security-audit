@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
-import { isSaleCountedInCA } from "@/lib/workflows";
+import { statusCountsCA } from "@/lib/workflows";
 import { lookupCityFromPostalCode, lookupPostalCodeFromCity } from "@/lib/addressLookup";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
@@ -323,7 +323,7 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
         payload.client = newClient;
       }
       await api.post("/sales", payload);
-      toast.success("Vente créée" + (isSaleCountedInCA(form.status) ? " · chantier ajouté au planning" : ""));
+      toast.success("Vente créée" + (statusCountsCA(form.status, statuses) ? " · chantier ajouté au planning" : ""));
       onOpenChange(false);
       onCreated?.();
     } catch (err) {
