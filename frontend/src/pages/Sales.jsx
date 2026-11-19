@@ -1,5 +1,5 @@
 import PhoneNumbers from "@/components/PhoneNumbers";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import api, { downloadApiFile, formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -412,6 +412,11 @@ export default function Sales() {
     } catch (_) { setLoadError(true); }
     finally { setSalesLoading(false); }
   };
+  // Le listener global (focus / mise à jour depuis une autre page) doit utiliser
+  // la dernière recherche, pas la fermeture du premier rendu.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   // Optimistic PATCH helper for inline edits. Rolls back on error.
   const patchSale = async (id, patch) => {
     const prev = sales;
@@ -485,12 +490,12 @@ export default function Sales() {
     if (["admin", "responsable", "super_admin"].includes(user?.role)) {
       try { api.post("/sales/check-attente-14j").catch(() => {}); } catch (_) {}
     }
-    const onFocus = () => { load(0); loadUnmatched(); };
-    const onVis = () => { if (document.visibilityState === "visible") load(0); };
+    const onFocus = () => { loadRef.current(0); loadUnmatched(); };
+    const onVis = () => { if (document.visibilityState === "visible") loadRef.current(0); };
     // iter101 : refresh live quand une vente est modifiée/supprimée/créée depuis n'importe où
     //   (Kanban, Dashboard, autre onglet) → tous les blocs (CA, objectif, %, reste, graphique,
     //   liste, rapport) se recalculent en même temps depuis la même source /sales.
-    const onSalesUpdated = () => { load(0); loadUnmatched(); };
+    const onSalesUpdated = () => { loadRef.current(0); loadUnmatched(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("kylot:sales-updated", onSalesUpdated);
