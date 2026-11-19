@@ -100,6 +100,11 @@ try {
   await p.getByTestId('sale-row-s1').evaluate((el) => el.click());
   await p.waitForTimeout(250);
   if (!await p.getByTestId('sale-side-panel').count()) throw new Error('panneau latéral absent');
+  // Régression : le bouton Modifier ouvrait un composant lazy avec un import manquant.
+  await p.getByTestId('sale-panel-edit').evaluate((el) => el.click());
+  await p.waitForTimeout(500);
+  if (!await p.getByTestId('edit-sale-commission-month').count()) throw new Error('champ mois de paiement absent');
+  if (!await p.getByTestId('edit-sale-save-btn').count()) throw new Error('bouton enregistrer absent');
   await desktop.close();
 
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
