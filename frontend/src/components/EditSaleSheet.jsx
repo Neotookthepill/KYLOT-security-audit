@@ -418,10 +418,6 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
             </div>
           </div>
 
-          <div className="space-y-1.5"><Label>Notes</Label>
-            <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="edit-sale-notes" />
-          </div>
-
           <div className="space-y-1.5">
             <Label>Mois de paiement de la commission</Label>
             <Select value={form.commission_month || currentMonth()} onValueChange={(v) => setForm({ ...form, commission_month: v })}>
@@ -431,6 +427,10 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-slate-500">Modifier ce mois déplace la commission ; elle ne peut pas être comptée dans deux mois.</p>
+          </div>
+
+          <div className="space-y-1.5"><Label>Notes</Label>
+            <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} data-testid="edit-sale-notes" />
           </div>
         </div>
 

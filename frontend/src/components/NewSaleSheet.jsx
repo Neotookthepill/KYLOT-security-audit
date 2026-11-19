@@ -640,10 +640,6 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
             </div>
           </div>
 
-          <div className="space-y-1.5"><Label>Notes</Label>
-            <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          </div>
-
           <div className="space-y-1.5">
             <Label>Mois de paiement de la commission</Label>
             <Select value={form.commission_month || currentMonth()} onValueChange={(v) => setForm({ ...form, commission_month: v })}>
@@ -653,6 +649,10 @@ export default function NewSaleSheet({ open, onOpenChange, onCreated, prefill = 
               </SelectContent>
             </Select>
             <p className="text-[11px] text-slate-500">La commission sera classée dans ce mois. Utile pour régulariser une ancienne vente.</p>
+          </div>
+
+          <div className="space-y-1.5"><Label>Notes</Label>
+            <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
         </div>
 
