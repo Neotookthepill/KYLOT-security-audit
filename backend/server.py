@@ -465,12 +465,10 @@ def _auth_response(user: dict, token: str) -> dict:
 
 async def _apply_overtime_eligibility_gate(u: dict) -> None:
     """iter94/121/126 : verrouille strictement l'accès aux heures sup pour un technicien.
-    Un technicien n'a `overtime.declare/view/edit` que si son team_member (match
-    par name OU email dans la même société) porte `overtime_enabled = True`.
-    iter121 : matching insensible à la casse ET aux accents ("Sébastien" ↔ "Sebastien").
-    iter126 : matching insensible aussi aux différences de nom court/long — l'utilisateur
-    `users.name = "Sébastien Vasseur"` matche `team_members.name = "Sébastien"` (et vice-versa)
-    via comparaison sur le prénom OU sur inclusion mot-à-mot.
+    Un technicien n'a `overtime.declare/view/edit` que si son team_member
+    (même société) porte `overtime_enabled = True` et est relié au compte par
+    `user_id` ou par email. Le nom complet exact reste accepté uniquement pour
+    les anciennes fiches non reliées ; aucun rapprochement par prénom seul.
     Sinon les permissions overtime sont neutralisées → le menu disparaît côté
     frontend (Layout) ET tous les endpoints /api/overtime* renvoient 403.
     """
@@ -482,12 +480,8 @@ async def _apply_overtime_eligibility_gate(u: dict) -> None:
         if not s:
             return ""
         return _ud.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii").lower()
-    def _tokens(s):
-        return [t for t in _norm(s).split() if t]
     company = u.get("company_id") or DEFAULT_COMPANY_ID
     my_name_n = _norm(u.get("name"))
-    my_tokens = _tokens(u.get("name"))
-    my_first = my_tokens[0] if my_tokens else ""
     my_email = (u.get("email") or "").strip().lower()
     eligible = False
     if my_name_n or my_email:
@@ -495,22 +489,16 @@ async def _apply_overtime_eligibility_gate(u: dict) -> None:
         # côté Python après normalisation (évite les caprices d'accents Mongo).
         techs = await db.team_members.find(
             {"company_id": company, "type": "technicien"},
-            {"_id": 0, "name": 1, "email": 1, "overtime_enabled": 1},
+            {"_id": 0, "name": 1, "email": 1, "user_id": 1, "overtime_enabled": 1},
         ).to_list(500)
         for t in techs:
             t_name_n = _norm(t.get("name"))
-            t_tokens = _tokens(t.get("name"))
-            t_first = t_tokens[0] if t_tokens else ""
             t_email = (t.get("email") or "").strip().lower()
-            # iter126 : 4 stratégies de match — full string, prénom identique, tokens inclus, email.
-            match_full = bool(my_name_n and t_name_n and my_name_n == t_name_n)
+            # L'autorisation est reliée au compte, jamais au prénom seul.
+            match_id = bool(t.get("user_id") and t.get("user_id") == u.get("id"))
             match_email = bool(my_email and t_email and t_email == my_email)
-            # Le compte utilisateur contient souvent le nom complet
-            # (« Sebastien Hurtel ») alors que le membre d'équipe est saisi
-            # avec le prénom seul (« Sébastien »). Sans ce rapprochement, la
-            # permission overtime était neutralisée malgré le flag admin.
-            match_first = bool(my_first and t_first and my_first == t_first)
-            if match_full or match_email or match_first:
+            match_full = bool(my_name_n and t_name_n and my_name_n == t_name_n)
+            if match_id or match_email or match_full:
                 if t.get("overtime_enabled"):
                     eligible = True
                 break
@@ -13595,7 +13583,7 @@ async def _ready():
 
 
 # iter55 : version du bundle serveur (utilisé par le frontend pour détecter un redeploy)
-APP_VERSION = os.environ.get("APP_VERSION", "iter178")
+APP_VERSION = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("APP_VERSION") or "dev")
 APP_STARTED_AT = now_iso()
 
 @app.get("/api/version", include_in_schema=False)

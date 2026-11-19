@@ -89,7 +89,8 @@ def main():
     orphan_project_client = sum(1 for p in projects if p.get("client_id") and p["client_id"] not in cids)
     orphan_project_sale = sum(1 for p in projects if p.get("sale_id") and p["sale_id"] not in sids)
     test_objects = sum(1 for row in clients + sales + projects if str(row.get("name") or row.get("client_name") or "").startswith("TEST-AUDIT"))
-    photos = sum(len(p.get("photos") or []) for p in projects)
+    # La liste API ne contient plus les base64 : photo_count est maintenu en base.
+    photos = sum(int(p.get("photo_count") or 0) for p in projects)
 
     if dup_email: errors.append("doublons email client: %d" % len(dup_email))
     if dup_phone: errors.append("doublons téléphone client: %d" % len(dup_phone))

@@ -68,7 +68,7 @@ export default function CalendarPage() {
   const load = async () => {
     // iter209 : endpoint dédié Planning — gated par `planning.view`, indépendant
     // de `projects.view`. Retirer « Chantiers » à un technicien ne vide plus son planning.
-    try { setProjects((await api.get("/planning/projects")).data); setLoadError(false); }
+    try { setProjects((await api.get("/planning/projects?limit=5000")).data); setLoadError(false); }
     catch (_) { setLoadError(true); }
   };
   const loadAbsences = async () => {
