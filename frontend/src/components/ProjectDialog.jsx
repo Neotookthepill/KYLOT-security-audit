@@ -393,6 +393,8 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
     return past.length ? past[past.length - 1] : null;
   })();
   const chosenDay = completeDay || defaultCompleteDay;
+  const nextPendingDay = projectDays.filter((d) => !daysDone[d]).sort()[0] || null;
+  const waitingForFutureDay = projectDays.length > 1 && form.status !== "termine" && !chosenDay && !!nextPendingDay && nextPendingDay > todayIso;
 
   const completeChantier = async () => {
     const photos = form.photos || [];
@@ -818,12 +820,17 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                   })}
                 </div>
                 <p className="text-[11px] text-slate-600 mt-1.5">Le chantier passera en « terminé » uniquement quand toutes les journées seront validées.</p>
+                {waitingForFutureDay && (
+                  <p className="mt-1.5 text-[11px] font-medium text-amber-700" data-testid="project-complete-future-day">
+                    La prochaine journée est prévue le {fmtDay(nextPendingDay)}. Elle n’est pas encore arrivée : la validation sera possible à cette date.
+                  </p>
+                )}
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompleteOpen(false)} disabled={completing}>Annuler</Button>
-            <Button onClick={completeChantier} disabled={completing} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="project-complete-confirm-btn">
+            <Button onClick={completeChantier} disabled={completing || waitingForFutureDay} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="project-complete-confirm-btn">
               {completing ? (<><Loader2 size={13} className="mr-1.5 animate-spin" /> Envoi…</>) : (<><CheckCheck size={13} className="mr-1.5" /> Valider et notifier</>)}
             </Button>
           </DialogFooter>
