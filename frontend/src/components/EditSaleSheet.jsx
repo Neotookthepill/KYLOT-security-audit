@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { ChequeInstallmentsSelect } from "@/components/ChequeInstallmentsSelect";
 import { ProspecteurField, prospecteurPayload } from "@/components/ProspecteurField";
-import { SALE_STATUSES, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload } from "@/lib/saleConstants";
+import { SALE_STATUSES, STATUS_COLORS, STATUS_COLOR_HEX, formatRate, PAYMENT_OPTIONS, CHEQUE_INSTALLMENTS, SOURCES, orderStatuses, resolveStatusesFromPayload, currentMonth, commissionMonthOptions } from "@/lib/saleConstants";
 import useTeam from "@/lib/useTeam";
 import useCommissionRates from "@/lib/useCommissionRates";
 import { useSettings } from "@/contexts/SettingsContext";
