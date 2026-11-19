@@ -8112,7 +8112,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "theme_accent": s.get("theme_accent", "#6366f1"),
         "font_family": s.get("font_family", "Inter"),
         "logo": s.get("logo", ""),
-        "app_name": s.get("app_name", "KEYLOT"),
+        "app_name": s.get("app_name", "Qylot"),
         "overtime_alert_threshold": s.get("overtime_alert_threshold", 30.0),
         "overtime_eligible": list(overtime_eligible) if isinstance(overtime_eligible, list) else None,
         "notifications": {k: bool(prefs.get(k, False)) for k in NOTIFICATION_CATEGORIES},
@@ -8565,7 +8565,10 @@ async def export_projects(user: dict = Depends(get_current_user)):
 
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
-EMAIL_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "KEYLOT")
+EMAIL_FROM_NAME = (os.environ.get("EMAIL_FROM_NAME") or "QYLOT").strip() or "QYLOT"
+# Les anciennes installations pouvaient avoir EMAIL_FROM_NAME=KEYLOT.
+if EMAIL_FROM_NAME.upper() in {"KEYLOT", "KYLOT"}:
+    EMAIL_FROM_NAME = "QYLOT"
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _CRED_ASK = ("reply with your password", "reply with the code", "send your password", "cvv",
@@ -8857,7 +8860,7 @@ async def _run_reminders(target_date: str, company_id: Optional[str] = None) -> 
             rows = "".join(_digest_html_row(item) for item in commercial_items)
             intro = f"Bonjour <strong>{escape(commercial)}</strong>, voici tes chantiers de demain :"
             html = _wrap_digest(target_date, intro, rows)
-            subject = f"[KEYLOT] Rappel · {len(commercial_items)} chantier{'s' if len(commercial_items)>1 else ''} demain"
+            subject = f"[QYLOT] Rappel · {len(commercial_items)} chantier{'s' if len(commercial_items)>1 else ''} demain"
             msg_id = await send_email(to=email, subject=subject, html=html)
             if msg_id:
                 sent += 1
@@ -8873,7 +8876,7 @@ async def _run_reminders(target_date: str, company_id: Optional[str] = None) -> 
         rows = "".join(_digest_html_row(item) for item in company_items)
         intro = f"Récapitulatif de tous les chantiers programmés pour demain ({len(company_items)} au total) :"
         html = _wrap_digest(target_date, intro, rows)
-        subject = f"[KEYLOT] Récap admin · {len(company_items)} chantier{'s' if len(company_items)>1 else ''} demain"
+        subject = f"[QYLOT] Récap admin · {len(company_items)} chantier{'s' if len(company_items)>1 else ''} demain"
         for admin_email in admin_emails:
             msg_id = await send_email(to=admin_email, subject=subject, html=html)
             if msg_id:
@@ -8994,7 +8997,7 @@ async def _run_monthly_digest_email(company_id: Optional[str] = None) -> dict:
                     f'</tr>'
                 )
             frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
-            app_link = f'<a href="{frontend_url}/rapport" style="color:#0f172a">Ouvrir dans KEYLOT</a>' if frontend_url else ""
+            app_link = f'<a href="{frontend_url}/rapport" style="color:#0f172a">Ouvrir dans QYLOT</a>' if frontend_url else ""
             html = (
                 f'<table role="presentation" width="100%" style="background:#f9fafb;padding:24px 0;font-family:Arial,sans-serif">'
                 f'<tr><td align="center"><table role="presentation" width="720" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)">'
@@ -9020,7 +9023,7 @@ async def _run_monthly_digest_email(company_id: Optional[str] = None) -> dict:
                 f'<tr><td style="padding:16px 24px;background:#f9fafb;color:#94a3b8;font-size:11px;text-align:center">Envoyé par {escape(EMAIL_FROM_NAME)} · Bilan mensuel automatique le 1er du mois à 9h</td></tr>'
                 f'</table></td></tr></table>'
             )
-            subject = f"[KEYLOT] Bilan mensuel — {label}"
+            subject = f"[QYLOT] Bilan mensuel — {label}"
             msg_id = await send_email(to=admin["email"], subject=subject, html=html)
             if msg_id:
                 sent_total += 1
@@ -10132,7 +10135,7 @@ async def my_company(user: dict = Depends(get_current_user)):
     cid = company_id_of(user)
     doc = await db.companies.find_one({"id": cid}, {"_id": 0})
     if not doc:
-        doc = {"id": cid, "name": os.environ.get("EMAIL_FROM_NAME", "KEYLOT"), "created_at": now_iso()}
+        doc = {"id": cid, "name": (os.environ.get("EMAIL_FROM_NAME") or "QYLOT"), "created_at": now_iso()}
     doc["user_count"] = await db.users.count_documents({"company_id": cid})
     return doc
 
@@ -10680,7 +10683,7 @@ async def seed_default_company():
     if not existing:
         await db.companies.insert_one({
             "id": DEFAULT_COMPANY_ID,
-            "name": os.environ.get("EMAIL_FROM_NAME", "KEYLOT"),
+            "name": (os.environ.get("EMAIL_FROM_NAME") or "QYLOT"),
             "created_at": now_iso(),
             "created_by": "system",
         })
@@ -11012,7 +11015,7 @@ async def seed_team_members():
 
     await db.settings.update_one(
         {"kind": "global", "company_id": DEFAULT_COMPANY_ID, "app_name": {"$in": ["PYLOT", "Chantier Pro"]}},
-        {"$set": {"app_name": "KEYLOT"}}
+        {"$set": {"app_name": "Qylot"}}
     )
 
 @app.on_event("startup")
