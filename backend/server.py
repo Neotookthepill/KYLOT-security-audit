@@ -5312,7 +5312,9 @@ async def dashboard_activity(
     ).to_list(20000)
     closed_ids = {s["id"] for s in closed_rows}
 
-    projects = await db.projects.find(proj_q, {"_id": 0}).to_list(5000)
+    # Les photos base64 ne servent pas à l'agrégation : les charger rendait
+    # l'endpoint très lent et le dashboard affichait 0 après un timeout.
+    projects = await db.projects.find(proj_q, {"_id": 0, "photos": 0}).to_list(5000)
     projects = [p for p in projects if not p.get("sale_id") or p.get("sale_id") not in closed_ids]
 
     s_ids = list({p.get("sale_id") for p in projects if p.get("sale_id")})
@@ -5421,7 +5423,7 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
             {"client_id": {"$in": client_ids}},
             {"sale_id": {"$in": sale_ids}},
         ]
-    projects = await db.projects.find(proj_q, {"_id": 0}).to_list(10000)
+    projects = await db.projects.find(proj_q, {"_id": 0, "photos": 0}).to_list(10000)
     # Clients count scope
     cscope = perm_scope(user, "clients", "view")
     if cscope == "all":
@@ -8770,7 +8772,7 @@ async def _build_reminder_digest(target_date: str, company_id: Optional[str] = N
     proj_q = {"scheduled_date": {"$ne": None, "$exists": True}, "status": {"$ne": "termine"}}
     if company_id:
         proj_q["company_id"] = company_id
-    projects = await db.projects.find(proj_q, {"_id": 0}).to_list(5000)
+    projects = await db.projects.find(proj_q, {"_id": 0, "photos": 0}).to_list(5000)
     target = datetime.fromisoformat(target_date).date()
     items: List[dict] = []
     for p in projects:
@@ -12348,7 +12350,7 @@ async def stock_product_projects(product_key: str, user: dict = Depends(get_curr
     key = _norm_product_key(product_key)
     # Chantiers actifs uniquement : a_planifier + en_cours (terminés / cancelled exclus)
     q = cq(user, {"status": {"$in": ["a_planifier", "en_cours"]}, "cancelled": {"$ne": True}})
-    projects = await db.projects.find(q, {"_id": 0}).to_list(5000)
+    projects = await db.projects.find(q, {"_id": 0, "photos": 0}).to_list(5000)
     scoped_projects = []
     for project in projects:
         try:
