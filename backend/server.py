@@ -9712,10 +9712,11 @@ async def list_overtime(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user:
     for u in tech_users:
         f = _first(u.get("name") or "")
         if f:
-            users_by_first.setdefault(f, u["name"])  # premier gagnant (nom canonique)
+            users_by_first.setdefault(f, (u.get("name") or "").strip())  # nom canonique sans espace parasite
     _canon_map: dict = {}  # ancien_nom → nom canonique
     dedup: list = []
     for nm in tech_names:
+        nm = (nm or "").strip()
         canon = users_by_first.get(_first(nm), nm)
         if canon not in dedup:
             dedup.append(canon)
@@ -9730,17 +9731,18 @@ async def list_overtime(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), user:
         # marqué overtime_enabled et même sans aucune saisie sur le mois en cours.
         tech_names = [me] if me else []
 
-    # Always include names that already have entries in this month so historical data isn't hidden
-    for e in entries:
-        if e.get("technician_name") and e["technician_name"] not in tech_names:
-            tech_names.append(e["technician_name"])
-    # iter189 — Applique la carte de canonicalisation (Sébastien → Sebastien Hurtel)
-    # aux entrées elles-mêmes pour que le cumul retombe sur le bon nom affiché.
+    # Applique la carte de canonicalisation aux entrées AVANT d'ajouter les noms
+    # historiques, sinon « Lenael » et « Lenael » (espace final) créent deux lignes.
     if _canon_map:
         for e in entries:
-            nm = e.get("technician_name") or ""
+            nm = (e.get("technician_name") or "").strip()
             if nm in _canon_map:
                 e["technician_name"] = _canon_map[nm]
+    # Always include names that already have entries in this month so historical data isn't hidden
+    for e in entries:
+        nm = (e.get("technician_name") or "").strip()
+        if nm and nm not in tech_names:
+            tech_names.append(nm)
 
     # iter116 : seuil par technicien (override) — indexé par name
     per_tech_threshold = {}
