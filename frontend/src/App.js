@@ -11,6 +11,7 @@ import Layout from "@/components/Layout";
 import PageLoader from "@/components/PageLoader";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Sales = lazy(() => import("@/pages/Sales"));
+const SalesTable = lazy(() => import("@/pages/SalesTable"));
 const MonthlyReport = lazy(() => import("@/pages/MonthlyReport"));
 const HeuresSup = lazy(() => import("@/pages/HeuresSup"));
 const Kanban = lazy(() => import("@/pages/Kanban"));
@@ -106,6 +107,7 @@ function AppRoutes() {
       >
         <Route index element={<HomeRedirect />} />
         <Route path="ventes" element={<PermRoute perm={["sales","view"]}><Sales /></PermRoute>} />
+        <Route path="tableau-ventes" element={<PermRoute perm={["sales","view"]} allowRoles={["admin","responsable"]}><SalesTable /></PermRoute>} />
         <Route path="rapport" element={<PermRoute perm={["reports","view"]}><MonthlyReport /></PermRoute>} />
         <Route path="progression" element={<PermRoute perm={["sales","view"]}><Progression /></PermRoute>} />
         <Route path="heures-sup" element={<PermRoute perm={["overtime","view"]}><HeuresSup /></PermRoute>} />

@@ -7,7 +7,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import {
   LayoutDashboard, ShoppingBag, Kanban as KanbanIcon, CalendarDays,
   Users as UsersIcon, Shield, Percent, LogOut, Settings as SettingsIcon, Star,
-  BarChart3, Clock, Building2, Menu, History, Boxes, TrendingUp, Search,
+  BarChart3, Clock, Building2, Menu, History, Boxes, TrendingUp, Search, Table2,
   UserSearch, Map as MapIcon, Plus, ChevronsLeft, ChevronsRight, Sparkles,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
@@ -23,6 +23,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 const allNav = [
   { to: "/", label: "Tableau de bord", short: "Accueil", icon: LayoutDashboard, end: true, tid: "nav-dashboard", perm: ["sales", "view", "own"], group: "Pilotage" },
   { to: "/ventes", label: "Ventes", icon: ShoppingBag, tid: "nav-sales", perm: ["sales", "view", "own"], group: "Pilotage" },
+  { to: "/tableau-ventes", label: "Tableau de vente", icon: Table2, tid: "nav-sales-table", perm: ["sales", "view", "own"], roles: ["admin", "responsable"], group: "Pilotage" },
   { to: "/rapport", label: "Rapport mensuel", icon: BarChart3, tid: "nav-report", perm: ["reports", "view"], group: "Pilotage" },
   { to: "/progression", label: "Progression annuelle", icon: TrendingUp, tid: "nav-progression", perm: ["sales", "view", "own"], group: "Pilotage" },
   { to: "/commissions", label: "Commissions", icon: Percent, tid: "nav-commissions", perm: ["commissions", "view", "own"], group: "Commercial" },

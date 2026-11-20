@@ -134,7 +134,7 @@ function ObjectifGauge({ ca, objectif }) {
 }
 
 /* ---------- Row with progress bar per commercial ---------- */
-function CommercialRow({ c, isAdmin, onObjectifSaved }) {
+export function CommercialRow({ c, isAdmin, onObjectifSaved }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(c.objectif || 0));
   const [saving, setSaving] = useState(false);
@@ -902,42 +902,6 @@ export default function Sales() {
 
       {/* iter63 : la barre de période a été remontée tout en haut de la page (au-dessus des KPIs).
           Cet emplacement d'origine est laissé vide pour ne pas dupliquer la barre. */}
-
-      {/* 1. Sales table */}
-      {/* Analyse commerciale : remontée avant le tableau pour éviter un long scroll */}
-{!isCommercial && (
-      <Card className="border-slate-200 shadow-sm overflow-hidden mt-6" data-testid="commercials-summary">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-2 flex-wrap">
-          <p className="font-display text-lg font-semibold">CA par commercial</p>
-          <span className="text-xs text-slate-500">(hors annulé & litige)</span>
-          <div className="ml-auto flex items-center gap-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1"><Wallet size={12} /> Comptant</span>
-            <span className="flex items-center gap-1"><Banknote size={12} /> Financement</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left border-b border-slate-200 bg-slate-50/60">
-                <th className="px-4 py-3 overline">Commercial</th>
-                <th className="px-4 py-3 overline text-right">Chiffre d’affaires</th>
-                <th className="px-3 py-3 overline text-right">Ventes</th>
-                {SOURCES.map((s) => (
-                  <th key={s.value} className="px-2.5 py-3 overline text-right">{s.label}</th>
-                ))}
-                <th className="px-3 py-3 overline text-right">Objectif</th>
-                <th className="px-4 py-3 overline">Progression</th>
-                <th className="px-3 py-3 overline text-right">Comptant</th>
-                <th className="px-3 py-3 overline text-right">Fin.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.byCommercial.map((c) => (<CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} onObjectifSaved={reloadTeamAndObjectif} />))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-      )}
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 flex flex-wrap items-center gap-2" data-testid="sales-search-bar">
