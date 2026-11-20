@@ -50,13 +50,14 @@ def build(report_dir: Path) -> Path:
 <h1>Doublons clients à valider</h1>
 <p class="intro">Ces fiches semblent appartenir au même client. Pour chacune, indique si c’est bien le même client, puis choisis la fiche à garder.</p>
 <div class="why"><b>Pourquoi y a-t-il des doublons ?</b><br>Les données viennent de plusieurs imports et de saisies faites à des moments différents. Le même nom a parfois été écrit avec des majuscules, des accents ou un espace différent. L’ancien système n’empêchait pas de créer deux fiches pour la même personne. Rien n’est supprimé automatiquement : le client valide d’abord.</div>
-<div class="note"><b>Important :</b> la fiche recommandée est celle qui a un téléphone et le plus d’historique. Ne cocher que si c’est réellement le même client. En cas de doute, laisser vide.</div>
-<div class="bar"><button id="download">Télécharger les validations</button><span id="count" class="muted">0 client validé</span></div>
+<div class="note"><b>Important :</b> la fiche recommandée est celle qui a un téléphone et le plus d’historique. Le bouton « Sélectionner les cas évidents » coche les groupes dont le nom est identique et les coordonnées concordent. Le client peut décocher un cas douteux (ex. deux sociétés homonymes).</div>
+<div class="bar"><button id="select-safe">Sélectionner les cas évidents</button><button id="download">Télécharger les validations</button><span id="count" class="muted">0 client validé</span></div>
 {''.join(cards)}
 </main><script>
 const groups={json.dumps(groups, ensure_ascii=False)};
 function updateCount(){{document.getElementById('count').textContent=document.querySelectorAll('[data-approve]:checked').length+' client(s) validé(s)';}}
 document.querySelectorAll('[data-approve]').forEach(x=>x.addEventListener('change',updateCount));
+document.getElementById('select-safe').onclick=()=>{{for(const g of groups){{if(g.confidence==='high'){{const box=document.querySelector('[data-approve="'+g.group_id+'"]');if(box)box.checked=true;}}}}updateCount();}};
 document.getElementById('download').onclick=()=>{{const cols=['group_id','type','confidence','company_id','normalized_name','sale_id','keep_id','member_ids','names','phones','postal_codes','sales_per_member','projects_per_member','notes_per_member','statuses','scheduled_dates','amounts','sale_dates','new_name','approve'];const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const lines=[cols.join(',')];for(const g of groups){{const box=document.querySelector(`[data-approve="${{g.group_id}}"]`);if(!box||!box.checked)continue;const sel=document.querySelector(`[data-keep="${{g.group_id}}"]`);const row={{...g,keep_id:sel?sel.value:g.keep_id,approve:'yes'}};lines.push(cols.map(c=>q(Array.isArray(row[c])?row[c].join('|'):row[c])).join(','));}}const blob=new Blob([lines.join('\\n')],{{type:'text/csv;charset=utf-8'}});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='validations-clients.csv';a.click();URL.revokeObjectURL(a.href);}};
 </script></body></html>'''
     out = report_dir / "validation-clients.html"
