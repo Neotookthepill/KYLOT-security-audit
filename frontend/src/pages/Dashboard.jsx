@@ -319,25 +319,8 @@ export default function Dashboard() {
         ord = [...ord, "challenge"];
         try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
       }
-      // Le challenge est un repère quotidien : on le remonte juste après le CA,
-      // même pour les anciennes configurations enregistrées.
-      const challengeIdx = ord.indexOf("challenge");
-      if (challengeIdx > 1) {
-        const without = ord.filter((k) => k !== "challenge");
-        const caIdx = without.indexOf("ca_hero");
-        without.splice(caIdx >= 0 ? caIdx + 1 : 0, 0, "challenge");
-        ord = without;
-        try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
-      }
-      // Évite la grande carte vide : ventes récentes à côté des commissions.
-      const cIdx = ord.indexOf("commissions");
-      const rIdx = ord.indexOf("recent_sales");
-      if (cIdx >= 0 && rIdx > cIdx + 1) {
-        const without = ord.filter((k) => k !== "recent_sales");
-        without.splice(without.indexOf("commissions") + 1, 0, "recent_sales");
-        ord = without;
-        try { await api.put("/me/dashboard-config", { order: ord, hidden: cfg.hidden || [], sizes: cfg.sizes || {} }); } catch (_) {}
-      }
+      // Ne PAS réimposer la position des blocs à chaque chargement : cela
+      // écrasait la disposition personnalisée de l'utilisateur.
       setOrder(ord);
       setHidden(Array.isArray(cfg.hidden) ? Array.from(new Set(cfg.hidden)) : []);
       setSizes(typeof cfg.sizes === "object" && cfg.sizes ? cfg.sizes : {});
