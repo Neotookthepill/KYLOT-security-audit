@@ -100,7 +100,19 @@ def client_groups(db) -> list[dict]:
         for m in members:
             s, p, n = counts_for(db, m["id"])
             enriched.append({**m, "sales": s, "projects": p, "notes": n})
-        keep = max(enriched, key=lambda m: (m["sales"] + m["projects"] + m["notes"], -len(str(m.get("name") or "")), str(m.get("created_at") or "")))
+        # Une fiche sans téléphone est incomplète : on garde d'abord celle qui
+        # possède un numéro, puis celle qui a le plus de liens métier.
+        keep = max(
+            enriched,
+            key=lambda m: (
+                1 if phone_key(m.get("phone")) else 0,
+                1 if m.get("sales") or m.get("projects") or m.get("notes") else 0,
+                1 if m.get("email") else 0,
+                1 if m.get("address") else 0,
+                m["sales"] + m["projects"] + m["notes"],
+                str(m.get("created_at") or ""),
+            ),
+        )
         out.append({
             "group_id": stable_id("C", f"{company}|{name_key}"),
             "type": "client",
