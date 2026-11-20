@@ -6730,10 +6730,6 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
             nm = (s.get(field) or "").strip()
             if nm and nm not in raw_names:
                 raw_names.append(nm)
-    async for u in db.users.find(cq(user, {"role": {"$in": ["commercial", "responsable"]}}), {"_id": 0, "name": 1}):
-        nm = (u.get("name") or "").strip()
-        if nm and nm not in raw_names:
-            raw_names.append(nm)
 
     # Prefer the full display name when a short first name is unambiguous.
     # Direction aliases are grouped explicitly (Direction, Direction client,
