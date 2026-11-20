@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
 import { mgrBonusesFor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
+import { primeForCount } from "@/components/ProspectBonuses";
 import { resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
@@ -92,15 +93,17 @@ const payByMonth = (rows, threshold, base, mgrIds = new Set(), mgrBase = 0) => {
   return Object.values(g).map((x) => ({ ...x, base: x.count >= 1 ? (mgrIds.has(x.pid) ? mgrBase : base) : 0 }));
 };
 
-function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase }) {
+function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonuses }) {
   const months = payByMonth(payRows, threshold, base, mgrIds, mgrBase);
   const names = {};
   [...caRows, ...payRows].forEach((r) => { names[r.prospecteur_id] = r.prospecteur_name || "—"; });
   const list = Object.keys(names).map((pid) => {
     const mine = caRows.filter((r) => r.prospecteur_id === pid);
     const pm = months.filter((mm) => mm.pid === pid);
-    return { pid, name: names[pid], count: mine.length, ca: mine.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0),
-      base: pm.reduce((a, mm) => a + mm.base, 0), comm: pm.reduce((a, mm) => a + mm.comm, 0) };
+    const count = mine.length;
+    return { pid, name: names[pid], count, ca: mine.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0),
+      base: pm.reduce((a, mm) => a + mm.base, 0), comm: pm.reduce((a, mm) => a + mm.comm, 0),
+      prime: primeForCount(bonuses, count) };
   }).sort((a, b) => b.count - a.count || b.ca - a.ca);
   const totalCount = Math.max(1, list.reduce((a, x) => a + x.count, 0));
   if (!list.length) return null;
@@ -125,7 +128,7 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase }) {
               <span className="text-xs uppercase tracking-wide text-slate-500">CA</span>
               <span className="font-display text-xl font-semibold text-slate-900" data-testid={`prospect-ca-${x.name}`}>{fmtEur(x.ca)}</span>
             </div>
-            <div className="text-xs text-slate-500">Rémunération <b className="text-emerald-700 text-sm">{fmtEur2(x.base + x.comm)}</b><br />base {fmtEur2(x.base)} + com. {fmtEur(x.comm)}</div>
+            <div className="text-xs text-slate-500">Rémunération <b className="text-emerald-700 text-sm">{fmtEur2(x.base + x.comm + x.prime)}</b><br />base {fmtEur2(x.base)} + com. {fmtEur(x.comm)} + primes {fmtEur(x.prime)}</div>
           </div>
         ))}
       </div>
@@ -271,9 +274,15 @@ export default function Prospecteur() {
   }, [isManager]);
 
   useEffect(() => {
-    setLoading(true);
-    const params = isManager && filter !== "all" ? { prospecteur_id: filter } : {};
-    api.get("/prospection", { params }).then((r) => setRows(r.data || [])).catch((e) => toast.error(formatApiError(e))).finally(() => setLoading(false));
+    const fetchRows = () => {
+      setLoading(true);
+      const params = isManager && filter !== "all" ? { prospecteur_id: filter } : {};
+      api.get("/prospection", { params }).then((r) => setRows(r.data || [])).catch((e) => toast.error(formatApiError(e))).finally(() => setLoading(false));
+    };
+    fetchRows();
+    // Une annulation/modification de vente doit recalculer le compteur et les primes.
+    window.addEventListener("kylot:sales-updated", fetchRows);
+    return () => window.removeEventListener("kylot:sales-updated", fetchRows);
   }, [filter, isManager]);
 
   const inSale = (r) => r.sale_date && r.sale_date.slice(0, 10) >= bounds.from && r.sale_date.slice(0, 10) <= bounds.to;
@@ -292,6 +301,7 @@ export default function Prospecteur() {
   const mgrBelow = parseFloat(settings?.prospect_mgr_rate_below ?? 1) || 0;
   const mgrAbove = parseFloat(settings?.prospect_mgr_rate_above ?? 2) || 0;
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
+  const prospectBonusTiers = settings?.prospect_bonuses || [];
   const commissionRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
   const deferredRows = singleMonth
     ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) > monthKey)
@@ -398,7 +408,7 @@ export default function Prospecteur() {
         </Card>
       )}
 
-      {isManager && <ByProspecteur caRows={caRows} payRows={payRows} threshold={threshold} base={baseAmt} mgrIds={mgrIds} mgrBase={mgrBase} />}
+      {isManager && <ByProspecteur caRows={caRows} payRows={payRows} threshold={threshold} base={baseAmt} mgrIds={mgrIds} mgrBase={mgrBase} bonuses={prospectBonusTiers} />}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">

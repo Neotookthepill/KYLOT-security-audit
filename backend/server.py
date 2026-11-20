@@ -7671,6 +7671,17 @@ class ProspectManagerBonusIn(BaseModel):
     amount: float = Field(ge=0, le=1_000_000, allow_inf_nan=False)
 
 
+class ProspectBonusIn(BaseModel):
+    sales: int = Field(ge=1, le=10000)
+    amount: float = Field(ge=0, le=1_000_000, allow_inf_nan=False)
+
+
+DEFAULT_PROSPECT_BONUSES = [
+    {"sales": 5, "amount": 200.0},
+    {"sales": 8, "amount": 200.0},
+]
+
+
 class SettingsIn(BaseModel):
     objectif_ca: Optional[float] = Field(default=None, ge=0, le=1_000_000_000, allow_inf_nan=False)
     # iter132 : objectif annuel avec override manuel (null => fallback objectif_ca * 12)
@@ -7700,6 +7711,7 @@ class SettingsIn(BaseModel):
     prospect_mgr_rate_above: Optional[float] = Field(default=None, ge=0, le=100)
     prospect_mgr_base_amount: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     prospect_mgr_bonuses: Optional[List[ProspectManagerBonusIn]] = Field(default=None, max_length=100)
+    prospect_bonuses: Optional[List[ProspectBonusIn]] = Field(default=None, max_length=100)
 
     @field_validator("notifications")
     @classmethod
@@ -8204,6 +8216,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "prospect_mgr_rate_above": float(s.get("prospect_mgr_rate_above") if s.get("prospect_mgr_rate_above") is not None else 2.0) if can_view_prospect_bonus_config else 0,
         "prospect_mgr_base_amount": float(s.get("prospect_mgr_base_amount") if s.get("prospect_mgr_base_amount") is not None else 2329.97) if can_view_prospect_bonus_config else 0,
         "prospect_mgr_bonuses": (s.get("prospect_mgr_bonuses") or []) if can_view_prospect_bonus_config else [],
+        "prospect_bonuses": (s.get("prospect_bonuses") if isinstance(s.get("prospect_bonuses"), list) else DEFAULT_PROSPECT_BONUSES) if (can_view_prospect_bonus_config or (user or {}).get("role") in ("prospecteur", "responsable_prospecteur")) else [],
     }
 
 @api_router.put("/settings")

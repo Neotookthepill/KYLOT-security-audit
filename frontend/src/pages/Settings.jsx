@@ -12,6 +12,7 @@ import { SALE_STATUSES, orderStatuses } from "@/lib/saleConstants";
 import api, { formatApiError } from "@/lib/api";
 import BonusesDialog from "@/components/BonusesDialog";
 import { ProspectMgrBonusesEditor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
+import { ProspectBonusesEditor, cleanProspectBonuses } from "@/components/ProspectBonuses";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import PerTechThresholdList from "@/components/PerTechThresholdList";
 import MfaSettingsCard from "@/components/MfaSettingsCard";
@@ -108,6 +109,7 @@ export default function Settings() {
         prospect_mgr_rate_above: parseFloat(form.prospect_mgr_rate_above ?? 2) || 0,
         prospect_mgr_base_amount: parseFloat(form.prospect_mgr_base_amount ?? 2329.97) || 0,
         prospect_mgr_bonuses: cleanMgrBonuses(form.prospect_mgr_bonuses),
+        prospect_bonuses: cleanProspectBonuses(form.prospect_bonuses),
       });
       toast.success("Paramètres enregistrés");
     } catch (err) { toast.error(formatApiError(err)); }
@@ -398,6 +400,7 @@ export default function Settings() {
             <p className="text-[11px] text-slate-400 mt-2">Préréglage : salaire de base 2 329,97 € brut, objectif 12 ventes / mois, 1 % si non atteint, 2 % si atteint.</p>
           </div>
           <ProspectMgrBonusesEditor value={form.prospect_mgr_bonuses} onChange={(v) => setForm({ ...form, prospect_mgr_bonuses: v })} />
+          <ProspectBonusesEditor value={form.prospect_bonuses} onChange={(v) => setForm({ ...form, prospect_bonuses: v })} />
         </Card>
 
         {/* Layout customization — Dashboard widgets */}
