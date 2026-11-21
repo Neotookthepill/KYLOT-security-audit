@@ -4217,8 +4217,10 @@ async def append_project_photos(pid: str, data: ProjectPhotosAppend, user: dict 
         if current and len(current.get("photos") or []) + len(enriched) > MAX_PHOTOS_PER_ENTITY:
             raise HTTPException(status_code=413, detail=f"Trop de photos (max {MAX_PHOTOS_PER_ENTITY})")
         raise HTTPException(status_code=409, detail="Le chantier a changé pendant l'ajout. Réessayez.")
+    count = len(updated.get("photos") or [])
+    await db.projects.update_one(cq(user, {"id": pid}), {"$set": {"photo_count": count}})
     await log_audit(user, "update", "project_photos", pid, after={"added": len(enriched)})
-    return {"ok": True, "added": len(enriched), "photo_count": len(updated.get("photos") or [])}
+    return {"ok": True, "added": len(enriched), "photo_count": count}
 
 
 class ProjectPhotoRemove(BaseModel):

@@ -397,6 +397,10 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
   const waitingForFutureDay = projectDays.length > 1 && form.status !== "termine" && !chosenDay && !!nextPendingDay && nextPendingDay > todayIso;
 
   const completeChantier = async () => {
+    if (uploading) {
+      toast.error("Attendez la fin de l'enregistrement des photos.");
+      return;
+    }
     const photos = form.photos || [];
     if (photos.length === 0) {
       toast.error("Ajoutez au moins une photo du chantier terminé avant de valider.");
@@ -745,7 +749,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               <CheckCheck size={14} className="mr-1.5" /> {completeBtnLabel}
             </Button>
           )}
-          <Button size="sm" onClick={save} disabled={saving} data-testid="project-save-btn">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          <Button size="sm" onClick={save} disabled={saving || uploading} data-testid="project-save-btn">{saving ? "Enregistrement…" : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
 
@@ -830,7 +834,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompleteOpen(false)} disabled={completing}>Annuler</Button>
-            <Button onClick={completeChantier} disabled={completing || waitingForFutureDay} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="project-complete-confirm-btn">
+            <Button onClick={completeChantier} disabled={completing || uploading || waitingForFutureDay} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="project-complete-confirm-btn">
               {completing ? (<><Loader2 size={13} className="mr-1.5 animate-spin" /> Envoi…</>) : (<><CheckCheck size={13} className="mr-1.5" /> Valider et notifier</>)}
             </Button>
           </DialogFooter>

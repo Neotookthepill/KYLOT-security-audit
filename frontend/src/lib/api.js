@@ -66,7 +66,9 @@ api.defaults.adapter = async (config) => {
   }
   // Les photos utilisent des POST atomiques : ils doivent aussi pouvoir être
   // mis en file hors ligne, comme les anciens PUT.
-  const offlinePhotoWrite = method === "post" && /\/projects\/[^/]+\/photos(?:\/remove)?$/.test(config.url || "");
+  // Les photos ne sont PAS mises en file hors ligne : sinon l'UI affiche une
+  // photo que le serveur n'a jamais reçue, et elle disparaît au rechargement.
+  const offlinePhotoWrite = false;
   if (!["put", "patch"].includes(method) && !offlinePhotoWrite) {
     const error = new Error("Cette action nécessite une connexion internet.");
     error.code = "OFFLINE_UNSAFE_MUTATION";
