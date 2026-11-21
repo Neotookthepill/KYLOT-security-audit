@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import TechNotesSection from "@/components/TechNotesSection";
 import { salePhase } from "@/lib/workflows";
 
-function fileToBase64(file, maxW = 1600) {
+function fileToBase64(file, maxW = 1280) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -27,7 +27,7 @@ function fileToBase64(file, maxW = 1600) {
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.8));
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -37,7 +37,7 @@ function fileToBase64(file, maxW = 1600) {
   });
 }
 
-function getCurrentPosition(timeout = 8000) {
+function getCurrentPosition(timeout = 4000) {
   return new Promise((resolve) => {
     if (!("geolocation" in navigator)) return resolve(null);
     navigator.geolocation.getCurrentPosition(
