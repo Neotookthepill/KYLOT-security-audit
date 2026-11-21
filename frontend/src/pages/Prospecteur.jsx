@@ -97,8 +97,8 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonu
   const months = payByMonth(payRows, threshold, base, mgrIds, mgrBase);
   const names = {};
   // Tous les prospecteurs de l'équipe, y compris ceux sans vente et sans compte.
-  (prospecteurs || []).forEach((p) => { names[p.id] = p.name || "—"; });
-  [...caRows, ...payRows].forEach((r) => { names[r.prospecteur_id] = r.prospecteur_name || "—"; });
+  (prospecteurs || []).forEach((p) => { if (!mgrIds.has(p.id)) names[p.id] = p.name || "—"; });
+  [...caRows, ...payRows].forEach((r) => { if (!mgrIds.has(r.prospecteur_id)) names[r.prospecteur_id] = r.prospecteur_name || "—"; });
   const list = Object.keys(names).map((pid) => {
     const mine = caRows.filter((r) => r.prospecteur_id === pid);
     const pm = months.filter((mm) => mm.pid === pid);
