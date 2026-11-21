@@ -894,3 +894,10 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   border-color: #245c4c !important;
   color: #a7f3d0 !important;
 }
+
+/* Mode sombre : surfaces et badges hérités des pages tableau. */
+.dark .bg-slate-50\/60 { background-color: hsl(var(--muted)) !important; }
+.dark .bg-slate-50\/70 { background-color: hsl(var(--muted)) !important; }
+.dark .bg-primary\/10 { background-color: hsl(var(--primary) / .24) !important; }
+.dark .bg-primary\/10.text-primary { color: hsl(var(--primary-foreground)) !important; }
+.dark .text-border { color: hsl(var(--muted-foreground)) !important; }
