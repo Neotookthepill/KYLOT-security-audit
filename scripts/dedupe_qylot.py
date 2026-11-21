@@ -278,6 +278,20 @@ def backup(db) -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     out = ROOT / "backups" / f"dedupe-backup-{stamp}"
     out.mkdir(parents=True, exist_ok=False)
+    if os.environ.get("DEDUPE_BACKUP_MODE") == "targeted":
+        # Sauvegarde rapide des seules données concernées par une fusion clients.
+        import gzip, json
+        data = {"clients": list(db.clients.find({}, {"_id": 0})), "references": {}}
+        for coll in db.list_collection_names():
+            if coll in ("clients",) or coll.startswith("system."):
+                continue
+            docs = list(db[coll].find({"client_id": {"$exists": True}}, {"_id": 0, "id": 1, "client_id": 1}))
+            if docs:
+                data["references"][coll] = docs
+        archive = out / "qa-before-dedupe-targeted.json.gz"
+        with gzip.open(archive, "wt", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, default=str)
+        return archive
     archive = out / "qa-before-dedupe.archive.gz"
     dump = os.environ.get("MONGODUMP", "/opt/homebrew/bin/mongodump")
     uri = os.environ.get("QA_MONGO_URI") or os.environ.get("MONGO_URL")
