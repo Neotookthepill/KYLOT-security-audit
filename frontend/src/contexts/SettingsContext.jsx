@@ -69,19 +69,34 @@ function hexToHsl(hex) {
   return `${Math.round(h * 360)} ${Math.round(sat * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function luminanceFromHex(hex) {
+  const m = String(hex || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!m) return 0.5;
+  const n = parseInt(m[1], 16);
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
 function applyToRoot(s) {
   const root = document.documentElement;
   const primaryHsl = hexToHsl(s.theme_primary);
   const accentHsl = hexToHsl(s.theme_accent);
+  const primaryFg = luminanceFromHex(s.theme_primary) > 0.45 ? "220 43% 11%" : "0 0% 100%";
+  const accentFg = luminanceFromHex(s.theme_accent) > 0.45 ? "220 43% 11%" : "0 0% 100%";
   root.style.setProperty("--brand", s.theme_primary);
   root.style.setProperty("--brand-accent", s.theme_accent);
   if (primaryHsl) {
     root.style.setProperty("--primary", primaryHsl);
+    root.style.setProperty("--primary-foreground", primaryFg);
     root.style.setProperty("--ring", primaryHsl);
     root.style.setProperty("--sidebar", primaryHsl);
   }
   if (accentHsl) {
     root.style.setProperty("--accent", accentHsl);
+    root.style.setProperty("--accent-foreground", accentFg);
     root.style.setProperty("--info", accentHsl);
     root.style.setProperty("--copper", accentHsl);
   }
