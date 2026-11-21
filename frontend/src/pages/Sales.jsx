@@ -820,7 +820,7 @@ export default function Sales() {
           <button
             key={p.k}
             onClick={() => setPeriod(p.k)}
-            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-[10px] border transition-colors ${period === p.k ? "bg-primary text-white border-primary" : "bg-white text-[#344054] border-[#DDE3EC] hover:border-primary/40"}`}
+            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-[10px] border transition-colors ${period === p.k ? "bg-primary text-primary-foreground border-primary" : "bg-white text-[#344054] border-[#DDE3EC] hover:border-primary/40 dark:bg-card dark:text-foreground dark:border-border dark:hover:border-primary/60"}`}
             data-testid={`sales-period-${p.k}`}
           >
             {p.l}
