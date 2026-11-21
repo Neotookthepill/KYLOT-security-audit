@@ -93,16 +93,20 @@ const payByMonth = (rows, threshold, base, mgrIds = new Set(), mgrBase = 0) => {
   return Object.values(g).map((x) => ({ ...x, base: x.count >= 1 ? (mgrIds.has(x.pid) ? mgrBase : base) : 0 }));
 };
 
-function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonuses }) {
+function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonuses, prospecteurs, monthsCount = 1 }) {
   const months = payByMonth(payRows, threshold, base, mgrIds, mgrBase);
   const names = {};
+  // Tous les prospecteurs de l'équipe, y compris ceux sans vente et sans compte.
+  (prospecteurs || []).forEach((p) => { names[p.id] = p.name || "—"; });
   [...caRows, ...payRows].forEach((r) => { names[r.prospecteur_id] = r.prospecteur_name || "—"; });
   const list = Object.keys(names).map((pid) => {
     const mine = caRows.filter((r) => r.prospecteur_id === pid);
     const pm = months.filter((mm) => mm.pid === pid);
     const count = mine.length;
+    const monthlyBase = mgrIds.has(pid) ? mgrBase : base;
     return { pid, name: names[pid], count, ca: mine.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0),
-      base: pm.reduce((a, mm) => a + mm.base, 0), comm: pm.reduce((a, mm) => a + mm.comm, 0),
+      base: pm.length ? pm.reduce((a, mm) => a + mm.base, 0) : monthlyBase * Math.max(1, monthsCount),
+      comm: pm.reduce((a, mm) => a + mm.comm, 0),
       prime: primeForCount(bonuses, count) };
   }).sort((a, b) => b.count - a.count || b.ca - a.ca);
   const totalCount = Math.max(1, list.reduce((a, x) => a + x.count, 0));
@@ -408,7 +412,7 @@ export default function Prospecteur() {
         </Card>
       )}
 
-      {isManager && <ByProspecteur caRows={caRows} payRows={payRows} threshold={threshold} base={baseAmt} mgrIds={mgrIds} mgrBase={mgrBase} bonuses={prospectBonusTiers} />}
+      {isManager && <ByProspecteur caRows={caRows} payRows={payRows} threshold={threshold} base={baseAmt} mgrIds={mgrIds} mgrBase={mgrBase} bonuses={prospectBonusTiers} prospecteurs={prospecteurs} monthsCount={monthsCount} />}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
