@@ -912,3 +912,8 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark .border-amber-100,
 .dark .border-amber-200 { border-color: hsl(var(--warning) / .35) !important; }
 .dark .text-amber-800 { color: hsl(var(--warning)) !important; }
+
+/* Toutes les variantes opaques héritées, pas seulement /60. */
+.dark [class*="bg-slate-50/"],
+.dark [class*="bg-slate-100/"] { background-color: hsl(var(--muted)) !important; }
+.dark [class*="bg-amber-50/"] { background-color: hsl(var(--warning-soft)) !important; }
