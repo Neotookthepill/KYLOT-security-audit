@@ -4421,6 +4421,26 @@ def _fuzzy_name_match(user_name: str, candidate: str) -> bool:
     a, b = _norm_name(user_name), _norm_name(candidate)
     return bool(a and b and a == b)
 
+
+def _assignment_name_match(user_name: str, candidate: str) -> bool:
+    """Match d'affectation tolérant au prénom seul.
+
+    Les chantiers historiques contiennent « Sébastien » alors que le compte
+    s'appelle « Sebastien Hurtel ». On accepte donc le prénom seul, mais
+    uniquement quand l'autre nom est composé (jamais deux noms complets).
+    """
+    a, b = _norm_name(user_name), _norm_name(candidate)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    ap, bp = a.split(), b.split()
+    if len(ap) > 1 and len(bp) == 1:
+        return ap[0] == bp[0]
+    if len(bp) > 1 and len(ap) == 1:
+        return bp[0] == ap[0]
+    return False
+
 async def _resolve_matched_assigned_names(user: dict, proj: dict) -> set:
     """Retourne l'ensemble (lc) des noms d'assignés au chantier qui correspondent
     à l'utilisateur courant (par name fuzzy OU par email → team_members)."""
@@ -4430,7 +4450,7 @@ async def _resolve_matched_assigned_names(user: dict, proj: dict) -> set:
     if isinstance(assigned, str): assigned = [assigned]
     matched_lc = set()
     for a in assigned:
-        if isinstance(a, str) and _fuzzy_name_match(my_name, a):
+        if isinstance(a, str) and (_fuzzy_name_match(my_name, a) or _assignment_name_match(my_name, a)):
             matched_lc.add(_norm_name(a))
     # Fallback via team_members email → name
     if my_email:
@@ -4439,7 +4459,7 @@ async def _resolve_matched_assigned_names(user: dict, proj: dict) -> set:
             nm = tm.get("name") or ""
             if not nm: continue
             for a in assigned:
-                if isinstance(a, str) and _fuzzy_name_match(nm, a):
+                if isinstance(a, str) and (_fuzzy_name_match(nm, a) or _assignment_name_match(nm, a)):
                     matched_lc.add(_norm_name(a))
     return matched_lc
 
