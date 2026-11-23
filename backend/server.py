@@ -8186,7 +8186,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "overtime": True, "events": True, "ranking": True, "recent_sales": True,
     }
     can_view_commission_config = (user or {}).get("role") in ("admin", "responsable", "comptable")
-    can_view_prospect_bonus_config = (user or {}).get("role") in ("admin", "responsable", "comptable")
+    can_view_prospect_bonus_config = (user or {}).get("role") in ("admin", "responsable", "comptable", "responsable_prospecteur")
     # iter64 : les commerciaux ne doivent PAS voir les taux disponibles / seuils / paliers
     # de la société. Seul le taux appliqué à LEUR vente est visible via list_commissions.
     _all_rates = sorted({round(float(r), 4) for r in rates if 0 <= float(r) <= 1})

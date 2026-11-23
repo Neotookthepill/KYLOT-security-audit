@@ -499,7 +499,19 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-slate-600 pt-2">
             {project.client_phone && <PhoneNumbers value={project.client_phone} iconSize={11} className="text-xs" />}
-            {project.client_address && <span className="flex items-center gap-1"><MapPin size={11}/> {project.client_address} {project.client_postal_code} {project.client_city}</span>}
+            {project.client_address && (() => {
+              const fullAddress = [project.client_address, project.client_postal_code, project.client_city].filter(Boolean).join(" ");
+              const q = encodeURIComponent(fullAddress);
+              return (
+                <span className="flex items-center gap-1.5 flex-wrap">
+                  <MapPin size={11} />
+                  <span>{fullAddress}</span>
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${q}`} target="_blank" rel="noreferrer" className="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-slate-50" data-testid="project-address-google">Maps</a>
+                  <a href={`https://waze.com/ul?q=${q}`} target="_blank" rel="noreferrer" className="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-slate-50" data-testid="project-address-waze">Waze</a>
+                  <a href={`https://maps.apple.com/?q=${q}`} target="_blank" rel="noreferrer" className="rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 hover:bg-slate-50" data-testid="project-address-apple">Plans</a>
+                </span>
+              );
+            })()}
           </div>
           {/* Commercial(s) : always visible (comes from the sale) */}
           {(project.commercial || project.commercial_2) && (
