@@ -901,3 +901,14 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark .bg-primary\/10 { background-color: hsl(var(--primary) / .24) !important; }
 .dark .bg-primary\/10.text-primary { color: hsl(var(--primary-foreground)) !important; }
 .dark .text-border { color: hsl(var(--muted-foreground)) !important; }
+
+/* Variantes opaques utilisées par le planning et les cartes de report. */
+.dark .bg-slate-100\/70,
+.dark .bg-slate-100\/60,
+.dark .bg-slate-100\/50 { background-color: hsl(var(--secondary)) !important; }
+.dark .bg-amber-50\/30,
+.dark .bg-amber-50\/40,
+.dark .bg-amber-50\/20 { background-color: hsl(var(--warning-soft)) !important; }
+.dark .border-amber-100,
+.dark .border-amber-200 { border-color: hsl(var(--warning) / .35) !important; }
+.dark .text-amber-800 { color: hsl(var(--warning)) !important; }
