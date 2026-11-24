@@ -216,6 +216,28 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
   );
 }
 
+function Sale14DaysBadge({ sale, mobile = false }) {
+  if (sale?.desired_intervention_date !== "attente_14j" || sale?.status !== "attente_prog") return null;
+  try {
+    const start = new Date(sale.sale_date + "T00:00:00");
+    const now = new Date();
+    const days = 14 - Math.floor((now - start) / 86400000);
+    const suffix = mobile ? "mobile-" : "";
+    if (days > 0) {
+      const urgent = days <= 3;
+      return (
+        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${urgent ? "bg-amber-200 text-amber-900 ring-1 ring-amber-400" : "bg-amber-100 text-amber-800"}`} data-testid={`sale-${suffix}14j-countdown-${sale.id}`}>
+          {days === 1 ? "Il reste 1 j" : `Il reste ${days} j`}
+        </span>
+      );
+    }
+    if (days === 0) {
+      return <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-500 animate-pulse ring-1 ring-red-600" data-testid={`sale-${suffix}14j-jourj-${sale.id}`}>Jour J</span>;
+    }
+    return <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-600 animate-pulse ring-1 ring-red-700" data-testid={`sale-${suffix}14j-overdue-${sale.id}`}>Délai dépassé +{Math.abs(days)} j</span>;
+  } catch (_) { return null; }
+}
+
 function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
   if (!sale) return null;
   const st = statusMap?.[sale.status] || STATUS_MAP[sale.status];
@@ -1016,37 +1038,8 @@ export default function Sales() {
                   >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} />
-                      {/* iter185 : le badge « Il reste Xj / Jour J / Délai dépassé » n'apparaît
-                          QUE tant que le statut est encore « En attente prog » (attente_prog).
-                          Dès que le statut bascule (En attente FI, Chèque récupéré, Annulé,
-                          Non finançable, Virement reçu, etc.), le décompte est retiré — la
-                          vente est sortie de la fenêtre 14 j côté programmation. */}
-                      {s.desired_intervention_date === "attente_14j" && s.status === "attente_prog" && (() => {
-                        // iter162 : décompte des 14 jours à partir de sale_date.
-                        try {
-                          const start = new Date(s.sale_date + "T00:00:00");
-                          const now = new Date();
-                          const days = 14 - Math.floor((now - start) / 86400000);
-                          if (days > 0) {
-                            const urgent = days <= 3;
-                            return (
-                              <span className={`ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${urgent ? "bg-amber-200 text-amber-900 ring-1 ring-amber-400" : "bg-amber-100 text-amber-800"}`} data-testid={`sale-14j-countdown-${s.id}`}>
-                                {days === 1 ? "Il reste 1 j" : `Il reste ${days} j`}
-                              </span>
-                            );
-                          }
-                          if (days === 0) {
-                            return (
-                              <span className="ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-500 animate-pulse ring-1 ring-red-600" data-testid={`sale-14j-jourj-${s.id}`}>Jour J</span>
-                            );
-                          }
-                          return (
-                            <span className="ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-600 animate-pulse ring-1 ring-red-700" data-testid={`sale-14j-overdue-${s.id}`}>
-                              Délai dépassé +{Math.abs(days)} j
-                            </span>
-                          );
-                        } catch (_) { return null; }
-                      })()}
+                      {/* Décompte 14 jours partagé avec l’affichage mobile. */}
+                      <Sale14DaysBadge sale={s} />
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-slate-600" onClick={(e) => e.stopPropagation()}>
                       <InlineCell
@@ -1178,6 +1171,7 @@ export default function Sales() {
                   </span>
                   <span className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-slate-500">
                     <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} compact />
+                    <Sale14DaysBadge sale={s} mobile />
                     <span className="min-w-0 truncate">{s.sale_date || "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
                     <span className="ml-auto shrink-0">Détail ›</span>
                   </span>
@@ -1213,6 +1207,7 @@ export default function Sales() {
                   <SheetTitle className="font-display text-2xl">{panelSale.client_name || "Client inconnu"}</SheetTitle>
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${st?.cls || "bg-slate-200 text-slate-700"}`}>{st?.label || panelSale.status}</span>
+                    <Sale14DaysBadge sale={panelSale} mobile />
                     <span className="font-display text-lg font-semibold">{fmtEur2(panelSale.amount)}</span>
                   </div>
                 </SheetHeader>
