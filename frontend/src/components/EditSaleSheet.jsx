@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import Sale14DaysBadge from "@/components/Sale14DaysBadge";
 import { Trash2 } from "lucide-react";
 import { ChequeInstallmentsSelect } from "@/components/ChequeInstallmentsSelect";
 import { ProspecteurField, prospecteurPayload } from "@/components/ProspecteurField";
@@ -415,6 +416,9 @@ export default function EditSaleSheet({ sale, open, onOpenChange, onSaved }) {
                   <SelectItem value="attente_14j">En attente délai de 14 jours</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="mt-2">
+                <Sale14DaysBadge sale={{ id: "edit", sale_date: form.sale_date, desired_intervention_date: form.desired_intervention_date, status: form.status }} mobile />
+              </div>
             </div>
           </div>
 

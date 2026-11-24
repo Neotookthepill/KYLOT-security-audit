@@ -21,6 +21,7 @@ import { statusCountsCA } from "@/lib/workflows";
 import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
+import Sale14DaysBadge from "@/components/Sale14DaysBadge";
 import { useAuth } from "@/contexts/AuthContext";
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtEur2 = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -214,28 +215,6 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
       <td className="px-3 py-3 text-right text-slate-600" title="Ventes en financement">{c.financement}</td>
     </tr>
   );
-}
-
-function Sale14DaysBadge({ sale, mobile = false }) {
-  if (sale?.desired_intervention_date !== "attente_14j" || sale?.status !== "attente_prog") return null;
-  try {
-    const start = new Date(sale.sale_date + "T00:00:00");
-    const now = new Date();
-    const days = 14 - Math.floor((now - start) / 86400000);
-    const suffix = mobile ? "mobile-" : "";
-    if (days > 0) {
-      const urgent = days <= 3;
-      return (
-        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${urgent ? "bg-amber-200 text-amber-900 ring-1 ring-amber-400" : "bg-amber-100 text-amber-800"}`} data-testid={`sale-${suffix}14j-countdown-${sale.id}`}>
-          {days === 1 ? "Il reste 1 j" : `Il reste ${days} j`}
-        </span>
-      );
-    }
-    if (days === 0) {
-      return <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-500 animate-pulse ring-1 ring-red-600" data-testid={`sale-${suffix}14j-jourj-${sale.id}`}>Jour J</span>;
-    }
-    return <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-600 animate-pulse ring-1 ring-red-700" data-testid={`sale-${suffix}14j-overdue-${sale.id}`}>Délai dépassé +{Math.abs(days)} j</span>;
-  } catch (_) { return null; }
 }
 
 function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
