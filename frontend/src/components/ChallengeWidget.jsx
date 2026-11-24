@@ -56,6 +56,10 @@ export default function ChallengeWidget() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [assistOpen, setAssistOpen] = useState(false);
+  const [assistances, setAssistances] = useState([]);
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assistSaving, setAssistSaving] = useState(false);
   const isAdmin = user?.role === "admin";
 
   const load = async () => {
@@ -173,6 +177,51 @@ export default function ChallengeWidget() {
     }
   };
 
+  const openAssistances = async () => {
+    if (!data.challenge) return;
+    setAssistOpen(true);
+    setAssistLoading(true);
+    try {
+      const res = await api.get(`/challenges/${data.challenge.id}/assistances`);
+      setAssistances(res.data?.assistances || []);
+    } catch (err) {
+      setAssistOpen(false);
+      toast.error(formatApiError(err));
+    } finally {
+      setAssistLoading(false);
+    }
+  };
+
+  const saveAssistances = async (next, successMessage) => {
+    if (!data.challenge || assistSaving) return;
+    const previous = assistances;
+    setAssistances(next);
+    setAssistSaving(true);
+    try {
+      const excluded = next.filter((a) => !a.included).map((a) => a.id);
+      await api.put(`/challenges/${data.challenge.id}/assistances`, { excluded_sale_ids: excluded });
+      await load();
+      toast.success(successMessage);
+    } catch (err) {
+      setAssistances(previous);
+      toast.error(formatApiError(err));
+    } finally {
+      setAssistSaving(false);
+    }
+  };
+
+  const toggleAssistance = (id) => {
+    if (assistSaving) return;
+    const next = assistances.map((a) => a.id === id ? { ...a, included: !a.included } : a);
+    const row = next.find((a) => a.id === id);
+    saveAssistances(next, row?.included ? "Assistance réintégrée" : "Assistance exclue du challenge");
+  };
+
+  const reintegrateAll = () => {
+    if (assistSaving) return;
+    saveAssistances(assistances.map((a) => ({ ...a, included: true })), "Toutes les assistances sont réintégrées");
+  };
+
   const openHistory = async () => {
     try {
       setHistory((await api.get("/challenges?include_closed=1")).data || []);
@@ -202,6 +251,7 @@ export default function ChallengeWidget() {
               {ch ? (
                 <>
                   <Button variant="outline" size="sm" onClick={startEdit}><Pencil size={13} className="mr-1" /> Modifier</Button>
+                  {ch.criterion === "assist" && <Button variant="outline" size="sm" onClick={openAssistances} data-testid="challenge-assistances-btn"><Users size={13} className="mr-1" /> Assistances</Button>}
                   <Button variant="outline" size="sm" onClick={closeChallenge} disabled={closing}><XCircle size={13} className="mr-1" /> {closing ? "Clôture…" : "Clôturer"}</Button>
                 </>
               ) : (
@@ -345,6 +395,45 @@ export default function ChallengeWidget() {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assistOpen} onOpenChange={setAssistOpen}>
+        <DialogContent className="sm:max-w-2xl" data-testid="challenge-assistances-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Assistances du challenge</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Cochez les assistances à comptabiliser dans le classement. Les ventes et commissions ne sont pas modifiées.
+          </p>
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+            <span>{assistances.filter((a) => a.included).length} / {assistances.length} comptabilisée(s)</span>
+            <Button variant="outline" size="sm" onClick={reintegrateAll} disabled={assistSaving || !assistances.length}>Tout réintégrer</Button>
+          </div>
+          <div className="max-h-[55vh] overflow-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
+            {assistLoading && <p className="p-6 text-sm text-slate-500 text-center">Chargement…</p>}
+            {!assistLoading && !assistances.length && <p className="p-6 text-sm text-slate-500 text-center">Aucune assistance sur la période.</p>}
+            {!assistLoading && assistances.map((a) => (
+              <label key={a.id} className="flex items-start gap-3 p-3 text-sm hover:bg-slate-50 cursor-pointer" data-testid={`challenge-assistance-${a.id}`}>
+                <input type="checkbox" className="mt-0.5 h-4 w-4" checked={a.included} disabled={assistSaving} onChange={() => toggleAssistance(a.id)} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2">
+                    <b className="truncate">{a.client_name}</b>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{fmtDate(a.sale_date)}</span>
+                  </span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    <span>{a.commercial}</span>
+                    {a.bdc && <span>BDC {a.bdc}</span>}
+                    <span>{fmtEur(a.amount)}</span>
+                    {!a.included && <span className="text-amber-700 font-medium">exclue du challenge</span>}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setAssistOpen(false)} disabled={assistSaving}>Fermer</Button>
           </div>
         </DialogContent>
       </Dialog>

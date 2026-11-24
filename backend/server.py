@@ -1058,6 +1058,10 @@ class ChallengeIn(BaseModel):
     rewards: List[ChallengeRewardIn] = Field(default_factory=list, max_length=10)
 
 
+class ChallengeAssistanceUpdate(BaseModel):
+    excluded_sale_ids: List[str] = Field(default_factory=list, max_length=20000)
+
+
 class ClientIn(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     phone: Optional[str] = Field(default="", max_length=40)
@@ -10587,6 +10591,7 @@ def _challenge_public(ch: dict) -> dict:
         "criterion_label": CHALLENGE_CRITERIA.get(ch.get("criterion"), ch.get("criterion")),
         "participant_names": ch.get("participant_names") or [],
         "rewards": ch.get("rewards") or [],
+        "excluded_sale_ids": ch.get("excluded_sale_ids") or [],
         "status": ch.get("status") or "active",
         "created_at": ch.get("created_at"),
         "closed_at": ch.get("closed_at"),
@@ -10602,6 +10607,9 @@ async def _challenge_ranking(user: dict, challenge: dict) -> list[dict]:
     rows = await db.sales.find(q, {
         "_id": 0, "id": 1, "commercial": 1, "amount": 1, "source": 1, "status": 1,
     }).to_list(20000)
+    excluded_ids = {str(x) for x in (challenge.get("excluded_sale_ids") or []) if x}
+    if excluded_ids:
+        rows = [r for r in rows if str(r.get("id")) not in excluded_ids]
     criterion = challenge.get("criterion") or "assist"
     if criterion == "r1":
         rows = [r for r in rows if (r.get("source") or "").strip().lower() == "r1"]
@@ -10661,6 +10669,74 @@ async def current_challenge(user: dict = Depends(get_current_user)):
         "me": me,
         "days_left": days_left,
     }
+
+
+@api_router.get("/challenges/{cid}/assistances")
+async def list_challenge_assistances(cid: str, user: dict = Depends(require_admin)):
+    """Détail des assistances du challenge avec leur état d'inclusion."""
+    challenge = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    q = cq(user, {
+        "sale_date": {"$gte": challenge["start_date"], "$lte": challenge["end_date"]},
+        "source": {"$regex": r"^\s*assist\s*$", "$options": "i"},
+        "status": {"$nin": ["annule", "litige"]},
+    })
+    rows = await db.sales.find(q, {
+        "_id": 0, "id": 1, "bdc": 1, "sale_date": 1, "client_name": 1,
+        "client_id": 1, "commercial": 1, "amount": 1, "status": 1,
+    }).sort("sale_date", -1).to_list(20000)
+    # Enrichit le nom client si la vente ne l'a pas déjà.
+    cids = list({r.get("client_id") for r in rows if r.get("client_id")})
+    clients = {}
+    if cids:
+        for c in await db.clients.find(cq(user, {"id": {"$in": cids}}), {"_id": 0, "id": 1, "name": 1}).to_list(len(cids)):
+            clients[c["id"]] = c.get("name") or ""
+    excluded = {str(x) for x in (challenge.get("excluded_sale_ids") or []) if x}
+    out = []
+    for r in rows:
+        out.append({
+            "id": r["id"],
+            "bdc": r.get("bdc") or "",
+            "sale_date": r.get("sale_date") or "",
+            "client_name": r.get("client_name") or clients.get(r.get("client_id")) or "—",
+            "commercial": (r.get("commercial") or "").strip() or "—",
+            "amount": float(r.get("amount") or 0),
+            "included": str(r["id"]) not in excluded,
+        })
+    return {"challenge_id": cid, "assistances": out, "excluded_sale_ids": list(excluded)}
+
+
+@api_router.put("/challenges/{cid}/assistances")
+async def update_challenge_assistances(cid: str, data: ChallengeAssistanceUpdate, user: dict = Depends(require_admin)):
+    """Inclut/exclut des assistances du classement, sans toucher aux ventes.
+
+    Les IDs inconnus ou hors période sont refusés pour éviter d'exclure une
+    vente par erreur. Seules les fiches challenge sont modifiées.
+    """
+    challenge = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    if challenge.get("status") != "active":
+        raise HTTPException(status_code=409, detail="Un challenge clôturé ne peut plus être modifié")
+    requested = {str(x) for x in data.excluded_sale_ids if x}
+    period_rows = await db.sales.find(cq(user, {
+        "sale_date": {"$gte": challenge["start_date"], "$lte": challenge["end_date"]},
+        "source": {"$regex": r"^\s*assist\s*$", "$options": "i"},
+        "status": {"$nin": ["annule", "litige"]},
+    }), {"_id": 0, "id": 1}).to_list(20000)
+    valid = {str(r["id"]) for r in period_rows}
+    invalid = requested - valid
+    if invalid:
+        raise HTTPException(status_code=400, detail="Certaines assistances ne font pas partie de ce challenge")
+    await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {
+        "excluded_sale_ids": sorted(requested),
+        "updated_at": now_iso(),
+        "updated_by": user["id"],
+    }})
+    await log_audit(user, "update", "challenge", cid, after={"excluded_assistances": len(requested)})
+    updated = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
+    return {"ok": True, "challenge": _challenge_public(updated)}
 
 
 @api_router.get("/challenges")
