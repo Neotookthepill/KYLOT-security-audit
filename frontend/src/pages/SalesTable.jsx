@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { Card } from "@/components/ui/card";
-import { Wallet, Banknote } from "lucide-react";
+import { Wallet, Banknote, CalendarDays } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import useTeam from "@/lib/useTeam";
 import { SOURCES } from "@/lib/saleConstants";
@@ -15,18 +15,41 @@ export default function SalesTable() {
   const [summary, setSummary] = useState({ by_commercial: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [period, setPeriod] = useState("month");
 
-  const load = async () => {
+  const bounds = React.useMemo(() => {
+    const today = new Date();
+    const iso = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+    if (period === "day") return { from: iso(today), to: iso(today) };
+    if (period === "week") {
+      const d = new Date(today);
+      const wd = (d.getDay() + 6) % 7;
+      d.setDate(d.getDate() - wd);
+      const end = new Date(d); end.setDate(d.getDate() + 6);
+      return { from: iso(d), to: iso(end) };
+    }
+    if (period === "year") return { from: `${today.getFullYear()}-01-01`, to: `${today.getFullYear()}-12-31` };
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { from: iso(first), to: iso(last) };
+  }, [period]);
+
+  const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get("/sales/summary");
+      const { data } = await api.get(`/sales/summary?from_date=${bounds.from}&to_date=${bounds.to}`);
       setSummary(data || { by_commercial: [] });
       setError(false);
     } catch (_) { setError(true); }
     finally { setLoading(false); }
-  };
+  }, [bounds.from, bounds.to]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const rows = React.useMemo(() => {
     const norm = (v) => (v || "").toString().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -59,6 +82,18 @@ export default function SalesTable() {
       </div>
 
       {error && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Impossible de charger le classement.</p>}
+
+      <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="sales-table-period-filter">
+        <CalendarDays size={14} className="text-slate-500" />
+        {[{ k: "month", l: "Mois" }, { k: "week", l: "Semaine" }, { k: "day", l: "Jour" }, { k: "year", l: "Année" }].map((p) => (
+          <button key={p.k} type="button" onClick={() => setPeriod(p.k)}
+            className={`min-h-[36px] text-xs px-3 py-1.5 rounded-[10px] border transition-colors ${period === p.k ? "bg-primary text-primary-foreground border-primary" : "bg-white text-[#344054] border-[#DDE3EC] hover:border-primary/40 dark:bg-card dark:text-foreground dark:border-border dark:hover:border-primary/60"}`}
+            data-testid={`sales-table-period-${p.k}`}>
+            {p.l}
+          </button>
+        ))}
+        <span className="text-xs text-slate-500">{bounds.from === bounds.to ? bounds.from : `${bounds.from} → ${bounds.to}`}</span>
+      </div>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="commercials-summary">
         <div className="p-4 border-b border-slate-200 flex items-center gap-2 flex-wrap">
