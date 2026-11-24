@@ -93,11 +93,13 @@ function InlineCell({ value, type = "text", options, onSave, display, disabled, 
   return (
     <button type="button"
       onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-      className={`text-left rounded px-1.5 py-0.5 hover:bg-slate-100 hover:ring-1 hover:ring-slate-300 cursor-pointer transition inline-flex items-center gap-1 ${wrapperClass}`}
+      className={`group text-left rounded px-1.5 py-0.5 border-b border-dashed border-slate-300/80 hover:bg-slate-100 hover:border-slate-400 cursor-pointer transition inline-flex items-center gap-1.5 ${wrapperClass}`}
       title="Cliquer pour modifier"
+      aria-label="Modifier ce champ"
       data-testid={testId}
     >
       {saving ? <Loader2 size={11} className="animate-spin text-slate-400" /> : (display ?? (value ? value : <span className="text-slate-400 italic">{placeholder}</span>))}
+      {!saving && <Pencil size={9} className="shrink-0 text-slate-400 group-hover:text-slate-700" aria-hidden="true" data-testid={testId ? `${testId}-edit-icon` : undefined} />}
     </button>
   );
 }
