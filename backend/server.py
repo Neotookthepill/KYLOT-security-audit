@@ -5369,18 +5369,22 @@ async def dashboard_activity(
             "amount": amt,
             "scheduled_date": p.get("scheduled_date"),
             "duration_days": max(1, int(p.get("duration_days") or 1)),
+            "extra_dates": p.get("extra_dates") or [],
             "priority": p.get("priority"),
             "status": p.get("status"),
         }
 
-    def overlaps(p, start_d, end_d):
+    def project_days(p):
+        """Jours réellement travaillés : durée consécutive + jours supplémentaires."""
         try:
-            ps = date.fromisoformat(p["scheduled_date"])
+            return [date.fromisoformat(x) for x in _project_days(p)]
         except Exception:
-            return False
-        dur = max(1, int(p.get("duration_days") or 1))
-        pe = ps + timedelta(days=dur - 1)
-        return not (pe < start_d or ps > end_d)
+            return []
+
+    def overlaps(p, start_d, end_d):
+        # Ne pas se limiter à scheduled_date + duration_days : un chantier peut
+        # avoir des jours supplémentaires (extra_dates) visibles au planning.
+        return any(start_d <= d <= end_d for d in project_days(p))
 
     day_entries = [build_entry(p) for p in projects if overlaps(p, d, d)]
     week_entries = [build_entry(p) for p in projects if overlaps(p, w_start, w_end)]
@@ -5397,14 +5401,14 @@ async def dashboard_activity(
         hours = 0
         for e in upcoming:
             try:
-                ps = date.fromisoformat(e["scheduled_date"])
+                worked = [
+                    d for d in project_days(e)
+                    if start_d <= d <= end_d
+                ]
             except Exception:
                 logger.debug("Date de chantier invalide ignorée dans le calcul de charge")
                 continue
-            pe = ps + timedelta(days=max(1, e["duration_days"]) - 1)
-            ov_s = max(ps, start_d); ov_e = min(pe, end_d)
-            if ov_s <= ov_e:
-                hours += ((ov_e - ov_s).days + 1) * HOURS_PER_DAY
+            hours += len(worked) * HOURS_PER_DAY
         return {"count": len(upcoming), "ca": round(ca, 2), "hours": hours,
                 "done_count": len(done), "done_ca": round(done_ca, 2)}
 
