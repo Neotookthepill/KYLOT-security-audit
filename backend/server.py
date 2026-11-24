@@ -5128,7 +5128,7 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
              "scheduled_date": {"$regex": r"^\d{4}-\d{2}-\d{2}$"}}
     # Les blocs indépendants du dashboard sont lancés ensemble. On conserve des
     # Future Motor (pas create_task) pour ne pas casser sous CI/Render.
-    act_projects_fut = db.projects.find(act_q, {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1, "duration_days": 1}).to_list(5000)
+    act_projects_fut = db.projects.find(act_q, {"_id": 0, "id": 1, "sale_id": 1, "scheduled_date": 1, "duration_days": 1, "extra_dates": 1}).to_list(5000)
     to_schedule, in_progress, completed = await asyncio.gather(
         db.projects.count_documents({**_proj_active, "status": "a_planifier"}),
         db.projects.count_documents({**_proj_active, "status": "en_cours"}),
@@ -5193,26 +5193,22 @@ async def dashboard_executive(period: str = Query("month", pattern="^(month|prev
     week_count = 0;  week_hours = 0.0;  week_ca = 0.0
     for p in act_projects:
         try:
-            ps = datetime.fromisoformat(p["scheduled_date"]).date()
+            worked_days = {date.fromisoformat(x) for x in _project_days(p)}
         except Exception:
             logger.debug("Date de chantier historique invalide ignorée dans les statistiques")
             continue
-        dur = max(1, int(p.get("duration_days") or 1))
-        pe = ps + timedelta(days=dur - 1)
         amt = sale_amounts.get(p.get("sale_id"), 0.0)
         if amt == 0.0 and p.get("sale_id"):
             # Sale annulée/litige → exclure ce chantier
             continue
-        # Today overlap: 1 day if today ∈ [ps, pe] else 0
-        if ps <= today <= pe:
+        if today in worked_days:
             today_count += 1
             today_hours += HOURS_PER_DAY
             today_ca += amt
-        # Week overlap: number of days in the intersection with [week_start, week_end]
-        ov_start = max(ps, week_start); ov_end = min(pe, week_end)
-        if ov_start <= ov_end:
+        week_days = [d for d in worked_days if week_start <= d <= week_end]
+        if week_days:
             week_count += 1
-            week_hours += (ov_end - ov_start).days * HOURS_PER_DAY + HOURS_PER_DAY
+            week_hours += len(week_days) * HOURS_PER_DAY
             week_ca += amt
 
     activity = {
@@ -8812,13 +8808,11 @@ async def _build_reminder_digest(target_date: str, company_id: Optional[str] = N
     items: List[dict] = []
     for p in projects:
         try:
-            start = datetime.fromisoformat(p["scheduled_date"]).date()
+            worked_days = {date.fromisoformat(x) for x in _project_days(p)}
         except Exception:
             logger.debug("Date de chantier historique invalide ignorée dans le planning")
             continue
-        dur = max(1, int(p.get("duration_days") or 1))
-        end = start + timedelta(days=dur - 1)
-        if start <= target <= end:
+        if target in worked_days:
             items.append(p)
     if not items:
         return []
@@ -12163,7 +12157,11 @@ async def list_stock(
         date_q: dict = {}
         if from_date: date_q["$gte"] = from_date
         if until: date_q["$lte"] = until
-        proj_q["scheduled_date"] = date_q
+        # Inclure les jours supplémentaires, pas seulement la date de départ.
+        proj_q["$or"] = [
+            {"scheduled_date": date_q},
+            {"extra_dates": {"$elemMatch": date_q}},
+        ]
     projects = await db.projects.find(proj_q, {"_id": 0, "prestations": 1, "sale_id": 1}).to_list(5000)
     # Batch the fallback sales instead of one query per project. Under load this
     # endpoint was doing dozens of serial round-trips to Atlas (~7 s).
