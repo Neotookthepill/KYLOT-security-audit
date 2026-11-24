@@ -134,11 +134,12 @@ function ObjectifGauge({ ca, objectif }) {
 }
 
 /* ---------- Row with progress bar per commercial ---------- */
-export function CommercialRow({ c, isAdmin, onObjectifSaved }) {
+export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(c.objectif || 0));
   const [saving, setSaving] = useState(false);
-  const pct = c.objectif > 0 ? Math.min(100, (c.ca / c.objectif) * 100) : 0;
+  const target = targetObjectif > 0 ? targetObjectif : c.objectif;
+  const pct = target > 0 ? Math.min(100, (c.ca / target) * 100) : 0;
   const pctClass = pct >= 100 ? "text-emerald-700 font-semibold" : pct >= 60 ? "text-slate-900 font-medium" : "text-slate-500";
   const barClass = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-slate-900" : "bg-indigo-400";
 
@@ -191,11 +192,11 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved }) {
             onClick={startEdit}
             disabled={!isAdmin || !c.id}
             className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${isAdmin && c.id ? "hover:bg-slate-100 cursor-pointer" : "cursor-default"}`}
-            title={isAdmin && c.id ? "Cliquer pour définir un objectif" : ""}
+            title={isAdmin && c.id ? "Cliquer pour définir l'objectif annuel" : "Objectif annuel proratisé sur la période"}
             data-testid={`objectif-cell-${c.name}`}
           >
-            {c.objectif > 0
-              ? fmtEur(c.objectif)
+            {target > 0
+              ? fmtEur(target)
               : (isAdmin && c.id ? <span className="text-slate-400 italic">définir</span> : <span className="text-slate-400">—</span>)}
             {isAdmin && c.id && <Pencil size={9} className="text-slate-400" />}
           </button>
@@ -206,7 +207,7 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved }) {
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full ${barClass} transition-all`} style={{ width: `${pct}%` }} />
           </div>
-          <span className={`text-xs ${pctClass} min-w-[36px] text-right`}>{c.objectif > 0 ? `${pct.toFixed(0)}%` : "—"}</span>
+          <span className={`text-xs ${pctClass} min-w-[36px] text-right`}>{target > 0 ? `${pct.toFixed(0)}%` : "—"}</span>
         </div>
       </td>
       <td className="px-3 py-3 text-right text-slate-600" title="Ventes payées comptant (chèque, virement, CB, acompte)">{c.comptant}</td>
