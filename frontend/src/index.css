@@ -235,7 +235,7 @@
   .hover\:bg-orange-50:hover, .hover\:bg-violet-50:hover, .hover\:bg-indigo-50:hover { background-color: #F0F3FF !important; }
 
   .qy-divider { height: 1px; background: hsl(var(--border)); }
-  .qy-sheet { padding: 0; gap: 0; background: hsl(var(--card)); }
+  .qy-sheet { padding: 0 !important; gap: 0; background: hsl(var(--card)); }
   .qy-sheet [data-sheet-header] {
     position: sticky; top: 0; z-index: 10;
     padding: 1.4rem 1.5rem 1rem; margin: 0;
@@ -245,8 +245,8 @@
   .qy-sheet [data-sheet-footer] {
     position: sticky; bottom: 0; z-index: 10;
     padding: .9rem 1.5rem calc(.9rem + env(safe-area-inset-bottom));
-    margin: 0; background: hsl(var(--card) / .97); border-top: 1px solid hsl(var(--border));
-    backdrop-filter: blur(12px);
+    margin: 0; background: hsl(var(--card)) !important; border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -8px 24px hsl(220 30% 10% / .08); backdrop-filter: blur(12px);
   }
   .qy-sheet > div:not([data-sheet-header]):not([data-sheet-footer]) { padding-left: 1.5rem; padding-right: 1.5rem; padding-bottom: 5.5rem; }
   .qy-sheet .qy-form-section {
