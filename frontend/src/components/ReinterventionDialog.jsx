@@ -86,7 +86,7 @@ export default function ReinterventionDialog({ open, onOpenChange, client, onCha
     finally { setLoading(false); }
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (open) { setForm({ client_id: client?.id || "", technician_name: "", scheduled_date: today(), scheduled_time: "", note: "" }); setPhotos([]); load(); } }, [open, client?.id]);
+  useEffect(() => { if (open) { setQ(""); setForm({ client_id: client?.id || "", technician_name: "", scheduled_date: today(), scheduled_time: "", note: "" }); setPhotos([]); load(); } }, [open, client?.id]);
 
   const onPhotosSelected = async (fs) => {
     if (!fs || !fs.length) return;
@@ -127,7 +127,7 @@ export default function ReinterventionDialog({ open, onOpenChange, client, onCha
 
   const filteredClients = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return !t ? clients.slice(0, 40) : clients.filter((c) => `${c.name} ${c.phone||""} ${c.city||""}`.toLowerCase().includes(t)).slice(0, 40);
+    return !t ? clients.slice(0, 40) : clients.filter((c) => `${c.name || ""} ${c.phone || ""} ${c.email || ""} ${c.address || ""} ${c.postal_code || ""} ${c.city || ""}`.toLowerCase().includes(t)).slice(0, 40);
   }, [clients, q]);
 
   return (
@@ -147,8 +147,29 @@ export default function ReinterventionDialog({ open, onOpenChange, client, onCha
               <Label className="text-xs">Client</Label>
               <div className="relative">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client…" className="pl-7 h-9" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client…" className="pl-7 h-9" data-testid="reinter-client-search" />
               </div>
+              {q.trim() && (
+                <div className="max-h-44 overflow-y-auto rounded-md border border-border bg-card shadow-sm" data-testid="reinter-client-suggestions">
+                  {filteredClients.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-slate-500">Aucun client trouvé.</p>
+                  ) : filteredClients.slice(0, 12).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setForm((f) => ({ ...f, client_id: c.id })); setQ(""); }}
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-muted ${form.client_id === c.id ? "bg-primary/10" : ""}`}
+                      data-testid={`reinter-client-suggestion-${c.id}`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{c.name}</span>
+                        <span className="block truncate text-[11px] text-slate-500">{[c.phone, c.city].filter(Boolean).join(" · ")}</span>
+                      </span>
+                      {form.client_id === c.id && <Check size={14} className="text-primary shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Select value={form.client_id || "__none"} onValueChange={(v) => setForm({ ...form, client_id: v === "__none" ? "" : v })}>
                 <SelectTrigger className="h-9" data-testid="reinter-client"><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>
