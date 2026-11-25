@@ -409,7 +409,17 @@ export default function Clients() {
           </Button>
         </div>
       </div>
-      <ClientDetailDialog client={selected} open={!!selected} onOpenChange={(v) => !v && setSelected(null)} />
+      <ClientDetailDialog
+        client={selected}
+        open={!!selected}
+        onOpenChange={(v) => !v && setSelected(null)}
+        canEdit={can("clients", "edit")}
+        onClientUpdated={(updated) => {
+          setSelected(updated);
+          setClients((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+          loadPage(offset);
+        }}
+      />
     </div>
   );
 }

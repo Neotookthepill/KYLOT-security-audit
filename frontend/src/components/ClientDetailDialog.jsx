@@ -5,17 +5,19 @@ import { resolveStatusesFromPayload } from "@/lib/saleConstants";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, MapPin, FileText, RefreshCw } from "lucide-react";
+import { Mail, MapPin, FileText, RefreshCw, Pencil } from "lucide-react";
 import PhoneNumbers from "@/components/PhoneNumbers";
 import { STATUS_MAP, formatPayment, formatRate } from "@/lib/saleConstants";
 import { mapsUrl } from "@/lib/addressLookup";
 import ReinterventionDialog from "@/components/ReinterventionDialog";
 import { ClientNotes } from "@/components/ClientNotes";
+import ClientEditDialog from "@/components/ClientEditDialog";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 
-export default function ClientDetailDialog({ client, open, onOpenChange }) {
+export default function ClientDetailDialog({ client, open, onOpenChange, onClientUpdated, canEdit = false }) {
   const [sales, setSales] = useState([]);
+  const [editOpen, setEditOpen] = useState(false);
   const [reinters, setReinters] = useState([]);
   const [loading, setLoading] = useState(false);
   const [reinterOpen, setReinterOpen] = useState(false);
@@ -46,7 +48,14 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="client-detail-dialog">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl">{client.name}</DialogTitle>
+          <div className="flex items-start justify-between gap-3">
+            <DialogTitle className="font-display text-2xl">{client.name}</DialogTitle>
+            {canEdit && (
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} data-testid="client-edit-open">
+                <Pencil size={13} className="mr-1.5" /> Modifier les coordonnées
+              </Button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-4 text-sm text-slate-600 mt-2">
             {client.phone && <PhoneNumbers value={client.phone} iconSize={13} className="text-sm" />}
             {client.email && <span className="flex items-center gap-1.5"><Mail size={13} /> {client.email}</span>}
@@ -145,6 +154,13 @@ export default function ClientDetailDialog({ client, open, onOpenChange }) {
         <ClientNotes clientId={client.id} />
 
         <ReinterventionDialog open={reinterOpen} onOpenChange={setReinterOpen} client={client} onChanged={loadReinters} />
+        <ClientEditDialog
+          client={client}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          canEdit={canEdit}
+          onSaved={(updated) => onClientUpdated?.(updated)}
+        />
       </DialogContent>
     </Dialog>
   );

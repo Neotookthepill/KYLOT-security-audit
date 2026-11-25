@@ -2274,10 +2274,24 @@ async def update_client(cid: str, data: ClientIn, user: dict = Depends(get_curre
     check_perm(user, "clients", "edit")
     client_q = await _scoped_client_query(user, cid)
     before = await db.clients.find_one(client_q, {"_id": 0})
-    r = await db.clients.update_one(client_q, {"$set": data.model_dump()})
+    updates = data.model_dump()
+    r = await db.clients.update_one(client_q, {"$set": updates})
     if r.matched_count == 0:
         raise HTTPException(status_code=404, detail="Client introuvable")
     after = await db.clients.find_one(client_q, {"_id": 0})
+    # Les ventes stockent une copie des coordonnées client pour les listes et
+    # exports historiques. On la synchronise ici pour éviter les incohérences
+    # quand le client est modifié depuis une autre page que Ventes.
+    await db.sales.update_many(
+        cq(user, {"client_id": cid}),
+        {"$set": {
+            "client_name": after.get("name") or "",
+            "client_phone": after.get("phone") or "",
+            "client_address": after.get("address") or "",
+            "client_postal_code": after.get("postal_code") or "",
+            "client_city": after.get("city") or "",
+        }},
+    )
     await log_audit(user, "update", "client", cid, before=before, after=after)
     return after
 

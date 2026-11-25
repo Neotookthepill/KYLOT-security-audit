@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MapPin, Camera, X, Loader2, MapPin as MapPinIcon, Image as ImageIcon, UserCircle, Users2, CheckCheck, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, RotateCcw, Plus } from "lucide-react";
+import { MapPin, Camera, X, Loader2, MapPin as MapPinIcon, Image as ImageIcon, UserCircle, Users2, CheckCheck, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut, RotateCcw, Plus, Pencil } from "lucide-react";
 import PhoneNumbers from "@/components/PhoneNumbers";
 import { toast } from "sonner";
 import useTeam from "@/lib/useTeam";
 import { useAuth } from "@/contexts/AuthContext";
 import TechNotesSection from "@/components/TechNotesSection";
+import ClientEditDialog from "@/components/ClientEditDialog";
 import { salePhase } from "@/lib/workflows";
 
 function fileToBase64(file, maxW = 1280) {
@@ -100,6 +101,9 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
   const canAddPhotos = can("photos", "add");
   const canViewPhotos = can("photos", "view");
   const [form, setForm] = useState(null);
+  useEffect(() => { setClientInfo(null); }, [project?.id]);
+  const [clientEditOpen, setClientEditOpen] = useState(false);
+  const [clientInfo, setClientInfo] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -498,9 +502,10 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             })()}
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-slate-600 pt-2">
-            {project.client_phone && <PhoneNumbers value={project.client_phone} iconSize={11} className="text-xs" />}
-            {project.client_address && (() => {
-              const fullAddress = [project.client_address, project.client_postal_code, project.client_city].filter(Boolean).join(" ");
+            {(clientInfo || project).client_phone && <PhoneNumbers value={(clientInfo || project).client_phone} iconSize={11} className="text-xs" />}
+            {(clientInfo || project).client_address && (() => {
+              const shown = clientInfo || project;
+              const fullAddress = [shown.client_address, shown.client_postal_code, shown.client_city].filter(Boolean).join(" ");
               const q = encodeURIComponent(fullAddress);
               return (
                 <span className="flex items-center gap-1.5 flex-wrap">
@@ -512,6 +517,11 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                 </span>
               );
             })()}
+            {project.client_id && can("clients", "edit") && (
+              <button type="button" onClick={() => setClientEditOpen(true)} className="inline-flex items-center gap-1 rounded border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/10" data-testid="project-client-edit-btn">
+                <Pencil size={9} /> Modifier les coordonnées
+              </button>
+            )}
           </div>
           {/* Commercial(s) : always visible (comes from the sale) */}
           {(project.commercial || project.commercial_2) && (
@@ -852,6 +862,26 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ClientEditDialog
+        client={{
+          id: project.client_id,
+          name: (clientInfo || project).client_name || "",
+          phone: (clientInfo || project).client_phone || "",
+          email: (clientInfo || project).client_email || "",
+          address: (clientInfo || project).client_address || "",
+          postal_code: (clientInfo || project).client_postal_code || "",
+          city: (clientInfo || project).client_city || "",
+        }}
+        clientId={project.client_id}
+        open={clientEditOpen}
+        onOpenChange={setClientEditOpen}
+        canEdit={can("clients", "edit")}
+        onSaved={(updated) => {
+          setClientInfo({ ...project, client_name: updated.name, client_phone: updated.phone, client_email: updated.email, client_address: updated.address, client_postal_code: updated.postal_code, client_city: updated.city });
+          onSaved?.();
+        }}
+      />
 
       {/* iter153/155/201 : lightbox plein écran avec ZOOM (roulette, double-clic, pinch),
           monté via portal pour NE PAS être enfant du <Dialog> Radix — évite que les clics
