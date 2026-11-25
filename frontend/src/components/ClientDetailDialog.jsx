@@ -48,10 +48,10 @@ export default function ClientDetailDialog({ client, open, onOpenChange, onClien
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="client-detail-dialog">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
-            <DialogTitle className="font-display text-2xl">{client.name}</DialogTitle>
+          <div className="flex flex-col gap-2 pr-10 sm:flex-row sm:items-start sm:justify-between">
+            <DialogTitle className="font-display text-2xl break-words">{client.name}</DialogTitle>
             {canEdit && (
-              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} data-testid="client-edit-open">
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} className="w-full justify-center sm:w-auto sm:shrink-0" data-testid="client-edit-open">
                 <Pencil size={13} className="mr-1.5" /> Modifier les coordonnées
               </Button>
             )}
