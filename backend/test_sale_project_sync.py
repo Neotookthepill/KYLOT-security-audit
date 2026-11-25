@@ -69,6 +69,28 @@ class SaleProjectSyncTests(unittest.TestCase):
         sale = asyncio.run(self.db.sales.find_one({"id": "sale-sync"}))
         self.assertEqual(sale["status"], "chantier_fini")
 
+    def test_client_coordinates_update_is_synced_to_linked_sale(self):
+        r = self.client.put(
+            "/api/clients/client-sync",
+            headers=self.headers,
+            json={
+                "name": "Client Modifié",
+                "phone": "0600000000",
+                "email": "client@example.com",
+                "address": "1 rue de Test",
+                "postal_code": "75000",
+                "city": "Paris",
+                "notes": "Note conservée",
+            },
+        )
+        self.assertEqual(r.status_code, 200, r.text)
+        sale = asyncio.run(self.db.sales.find_one({"id": "sale-sync"}))
+        self.assertEqual(sale["client_name"], "Client Modifié")
+        self.assertEqual(sale["client_phone"], "0600000000")
+        self.assertEqual(sale["client_address"], "1 rue de Test")
+        self.assertEqual(sale["client_postal_code"], "75000")
+        self.assertEqual(sale["client_city"], "Paris")
+
     def test_sale_date_programs_existing_project_without_duplicate(self):
         first = self.client.put(
             "/api/sales/sale-sync", headers=self.headers,

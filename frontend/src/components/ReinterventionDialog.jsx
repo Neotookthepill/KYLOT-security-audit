@@ -81,12 +81,26 @@ export default function ReinterventionDialog({ open, onOpenChange, client, onCha
     try {
       const url = client ? `/reinterventions?client_id=${client.id}` : `/reinterventions`;
       setItems((await api.get(url)).data || []);
-      if (!client) setClients((await api.get("/clients")).data || []);
     } catch (err) { toast.error(formatApiError(err)); }
     finally { setLoading(false); }
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (open) { setQ(""); setForm({ client_id: client?.id || "", technician_name: "", scheduled_date: today(), scheduled_time: "", note: "" }); setPhotos([]); load(); } }, [open, client?.id]);
+
+  // Recherche serveur : évite de charger les centaines/milliers de clients
+  // à chaque ouverture, tout en gardant des suggestions instantanées.
+  useEffect(() => {
+    if (!open || client) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const query = q.trim();
+        const { data } = await api.get(`/clients?limit=40${query ? `&q=${encodeURIComponent(query)}` : ""}`);
+        if (!cancelled) setClients(data || []);
+      } catch (_) { /* la liste précédente reste utilisable */ }
+    }, q.trim() ? 250 : 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [open, client, q]);
 
   const onPhotosSelected = async (fs) => {
     if (!fs || !fs.length) return;

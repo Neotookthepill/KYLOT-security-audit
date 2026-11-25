@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { OfflineBar } from "@/components/OfflineBar";
+import VersionWatcher from "@/components/VersionWatcher";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { APP_VERSION } from "@/version";
@@ -261,6 +262,7 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+      <VersionWatcher />
       <div className="qy-sidebar-wrap fixed inset-y-0 left-0 z-40 hidden shrink-0 md:block">
         {SidebarContent({ compact: collapsed })}
       </div>

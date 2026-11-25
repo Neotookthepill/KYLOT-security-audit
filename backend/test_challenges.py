@@ -133,6 +133,57 @@ class ChallengeTests(unittest.TestCase):
         self.assertEqual(ranking["Commercial A"]["points"], 4000)
         self.assertEqual(ranking["Commercial B"]["ca"], 2000)
 
+    def test_admin_can_exclude_then_reintegrate_an_assistance(self):
+        created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
+        self.assertEqual(created.status_code, 200, created.text)
+        cid = created.json()["id"]
+
+        details = self.client.get(f"/api/challenges/{cid}/assistances", headers=self.admin_headers)
+        self.assertEqual(details.status_code, 200, details.text)
+        self.assertEqual(len(details.json()["assistances"]), 2)
+
+        excluded = self.client.put(
+            f"/api/challenges/{cid}/assistances",
+            headers=self.admin_headers,
+            json={"excluded_sale_ids": ["s-a1"]},
+        )
+        self.assertEqual(excluded.status_code, 200, excluded.text)
+        body = self.client.get("/api/challenges/current", headers=self.commercial_headers).json()
+        ranking = {row["name"]: row for row in body["ranking"]}
+        self.assertEqual(ranking["Commercial A"]["count"], 0)
+        self.assertEqual(ranking["Commercial B"]["count"], 1)
+
+        reintegrated = self.client.put(
+            f"/api/challenges/{cid}/assistances",
+            headers=self.admin_headers,
+            json={"excluded_sale_ids": []},
+        )
+        self.assertEqual(reintegrated.status_code, 200, reintegrated.text)
+        body = self.client.get("/api/challenges/current", headers=self.commercial_headers).json()
+        ranking = {row["name"]: row for row in body["ranking"]}
+        self.assertEqual(ranking["Commercial A"]["count"], 1)
+
+    def test_excluding_assistance_from_another_period_is_refused(self):
+        created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
+        cid = created.json()["id"]
+        bad = self.client.put(
+            f"/api/challenges/{cid}/assistances",
+            headers=self.admin_headers,
+            json={"excluded_sale_ids": ["s-outside"]},
+        )
+        self.assertEqual(bad.status_code, 400, bad.text)
+
+    def test_closed_challenge_assistances_cannot_change(self):
+        created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
+        cid = created.json()["id"]
+        self.client.post(f"/api/challenges/{cid}/close", headers=self.admin_headers)
+        blocked = self.client.put(
+            f"/api/challenges/{cid}/assistances",
+            headers=self.admin_headers,
+            json={"excluded_sale_ids": ["s-a1"]},
+        )
+        self.assertEqual(blocked.status_code, 409, blocked.text)
+
     def test_close_keeps_a_snapshot_in_history(self):
         created = self.client.post("/api/challenges", headers=self.admin_headers, json=self._payload())
         cid = created.json()["id"]
