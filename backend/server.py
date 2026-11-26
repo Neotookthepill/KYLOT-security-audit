@@ -8546,6 +8546,10 @@ async def list_users(user: dict = Depends(require_admin)):
     for u in users:
         if not u.get("permissions"):
             u["permissions"] = get_default_permissions(u.get("role", ""))
+        # Compatibilité avec les comptes créés avant le module de rentabilité.
+        u["collaborator_status"] = u.get("collaborator_status") or "salarie"
+        u["cost_coefficient"] = float(u.get("cost_coefficient") or 1.875)
+        u["hourly_cost"] = float(u.get("hourly_cost") or 0)
     return users
 
 async def _ensure_unique_user_name(user: dict, name: str, exclude_id: Optional[str] = None) -> None:
