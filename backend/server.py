@@ -11028,14 +11028,33 @@ async def update_challenge_assistances(cid: str, data: ChallengeAssistanceUpdate
     invalid = requested - valid
     if invalid:
         raise HTTPException(status_code=400, detail="Certaines assistances ne font pas partie de ce challenge")
+    before_ids = sorted({str(x) for x in (challenge.get("excluded_sale_ids") or []) if x})
+    after_ids = sorted(requested)
     await db.challenges.update_one(cq(user, {"id": cid}), {"$set": {
-        "excluded_sale_ids": sorted(requested),
+        "excluded_sale_ids": after_ids,
         "updated_at": now_iso(),
         "updated_by": user["id"],
     }})
+    if before_ids != after_ids:
+        await db.challenge_exclusion_history.insert_one(with_company({
+            "id": str(uuid.uuid4()), "challenge_id": cid, "at": now_iso(),
+            "user_id": user.get("id"), "user_name": user.get("name") or user.get("email") or "?",
+            "action": "update", "before": before_ids, "after": after_ids,
+        }, user))
     await log_audit(user, "update", "challenge", cid, after={"excluded_assistances": len(requested)})
     updated = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0})
     return {"ok": True, "challenge": _challenge_public(updated)}
+
+
+@api_router.get("/challenges/{cid}/assistance-history")
+async def challenge_assistance_history(cid: str, user: dict = Depends(require_admin)):
+    challenge = await db.challenges.find_one(cq(user, {"id": cid}), {"_id": 0, "id": 1})
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge introuvable")
+    rows = await db.challenge_exclusion_history.find(
+        cq(user, {"challenge_id": cid}), {"_id": 0}
+    ).sort("at", -1).to_list(100)
+    return {"history": rows}
 
 
 @api_router.get("/challenges")

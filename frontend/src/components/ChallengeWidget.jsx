@@ -60,6 +60,7 @@ export default function ChallengeWidget() {
   const [assistances, setAssistances] = useState([]);
   const [assistLoading, setAssistLoading] = useState(false);
   const [assistSaving, setAssistSaving] = useState(false);
+  const [assistHistory, setAssistHistory] = useState([]);
   const isAdmin = user?.role === "admin";
 
   const load = async () => {
@@ -182,8 +183,12 @@ export default function ChallengeWidget() {
     setAssistOpen(true);
     setAssistLoading(true);
     try {
-      const res = await api.get(`/challenges/${data.challenge.id}/assistances`);
+      const [res, hist] = await Promise.all([
+        api.get(`/challenges/${data.challenge.id}/assistances`),
+        api.get(`/challenges/${data.challenge.id}/assistance-history`).catch(() => ({ data: { history: [] } })),
+      ]);
       setAssistances(res.data?.assistances || []);
+      setAssistHistory(hist.data?.history || []);
     } catch (err) {
       setAssistOpen(false);
       toast.error(formatApiError(err));
@@ -432,6 +437,19 @@ export default function ChallengeWidget() {
               </label>
             ))}
           </div>
+          {!!assistHistory.length && (
+            <details className="text-[11px] text-slate-500">
+              <summary className="cursor-pointer">Historique des exclusions ({assistHistory.length})</summary>
+              <div className="mt-1 space-y-0.5">
+                {assistHistory.slice(0, 5).map((h) => (
+                  <div key={h.id} className="flex justify-between gap-2">
+                    <span>{String(h.at || "").slice(0, 16).replace("T", " ")} · {h.user_name}</span>
+                    <span>{h.after?.length ?? 0} exclue(s)</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setAssistOpen(false)} disabled={assistSaving}>Fermer</Button>
           </div>
