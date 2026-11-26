@@ -11,11 +11,11 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { mgrBonusesFor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
 import { primeForCount } from "@/components/ProspectBonuses";
 import { resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
+import { INACTIVE_SALE_STATUSES as INACTIVE, commissionMonth as comMonth, saleMonth, projectValidated, managerRatesFor, managerCommissionFor, buildManagerSummary } from "@/lib/prospectionCommission";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtEur2 = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
 const norm = (s) => (s || "").toString().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const INACTIVE = ["annule", "litige"];
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const PERIODS = [
   { k: "today", l: "Aujourd'hui" }, { k: "week", l: "Cette semaine" }, { k: "month", l: "Ce mois" },
@@ -58,32 +58,7 @@ function PeriodFilter({ period, setPeriod, customFrom, setCustomFrom, customTo, 
   );
 }
 
-const comMonth = (r) => {
-  const raw = r.commission_month || r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
-  return /^\d{4}-\d{2}$/.test(String(raw || "")) ? String(raw) : (r.sale_date || "").slice(0, 7);
-};
-const saleMonth = (r) => String(r.sale_date || "").slice(0, 7);
-const projectValidated = (r) => ["termine", "encaisse"].includes(String(r.project_status || ""))
-  || ["chantier_fini", "argent_recupere"].includes(String(r.status || ""));
-const managerRateFor = (rows, goal, below, above) => {
-  const grouped = {};
-  for (const r of rows) {
-    if (!r.sale_date || INACTIVE.includes(r.status)) continue;
-    const m = saleMonth(r);
-    grouped[m] = grouped[m] || { count: 0, ca: 0 };
-    grouped[m].count += 1;
-    grouped[m].ca += parseFloat(r.amount) || 0;
-  }
-  return Object.fromEntries(Object.entries(grouped).map(([m, x]) => [m, {
-    ...x,
-    rate: x.count >= goal ? above : below,
-    reached: x.count >= goal,
-  }]));
-};
-const managerAcquired = (r, rates) => {
-  const x = rates[saleMonth(r)];
-  return (parseFloat(r.amount) || 0) * ((x?.rate ?? 0) / 100);
-};
+
 
 const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const monthLabel = (ym) => (/^\d{4}-\d{2}$/.test(String(ym || "")) ? `${MONTHS_FR[parseInt(ym.slice(5, 7), 10) - 1]} ${ym.slice(0, 4)}` : "—");
@@ -340,23 +315,23 @@ export default function Prospecteur() {
   const mgrAbove = parseFloat(settings?.prospect_mgr_rate_above ?? 2) || 0;
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
   const prospectBonusTiers = settings?.prospect_bonuses || [];
-  const activeManagerRows = rows.filter((r) => !INACTIVE.includes(r.status) && r.sale_date);
-  const managerRates = managerRateFor(activeManagerRows, mgrGoal, mgrBelow, mgrAbove);
-  const managerSignedRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
   const managerEndMonth = bounds.to.slice(0, 7);
-  // Les reports affichés doivent appartenir aux ventes de la période sélectionnée.
-  // Sinon le total reporté peut dépasser les commissions acquises et utiliser
-  // un autre taux que le palier affiché.
-  const managerDeferredRows = managerSignedRows.filter((r) => comMonth(r) > managerEndMonth);
-  const managerPendingRows = managerSignedRows.filter((r) => comMonth(r) <= managerEndMonth && !projectValidated(r));
-  const managerPayableRows = managerSignedRows.filter((r) => comMonth(r) <= managerEndMonth && projectValidated(r));
-  const managerAcquiredTotal = managerSignedRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
-  const managerPayableTotal = managerPayableRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
-  const managerDeferredTotal = managerDeferredRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
-  const managerPendingTotal = managerPendingRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
-  const managerCurrentRate = managerRates[monthKey]?.rate ?? mgrBelow;
+  // Un seul moteur : mêmes règles pour le palier, la commission et la
+  // répartition payable / reportée / en attente que la page Commissions.
+  const managerSummary = buildManagerSummary({
+    rows, visible, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
+  });
+  const managerRates = managerSummary.rates;
+  const managerSignedRows = managerSummary.signedRows;
+  const managerDeferredRows = managerSummary.deferredRows;
+  const managerPendingRows = managerSummary.pendingRows;
+  const managerAcquiredTotal = managerSummary.acquired;
+  const managerPayableTotal = managerSummary.payable;
+  const managerDeferredTotal = managerSummary.deferred;
+  const managerPendingTotal = managerSummary.pending;
+  const managerCurrentRate = managerSummary.rate;
   const deferredRows = managerDeferredRows;
-  const deferredCommission = (r) => managerAcquired(r, managerRates);
+  const deferredCommission = (r) => managerCommissionFor(r, managerRates);
   const actualMgr = managerPayableTotal;
   const deferredMgr = managerDeferredTotal;
   const mgrIds = new Set(prospecteurs.filter((p) => p.role === "responsable_prospecteur").map((p) => p.id));
