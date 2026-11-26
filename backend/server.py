@@ -8437,12 +8437,15 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
 
     source = (sale.get("source") or "").strip()
     acquisition_cost = 0.0
+    acquisition_auto = 0.0
     if source and _norm_name(source) != "r1":
         cfg = (settings.get("acquisition_costs") or {}).get(source) or {}
         if cfg.get("mode") == "percent":
-            acquisition_cost = amount * float(cfg.get("value") or 0) / 100
+            acquisition_auto = amount * float(cfg.get("value") or 0) / 100
         else:
-            acquisition_cost = float(cfg.get("value") or 0)
+            acquisition_auto = float(cfg.get("value") or 0)
+    override = (sale.get("profitability") or {}).get("acquisition_cost_override")
+    acquisition_cost = float(override) if override is not None else acquisition_auto
     if acquisition_cost:
         details.append({"label": f"Frais acquisition {source}", "amount": round(acquisition_cost, 2), "kind": "acquisition"})
 
@@ -8465,6 +8468,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
     manual = {
         "internal_labor_hours": p.get("internal_labor_hours"),
         "internal_labor_cost": p.get("internal_labor_cost"),
+        "acquisition_cost_override": p.get("acquisition_cost_override"),
         "subcontract_cost": float(p.get("subcontract_cost") or 0),
         "materials_cost": float(p.get("materials_cost") or 0),
         "extra_costs": float(p.get("extra_costs") or 0),
@@ -8506,6 +8510,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
             "prospecteur_prime": round(prospecteur_prime, 2),
             "manager": round(manager_cost, 2),
             "acquisition": round(acquisition_cost, 2),
+            "acquisition_auto": round(acquisition_auto, 2),
             "labor_rate": round(hourly_rate, 2),
             "labor_forecast": round(forecast_labor, 2),
             "labor_final": round(final_labor, 2),
@@ -8541,8 +8546,15 @@ async def put_sale_profitability(sid: str, data: ProfitabilitySaveIn, user: dict
         if not project or project.get("status") not in ("termine", "encaisse"):
             raise HTTPException(status_code=409, detail="La marge définitive ne peut être validée qu'après la fin du chantier.")
     p = dict(sale.get("profitability") or {})
-    for key, value in data.model_dump(exclude_none=True).items():
-        if key != "finalized":
+    # exclude_unset permet de distinguer « champ omis » (on conserve) et
+    # « champ remis à null » (on revient au calcul automatique, ex. frais
+    # d’acquisition), sans effacer les autres coûts enregistrés.
+    for key, value in data.model_dump(exclude_unset=True).items():
+        if key == "finalized":
+            continue
+        if value is None:
+            p.pop(key, None)
+        else:
             p[key] = value
     p["costs_complete"] = all(k in p for k in ("subcontract_cost", "materials_cost", "extra_costs", "other_costs"))
     if data.finalized is True:
