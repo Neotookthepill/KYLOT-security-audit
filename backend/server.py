@@ -3830,7 +3830,7 @@ async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
             fields["scheduled_date"] = pdate
         # Toute date supplémentaire doit rester STRICTEMENT après le début.
         extras = [str(x) for x in (row.get("extra_dates") or []) if isinstance(x, str)]
-        if is_14j and extras:
+        if is_14j and row.get("scheduled_date") != pdate and extras:
             # Le passage en attente 14 jours remplace toute l’ancienne
             # programmation : aucun jour supplémentaire de l’ancien planning
             # ne doit rester, même s’il est postérieur à la nouvelle date.
