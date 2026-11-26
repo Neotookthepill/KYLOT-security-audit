@@ -25,6 +25,15 @@ const statusColors = {
   encaisse: "bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200",
 };
 
+const normCalName = (value) => (value || "").toString().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const sameCalName = (a, b) => {
+  const x = normCalName(a), y = normCalName(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  // Affectations historiques : « Sébastien » côté chantier, « Sebastien Hurtel » côté compte.
+  return (x.split(" ").length === 1 && y.split(" ")[0] === x) || (y.split(" ").length === 1 && x.split(" ")[0] === y);
+};
+
 export default function CalendarPage() {
   const { user, can, loading: authLoading } = useAuth();
   const { techniciens, sousTraitants } = useTeam();
@@ -111,6 +120,8 @@ export default function CalendarPage() {
   const canFilter = user?.role === "admin" || user?.role === "responsable";
   const canManageAbs = can("planning", "edit", "team");
   const isProspect = ["prospecteur", "responsable_prospecteur"].includes(user?.role);
+
+  const isFieldTech = ["technicien", "sous_traitant"].includes(user?.role);
 
   const visible = useMemo(() => {
     if (filter === "__all") return projects;
@@ -207,12 +218,17 @@ export default function CalendarPage() {
         const excludedNames = new Set(((p.day_exclusions || {})[key] || []));
         const baseAssigned = Array.isArray(p.assigned_to) ? p.assigned_to : (p.assigned_to ? [p.assigned_to] : []);
         const effectiveAssigned = baseAssigned.filter((n) => !excludedNames.has(n));
+        // Vue individuelle : ne pas afficher le chantier le jour où la personne
+        // est explicitement retirée, même si elle reste affectée aux autres jours.
+        const individual = filter !== "__all" && filter !== "__none";
+        if (individual && !effectiveAssigned.some((n) => sameCalName(n, filter))) return;
+        if (!individual && isFieldTech && effectiveAssigned.every((n) => !sameCalName(n, user?.name))) return;
         map[key] = map[key] || [];
         map[key].push({ ...p, assigned_to: effectiveAssigned, _dayIndex: idx, _totalDays: total, _cellDate: key });
       });
     }
     return map;
-  }, [visible]);
+  }, [visible, filter, isFieldTech, user?.name]);
 
   // iter45: format local YYYY-MM-DD (jamais toISOString() qui shift en UTC → -1 jour à Paris)
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
