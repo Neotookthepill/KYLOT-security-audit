@@ -73,6 +73,15 @@ function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRef
   const titleText = approved ? "Validé"
     : refused ? `Refusé${entry?.refused_reason ? ` — ${entry.refused_reason}` : ""}`
     : pending ? "À valider" : "";
+  // Le CSS global des inputs force un fond blanc ; ces styles inline garantissent
+  // une lecture immédiate du statut, y compris en mode sombre.
+  const statusStyle = approved
+    ? { backgroundColor: "#059669", borderColor: "#047857", color: "#fff" }
+    : refused
+      ? { backgroundColor: "#dc2626", borderColor: "#b91c1c", color: "#fff" }
+      : pending
+        ? { backgroundColor: "#fef3c7", borderColor: "#f59e0b", color: "#78350f" }
+        : undefined;
 
   return (
     <div className="relative group">
@@ -91,6 +100,8 @@ function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRef
             pending ? "border border-dashed border-amber-400 bg-amber-50 text-amber-900" :
             "border border-transparent hover:border-slate-200 focus:border-slate-300 text-slate-800 font-normal"}`}
         title={titleText}
+        style={statusStyle}
+        data-status={status || "empty"}
         data-testid={`overtime-cell-${techName}-${date}`}
       />
       {(pending || approved) && isAdmin && (
