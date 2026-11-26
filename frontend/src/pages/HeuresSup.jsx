@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Loader2, ShieldCheck, AlertTriangle, Check, X, Pencil, Ban, History } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Loader2, ShieldCheck, AlertTriangle, Check, X, Pencil, Ban, History, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { currentMonth, shiftMonth, monthLabel } from "@/lib/saleConstants";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +35,7 @@ function isToday(yyyyMM, d) {
   return iso === today;
 }
 
-function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRefuseRequest }) {
+function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onReopened, onRefuseRequest }) {
   const [val, setVal] = useState(entry ? String(entry.hours) : "");
   const [saving, setSaving] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,6 +67,16 @@ function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRef
       await api.put(`/overtime/${entry.id}/validate`);
       onValidated?.(entry.id);
       toast.success("Validé ✓");
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const reopenOne = async (e) => {
+    e.stopPropagation();
+    if (!entry?.id) return;
+    try {
+      await api.put(`/overtime/${entry.id}/reject`);
+      onReopened?.(entry.id);
+      toast.success("Heure remise à valider");
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -107,19 +117,29 @@ function HoursCell({ techName, date, entry, isAdmin, onSaved, onValidated, onRef
       {(pending || approved) && isAdmin && (
         <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
           {pending && (
-            <button
-              onClick={validateOne}
-              className="h-4 w-4 rounded-full bg-white border border-emerald-300 grid place-items-center hover:bg-emerald-50"
-              title="Valider"
-              data-testid={`overtime-validate-${techName}-${date}`}
-            ><Check size={9} className="text-emerald-700" /></button>
+            <>
+              <button
+                onClick={validateOne}
+                className="h-4 w-4 rounded-full bg-white border border-emerald-300 grid place-items-center hover:bg-emerald-50"
+                title="Valider"
+                data-testid={`overtime-validate-${techName}-${date}`}
+              ><Check size={9} className="text-emerald-700" /></button>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (entry?.id) onRefuseRequest?.(entry); }}
+                className="h-4 w-4 rounded-full bg-white border border-red-300 grid place-items-center hover:bg-red-50"
+                title="Refuser (avec motif)"
+                data-testid={`overtime-refuse-${techName}-${date}`}
+              ><Ban size={9} className="text-red-700" /></button>
+            </>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); if (entry?.id) onRefuseRequest?.(entry); }}
-            className="h-4 w-4 rounded-full bg-white border border-red-300 grid place-items-center hover:bg-red-50"
-            title="Refuser (avec motif)"
-            data-testid={`overtime-refuse-${techName}-${date}`}
-          ><Ban size={9} className="text-red-700" /></button>
+          {approved && (
+            <button
+              onClick={reopenOne}
+              className="h-4 w-4 rounded-full bg-white border border-amber-300 grid place-items-center hover:bg-amber-50"
+              title="Remettre à valider"
+              data-testid={`overtime-reopen-${techName}-${date}`}
+            ><RotateCcw size={9} className="text-amber-700" /></button>
+          )}
         </div>
       )}
       {refused && (
@@ -292,6 +312,12 @@ export default function HeuresSup() {
       return computeTotals(prev, entries);
     });
   };
+  const optimisticReopen = (entryId) => {
+    setData((prev) => {
+      const entries = (prev.entries || []).map((e) => (e.id === entryId ? { ...e, status: "pending" } : e));
+      return computeTotals(prev, entries);
+    });
+  };
 
   const validateAllForTech = async (techName) => {
     try {
@@ -453,7 +479,7 @@ export default function HeuresSup() {
                     const entry = byTech[r.technician_name]?.[iso];
                     return (
                       <td key={d} className={`p-0.5 ${isWeekend(month, d) ? "bg-slate-50/60" : ""} ${isToday(month, d) ? "bg-indigo-50/40" : ""}`}>
-                        <HoursCell techName={r.technician_name} date={iso} entry={entry} isAdmin={isAdmin} onSaved={optimisticUpdate} onValidated={optimisticValidate} onRefuseRequest={setRefuseTarget} />
+                        <HoursCell techName={r.technician_name} date={iso} entry={entry} isAdmin={isAdmin} onSaved={optimisticUpdate} onValidated={optimisticValidate} onReopened={optimisticReopen} onRefuseRequest={setRefuseTarget} />
                       </td>
                     );
                   })}
