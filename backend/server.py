@@ -8388,11 +8388,29 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         details.append({"label": f"Commission commercial {name}", "amount": round(cost, 2), "kind": "commercial"})
 
     prospecteur_cost = 0.0
+    prospecteur_prime = 0.0
     p_amount = float(sale.get("prospecteur_commission") or 0)
-    if p_amount:
+    if sale.get("prospecteur_id") or sale.get("prospecteur_name"):
         pu = await _profitability_user(user, sale.get("prospecteur_id"), sale.get("prospecteur_name"))
-        prospecteur_cost = p_amount * _profitability_multiplier(pu)
-        details.append({"label": f"Commission prospecteur {sale.get('prospecteur_name') or ''}".strip(), "amount": round(prospecteur_cost, 2), "kind": "prospecteur"})
+        p_mult = _profitability_multiplier(pu)
+        if p_amount:
+            prospecteur_cost = p_amount * p_mult
+            details.append({"label": f"Commission prospecteur {sale.get('prospecteur_name') or ''}".strip(), "amount": round(prospecteur_cost, 2), "kind": "prospecteur"})
+        # Primes par palier du prospecteur : quote-part sur les ventes du mois
+        # de signature, pour ne pas compter la même prime sur chaque vente.
+        pmonth = (sale.get("sale_date") or "")[:7]
+        if pmonth and sale.get("prospecteur_id"):
+            pcount = await db.sales.count_documents(cq(user, {
+                "prospecteur_id": sale.get("prospecteur_id"),
+                "sale_date": {"$regex": f"^{re.escape(pmonth)}"},
+                "status": {"$nin": ["annule", "litige"]},
+            }))
+            tiers = settings.get("prospect_bonuses") or []
+            prime_total = sum(float(t.get("amount") or 0) for t in tiers
+                              if isinstance(t, dict) and pcount >= int(t.get("sales") or 0))
+            if pcount > 0 and prime_total:
+                prospecteur_prime = (prime_total / pcount) * p_mult
+                details.append({"label": f"Quote-part prime prospecteur {sale.get('prospecteur_name') or ''}".strip(), "amount": round(prospecteur_prime, 2), "kind": "prospecteur_prime"})
 
     # Manager: rate based on the signature month, not payment month.
     manager_cost = 0.0
@@ -8441,8 +8459,8 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         "extra_costs": float(p.get("extra_costs") or 0),
         "other_costs": float(p.get("other_costs") or 0),
     }
-    forecast_total = commercial_cost + prospecteur_cost + manager_cost + acquisition_cost + forecast_labor + sum(manual.values())
-    final_total = commercial_cost + prospecteur_cost + manager_cost + acquisition_cost + final_labor + sum(manual.values())
+    forecast_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + forecast_labor + sum(manual.values())
+    final_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + final_labor + sum(manual.values())
     if p.get("commercial_cost_override") is not None:
         forecast_total += float(p["commercial_cost_override"]) - commercial_cost
         final_total += float(p["commercial_cost_override"]) - commercial_cost
@@ -8467,6 +8485,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         "breakdown": {
             "commercial": round(commercial_cost, 2),
             "prospecteur": round(prospecteur_cost, 2),
+            "prospecteur_prime": round(prospecteur_prime, 2),
             "manager": round(manager_cost, 2),
             "acquisition": round(acquisition_cost, 2),
             "labor_forecast": round(forecast_labor, 2),

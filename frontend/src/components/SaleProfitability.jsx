@@ -108,6 +108,7 @@ export default function SaleProfitability({ saleId }) {
       <div className="mt-3 text-xs space-y-1 border-t border-current/10 pt-3">
         <div className="flex justify-between"><span>Commission commercial</span><b>− {fmt(data.breakdown.commercial)}</b></div>
         <div className="flex justify-between"><span>Commission prospecteur</span><b>− {fmt(data.breakdown.prospecteur)}</b></div>
+        {!!data.breakdown.prospecteur_prime && <div className="flex justify-between"><span>Quote-part prime prospecteur</span><b>− {fmt(data.breakdown.prospecteur_prime)}</b></div>}
         <div className="flex justify-between"><span>Responsable prospection</span><b>− {fmt(data.breakdown.manager)}</b></div>
         <div className="flex justify-between"><span>Frais acquisition</span><b>− {fmt(data.breakdown.acquisition)}</b></div>
         <div className="flex justify-between"><span>Main-d’œuvre</span><b>− {fmt(data.breakdown.labor_final)}</b></div>
