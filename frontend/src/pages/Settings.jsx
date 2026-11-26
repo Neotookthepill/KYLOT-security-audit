@@ -486,25 +486,31 @@ export default function Settings() {
           <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
             <b>R1</b> est exclu : les commissions prospecteur et responsable sont déjà déduites dans la marge. Pour <b>Assist</b>, la commission prospecteur est également automatique : laissez généralement 0 ici.
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {SOURCES.filter((src) => src.value !== "R1").map((src) => {
               const cfg = (form.acquisition_costs || {})[src.value] || { mode: "fixed", value: 0 };
               return (
-                <div key={src.value} className="rounded-lg border border-slate-200 p-3">
-                  <p className="text-sm font-medium mb-2">{src.label} <span className="font-normal text-slate-500">· coût par vente</span></p>
-                  <div className="flex gap-2">
+                <div key={src.value} className="rounded-lg border border-slate-200 bg-white/60 p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{src.label}</p>
+                    <span className="text-[10px] uppercase tracking-wide text-slate-400">facultatif</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-2">
                     <Select value={cfg.mode || "fixed"} onValueChange={(v) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, mode: v } } }))}>
-                      <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="fixed">Montant fixe (€)</SelectItem><SelectItem value="percent">Pourcentage (% CA)</SelectItem></SelectContent>
+                      <SelectTrigger className="h-9 w-full text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Montant fixe</SelectItem>
+                        <SelectItem value="percent">% du CA</SelectItem>
+                      </SelectContent>
                     </Select>
-                    <div className="relative flex-1">
-                      <Input type="number" min="0" step="0.01" className="h-8 pr-8" value={cfg.value ?? 0}
-                        placeholder="0"
+                    <div className="relative">
+                      <Input type="number" min="0" step="0.01" className="h-9 pr-8 text-sm" value={cfg.value ?? 0} placeholder="0"
                         onChange={(e) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, value: Number(e.target.value) || 0 } } }))}
                         data-testid={`acquisition-${src.value}`} />
-                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">{cfg.mode === "percent" ? "%" : "€"}</span>
+                      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500">{cfg.mode === "percent" ? "%" : "€"}</span>
                     </div>
                   </div>
+                  <p className="mt-1.5 text-[10px] text-slate-500">Coût par vente · 0 = aucun frais</p>
                 </div>
               );
             })}
