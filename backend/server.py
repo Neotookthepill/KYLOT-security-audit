@@ -864,7 +864,14 @@ def _perm(user: dict, resource: str, action: str):
     if resource not in perms:
         defaults = get_default_permissions(user.get("role", "") if user else "")
         return (defaults.get(resource) or {}).get(action)
-    return (perms.get(resource) or {}).get(action)
+    actions = perms.get(resource) or {}
+    # Une ressource déjà présente peut ne pas contenir une nouvelle action
+    # (ex. financial.edit ajouté après la création du compte). On complète avec
+    # le préréglage du rôle sans écraser les droits personnalisés existants.
+    if action not in actions:
+        defaults = get_default_permissions(user.get("role", "") if user else "")
+        return (defaults.get(resource) or {}).get(action)
+    return actions.get(action)
 
 
 _SCOPE_ORDER = {"none": 0, "own": 1, "team": 2, "all": 3}
