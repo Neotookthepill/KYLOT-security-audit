@@ -134,7 +134,7 @@ export default function SalesTable() {
               {loading && <tr><td colSpan={12} className="p-8 text-center text-sm text-slate-500">Chargement…</td></tr>}
               {!loading && rows.length === 0 && <tr><td colSpan={12} className="p-8 text-center text-sm text-slate-500">Aucune vente sur la période.</td></tr>}
               {!loading && rows.map((c) => (
-                <CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} targetObjectif={Math.round((c.objectif || 0) * objectiveRatio)} onObjectifSaved={async () => { await reload(); await load(); }} />
+                <CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} targetObjectif={Math.round((c.objectif || 0) * objectiveRatio)} objectiveRatio={objectiveRatio} onObjectifSaved={async () => { await reload(); await load(); }} />
               ))}
             </tbody>
           </table>

@@ -138,18 +138,21 @@ function ObjectifGauge({ ca, objectif }) {
 }
 
 /* ---------- Row with progress bar per commercial ---------- */
-export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
+export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif, objectiveRatio = 1 }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(c.objectif || 0));
   const [saving, setSaving] = useState(false);
   const target = targetObjectif > 0 ? targetObjectif : c.objectif;
+  const editTarget = Math.round((c.objectif || 0) * (objectiveRatio || 1));
   const pct = target > 0 ? Math.min(100, (c.ca / target) * 100) : 0;
   const pctClass = pct >= 100 ? "text-emerald-700 font-semibold" : pct >= 60 ? "text-slate-900 font-medium" : "text-slate-500";
   const barClass = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-slate-900" : "bg-indigo-400";
 
   const startEdit = () => {
     if (!isAdmin || !c.id) return;
-    setVal(String(c.objectif || 0));
+    // L'utilisateur modifie l'objectif de la période qu'il voit, pas un
+    // objectif annuel caché. La conversion inverse est faite à l'enregistrement.
+    setVal(String(editTarget));
     setEditing(true);
   };
   const cancel = () => setEditing(false);
@@ -158,7 +161,7 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
     if (isNaN(num) || num < 0) { toast.error("Montant invalide"); return; }
     setSaving(true);
     try {
-      await api.put(`/team/${c.id}`, { objectif: num });
+      await api.put(`/team/${c.id}`, { objectif: Math.round(num / (objectiveRatio || 1)) });
       toast.success(`Objectif de ${c.name} mis à jour`);
       setEditing(false);
       await onObjectifSaved?.();
@@ -196,7 +199,7 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif }) {
             onClick={startEdit}
             disabled={!isAdmin || !c.id}
             className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${isAdmin && c.id ? "hover:bg-slate-100 cursor-pointer" : "cursor-default"}`}
-            title={isAdmin && c.id ? "Cliquer pour définir l'objectif annuel" : "Objectif annuel proratisé sur la période"}
+            title={isAdmin && c.id ? `Objectif période (annuel enregistré : ${fmtEur(c.objectif || 0)})` : "Objectif annuel proratisé sur la période"}
             data-testid={`objectif-cell-${c.name}`}
           >
             {target > 0
