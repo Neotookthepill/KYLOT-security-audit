@@ -984,11 +984,20 @@ export default function Sales() {
         </div>
         {(queries.length > 0 || q.trim()) && (() => {
           const act = filtered.filter((s) => statusCountsCA(s.status, statusMap));
+          const excludedOnPage = filtered.length - act.length;
+          const pageIncomplete = salesLoading && sales.length < pageTotal;
           return (
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex flex-wrap items-baseline gap-x-6 gap-y-1" data-testid="sales-search-summary">
               <span className="text-sm text-slate-600">Résultat de la recherche : <b className="text-slate-900" data-testid="sales-search-count">{pageTotal} vente{pageTotal > 1 ? "s" : ""}</b></span>
-              <span className="text-sm text-slate-600">CA de la page : <b className="font-display text-lg text-slate-900" data-testid="sales-search-ca">{fmtEur(act.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0))}</b></span>
-              <span className="text-[11px] text-slate-400">hors annulés / litiges · page courante</span>
+              <span className="text-sm text-slate-600">CA de la page : <b className="font-display text-lg text-slate-900" data-testid="sales-search-ca">{pageIncomplete ? "…" : fmtEur(act.reduce((a, s) => a + (parseFloat(s.amount) || 0), 0))}</b></span>
+              {excludedOnPage > 0 ? (
+                <span className="text-[11px] text-amber-700" data-testid="sales-search-excluded">
+                  {excludedOnPage} annulée{excludedOnPage > 1 ? "s" : ""}/litige{excludedOnPage > 1 ? "s" : ""} exclue{excludedOnPage > 1 ? "s" : ""} du CA
+                </span>
+              ) : (
+                <span className="text-[11px] text-slate-400">hors annulés / litiges · page courante</span>
+              )}
+              {pageIncomplete && <span className="text-[11px] text-slate-400">chargement de la page…</span>}
             </div>
           );
         })()}
