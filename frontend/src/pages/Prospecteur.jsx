@@ -304,7 +304,7 @@ export default function Prospecteur() {
   const singleMonth = bounds.from.slice(0, 7) === bounds.to.slice(0, 7);
   const monthKey = bounds.from.slice(0, 7);
   const isFutureCommission = (r) => singleMonth && comMonth(r) > monthKey;
-  const periodVisible = useMemo(() => rows.filter((r) => inSale(r) || inCom(r) || isFutureCommission(r)), [rows, bounds, singleMonth, monthKey]);
+  const periodVisible = rows.filter((r) => inSale(r) || inCom(r) || isFutureCommission(r));
   const visible = useMemo(() => periodVisible
     .filter((r) => filter === "all" || r.prospecteur_id === filter)
     .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [periodVisible, filter, q]);
