@@ -114,7 +114,7 @@ export default function SalesTable() {
           </div>
         </div>
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline">Commercial</th>
