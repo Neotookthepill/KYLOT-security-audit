@@ -482,21 +482,28 @@ export default function Settings() {
             <TrendingUp size={16} className="text-slate-500" />
             <p className="font-display text-lg font-semibold">Frais d’acquisition par provenance</p>
           </div>
-          <p className="text-sm text-slate-600 mb-4">Coût fixe ou pourcentage du CA HT. R1 utilise uniquement les commissions prospecteur et responsable, sans frais fixe supplémentaire.</p>
+          <p className="text-sm text-slate-600 mb-2">Coût supplémentaire par vente, en plus des commissions déjà calculées. Laissez 0 si aucun frais n’est à ajouter.</p>
+          <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+            <b>R1</b> est exclu : les commissions prospecteur et responsable sont déjà déduites dans la marge. Pour <b>Assist</b>, la commission prospecteur est également automatique : laissez généralement 0 ici.
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {SOURCES.filter((src) => src.value !== "R1").map((src) => {
               const cfg = (form.acquisition_costs || {})[src.value] || { mode: "fixed", value: 0 };
               return (
                 <div key={src.value} className="rounded-lg border border-slate-200 p-3">
-                  <p className="text-sm font-medium mb-2">{src.label}</p>
+                  <p className="text-sm font-medium mb-2">{src.label} <span className="font-normal text-slate-500">· coût par vente</span></p>
                   <div className="flex gap-2">
                     <Select value={cfg.mode || "fixed"} onValueChange={(v) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, mode: v } } }))}>
                       <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="fixed">Fixe €</SelectItem><SelectItem value="percent">% CA</SelectItem></SelectContent>
+                      <SelectContent><SelectItem value="fixed">Montant fixe (€)</SelectItem><SelectItem value="percent">Pourcentage (% CA)</SelectItem></SelectContent>
                     </Select>
-                    <Input type="number" min="0" step="0.01" className="h-8" value={cfg.value ?? 0}
-                      onChange={(e) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, value: Number(e.target.value) || 0 } } }))}
-                      data-testid={`acquisition-${src.value}`} />
+                    <div className="relative flex-1">
+                      <Input type="number" min="0" step="0.01" className="h-8 pr-8" value={cfg.value ?? 0}
+                        placeholder="0"
+                        onChange={(e) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, value: Number(e.target.value) || 0 } } }))}
+                        data-testid={`acquisition-${src.value}`} />
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500">{cfg.mode === "percent" ? "%" : "€"}</span>
+                    </div>
                   </div>
                 </div>
               );
