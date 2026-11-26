@@ -343,11 +343,15 @@ export default function Prospecteur() {
   const activeManagerRows = rows.filter((r) => !INACTIVE.includes(r.status) && r.sale_date);
   const managerRates = managerRateFor(activeManagerRows, mgrGoal, mgrBelow, mgrAbove);
   const managerSignedRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
-  const managerPaymentRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
-  const managerDeferredRows = activeManagerRows.filter((r) => comMonth(r) > bounds.to.slice(0, 7));
-  const managerPendingRows = activeManagerRows.filter((r) => comMonth(r) <= bounds.to.slice(0, 7) && !projectValidated(r));
+  const managerEndMonth = bounds.to.slice(0, 7);
+  // Les reports affichés doivent appartenir aux ventes de la période sélectionnée.
+  // Sinon le total reporté peut dépasser les commissions acquises et utiliser
+  // un autre taux que le palier affiché.
+  const managerDeferredRows = managerSignedRows.filter((r) => comMonth(r) > managerEndMonth);
+  const managerPendingRows = managerSignedRows.filter((r) => comMonth(r) <= managerEndMonth && !projectValidated(r));
+  const managerPayableRows = managerSignedRows.filter((r) => comMonth(r) <= managerEndMonth && projectValidated(r));
   const managerAcquiredTotal = managerSignedRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
-  const managerPayableTotal = managerPaymentRows.filter(projectValidated).reduce((a, r) => a + managerAcquired(r, managerRates), 0);
+  const managerPayableTotal = managerPayableRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
   const managerDeferredTotal = managerDeferredRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
   const managerPendingTotal = managerPendingRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
   const managerCurrentRate = managerRates[monthKey]?.rate ?? mgrBelow;
