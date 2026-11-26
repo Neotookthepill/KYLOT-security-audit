@@ -232,10 +232,10 @@ export default function SaleProfitability({ saleId }) {
             <div>
               <p className="overline mb-2">Frais d’acquisition de cette vente</p>
               <div className="relative">
-                <Input type="number" min="0" step="0.01" placeholder={data.breakdown?.acquisition_auto ? `Auto : ${fmt(data.breakdown.acquisition_auto)}` : "Automatique"} value={form.acquisition_cost_override ?? ""} onChange={(e) => setForm({ ...form, acquisition_cost_override: e.target.value })} data-testid="profitability-acquisition" className="pr-8" />
+                <Input type="number" min="0" step="0.01" placeholder="0" value={form.acquisition_cost_override ?? ""} onChange={(e) => setForm({ ...form, acquisition_cost_override: e.target.value })} data-testid="profitability-acquisition" className="pr-8" />
                 <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">€</span>
               </div>
-              <p className="mt-1 text-[10px] text-muted-foreground">Laisser vide pour utiliser le réglage de la provenance. Remplir pour ajuster cette vente.</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Montant propre à cette vente. Laisser vide ou 0 si aucun frais.</p>
             </div>
             <div>
               <p className="overline mb-2">Coûts chantier</p>

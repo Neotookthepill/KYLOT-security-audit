@@ -8436,18 +8436,12 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         details.append({"label": f"Commission responsable prospection ({rate:g} %)", "amount": round(manager_cost, 2), "kind": "manager"})
 
     source = (sale.get("source") or "").strip()
-    acquisition_cost = 0.0
-    acquisition_auto = 0.0
-    if source and _norm_name(source) != "r1":
-        cfg = (settings.get("acquisition_costs") or {}).get(source) or {}
-        if cfg.get("mode") == "percent":
-            acquisition_auto = amount * float(cfg.get("value") or 0) / 100
-        else:
-            acquisition_auto = float(cfg.get("value") or 0)
+    # Les frais d’acquisition sont propres à CHAQUE vente (client, chantier,
+    # prospect, apporteur...). Aucun coût global par provenance n’est appliqué.
     override = (sale.get("profitability") or {}).get("acquisition_cost_override")
-    acquisition_cost = float(override) if override is not None else acquisition_auto
+    acquisition_cost = float(override) if override is not None else 0.0
     if acquisition_cost:
-        details.append({"label": f"Frais acquisition {source}", "amount": round(acquisition_cost, 2), "kind": "acquisition"})
+        details.append({"label": f"Frais acquisition {source}".strip(), "amount": round(acquisition_cost, 2), "kind": "acquisition"})
 
     p = sale.get("profitability") or {}
     project = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}), {"_id": 0, "scheduled_date": 1, "duration_days": 1, "assigned_to": 1, "status": 1})
@@ -8510,7 +8504,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
             "prospecteur_prime": round(prospecteur_prime, 2),
             "manager": round(manager_cost, 2),
             "acquisition": round(acquisition_cost, 2),
-            "acquisition_auto": round(acquisition_auto, 2),
+            "acquisition_auto": 0,
             "labor_rate": round(hourly_rate, 2),
             "labor_forecast": round(forecast_labor, 2),
             "labor_final": round(final_labor, 2),

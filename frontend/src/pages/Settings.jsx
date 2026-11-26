@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Palette, Type, Image as ImageIcon, Save, RotateCcw, LayoutGrid, Clock, Bell, GripVertical, TrendingUp, Pencil, AlarmClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, AVAILABLE_FONTS } from "@/contexts/SettingsContext";
-import { SALE_STATUSES, SOURCES, orderStatuses } from "@/lib/saleConstants";
+import { SALE_STATUSES, orderStatuses } from "@/lib/saleConstants";
 import api, { formatApiError } from "@/lib/api";
 import BonusesDialog from "@/components/BonusesDialog";
 import { ProspectMgrBonusesEditor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
@@ -110,7 +110,6 @@ export default function Settings() {
         prospect_mgr_base_amount: parseFloat(form.prospect_mgr_base_amount ?? 2329.97) || 0,
         prospect_mgr_bonuses: cleanMgrBonuses(form.prospect_mgr_bonuses),
         prospect_bonuses: cleanProspectBonuses(form.prospect_bonuses),
-        acquisition_costs: form.acquisition_costs || {},
       });
       toast.success("Paramètres enregistrés");
     } catch (err) { toast.error(formatApiError(err)); }
@@ -476,46 +475,6 @@ export default function Settings() {
         </Card>
 
         {settings?.mfa_required !== false && <MfaSettingsCard />}
-
-        <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-acquisition-costs">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={16} className="text-slate-500" />
-            <p className="font-display text-lg font-semibold">Frais d’acquisition par provenance</p>
-          </div>
-          <p className="text-sm text-slate-600 mb-2">Coût supplémentaire par vente, en plus des commissions déjà calculées. Laissez 0 si aucun frais n’est à ajouter.</p>
-          <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-            <b>R1</b> est exclu : les commissions prospecteur et responsable sont déjà déduites dans la marge. Pour <b>Assist</b>, la commission prospecteur est également automatique : laissez généralement 0 ici.
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            {SOURCES.filter((src) => src.value !== "R1").map((src) => {
-              const cfg = (form.acquisition_costs || {})[src.value] || { mode: "fixed", value: 0 };
-              return (
-                <div key={src.value} className="rounded-lg border border-slate-200 bg-white/60 p-3.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">{src.label}</p>
-                    <span className="text-[10px] uppercase tracking-wide text-slate-400">facultatif</span>
-                  </div>
-                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-2">
-                    <Select value={cfg.mode || "fixed"} onValueChange={(v) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, mode: v } } }))}>
-                      <SelectTrigger className="h-9 w-full text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fixed">Montant fixe</SelectItem>
-                        <SelectItem value="percent">% du CA</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <div className="relative">
-                      <Input type="number" min="0" step="0.01" className="h-9 pr-8 text-sm" value={cfg.value ?? 0} placeholder="0"
-                        onChange={(e) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, value: Number(e.target.value) || 0 } } }))}
-                        data-testid={`acquisition-${src.value}`} />
-                      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500">{cfg.mode === "percent" ? "%" : "€"}</span>
-                    </div>
-                  </div>
-                  <p className="mt-1.5 text-[10px] text-slate-500">Coût par vente · 0 = aucun frais</p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
 
         {/* Primes par palier CA */}
         <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-bonuses">
