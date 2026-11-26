@@ -8360,9 +8360,18 @@ async def _profitability_user(user: dict, uid: Optional[str], name: Optional[str
         if u:
             return u
     if name:
-        u = await db.users.find_one(cq(user, {"name": name}), {"_id": 0, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1})
-        if u:
-            return u
+        key = _norm_name(name)
+        # Les affectations historiques utilisent souvent le prénom seul.
+        rows = await db.users.find(cq(user), {"_id": 0, "name": 1, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1}).to_list(2000)
+        exact = next((u for u in rows if _norm_name(u.get("name")) == key), None)
+        if exact:
+            return exact
+        first = next((u for u in rows if key and _norm_name(u.get("name")).split(" ")[0] == key and len(_norm_name(u.get("name")).split(" ")) == 1), None)
+        if first:
+            return first
+        pref = next((u for u in rows if len(_norm_name(u.get("name")).split(" ")) > 1 and _norm_name(u.get("name")).split(" ")[0] == key and len(key.split(" ")) == 1), None)
+        if pref:
+            return pref
     return None
 
 
@@ -8454,6 +8463,8 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
     forecast_labor = float(p.get("internal_labor_cost")) if p.get("internal_labor_cost") is not None else forecast_hours * hourly_rate
     final_labor = float(p.get("internal_labor_cost")) if p.get("internal_labor_cost") is not None else actual_hours * hourly_rate
     manual = {
+        "internal_labor_hours": p.get("internal_labor_hours"),
+        "internal_labor_cost": p.get("internal_labor_cost"),
         "subcontract_cost": float(p.get("subcontract_cost") or 0),
         "materials_cost": float(p.get("materials_cost") or 0),
         "extra_costs": float(p.get("extra_costs") or 0),
@@ -8469,7 +8480,9 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
     project_done = bool(project and (project.get("status") in ("termine", "encaisse")))
     completed_costs = bool(p.get("costs_complete"))
     finalized = bool(p.get("finalized_at"))
-    stage = "final" if finalized else ("provisional" if project_done else "forecast")
+    # La marge définitive n'est disponible qu'après validation explicite.
+    final_available = bool(finalized and project_done)
+    stage = "final" if final_available else ("provisional" if project_done else "forecast")
     percent = lambda m: round((m / amount * 100), 1) if amount else 0
     color = "gray" if not completed_costs else ("gold" if percent(final_margin if finalized else forecast_margin) >= 45 else "green" if percent(final_margin if finalized else forecast_margin) >= 25 else "red")
     history = await db.sale_profitability_history.find(cq(user, {"sale_id": sid}), {"_id": 0}).sort("at", -1).to_list(50)
@@ -8477,7 +8490,12 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         "sale_id": sid,
         "amount": round(amount, 2),
         "forecast": {"total_cost": round(forecast_total, 2), "margin": round(forecast_margin, 2), "percent": percent(forecast_margin)},
-        "final": {"total_cost": round(final_total, 2), "margin": round(final_margin, 2), "percent": percent(final_margin)},
+        "final": {
+            "available": final_available,
+            "total_cost": round(final_total, 2) if final_available else None,
+            "margin": round(final_margin, 2) if final_available else None,
+            "percent": percent(final_margin) if final_available else None,
+        },
         "stage": stage,
         "color": color,
         "costs_complete": completed_costs,
@@ -8488,6 +8506,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
             "prospecteur_prime": round(prospecteur_prime, 2),
             "manager": round(manager_cost, 2),
             "acquisition": round(acquisition_cost, 2),
+            "labor_rate": round(hourly_rate, 2),
             "labor_forecast": round(forecast_labor, 2),
             "labor_final": round(final_labor, 2),
             **{k: round(v, 2) for k, v in manual.items()},
@@ -8517,6 +8536,10 @@ async def put_sale_profitability(sid: str, data: ProfitabilitySaveIn, user: dict
     sale = await db.sales.find_one(cq(user, {"id": sid}), {"_id": 0})
     if not sale:
         raise HTTPException(status_code=404, detail="Vente introuvable")
+    if data.finalized is True:
+        project = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}), {"_id": 0, "status": 1})
+        if not project or project.get("status") not in ("termine", "encaisse"):
+            raise HTTPException(status_code=409, detail="La marge définitive ne peut être validée qu'après la fin du chantier.")
     p = dict(sale.get("profitability") or {})
     for key, value in data.model_dump(exclude_none=True).items():
         if key != "finalized":

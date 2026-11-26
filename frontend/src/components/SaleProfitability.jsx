@@ -57,8 +57,8 @@ export default function SaleProfitability({ saleId }) {
   const openEdit = () => {
     if (!data) return;
     setForm({
-      internal_labor_hours: data.internal_labor_hours ?? "",
-      internal_labor_cost: data.breakdown?.labor_final ?? "",
+      internal_labor_hours: data.manual?.internal_labor_hours ?? data.internal_labor_hours ?? "",
+      internal_labor_cost: data.manual?.internal_labor_cost ?? "",
       subcontract_cost: data.manual?.subcontract_cost ?? 0,
       materials_cost: data.manual?.materials_cost ?? 0,
       extra_costs: data.manual?.extra_costs ?? 0,
@@ -150,10 +150,16 @@ export default function SaleProfitability({ saleId }) {
             <p className={`font-display text-xl font-semibold mt-0.5 ${p.title}`}>{fmt(data.forecast.margin)}</p>
             <p className={`text-[11px] ${p.muted}`}>{pct(data.forecast.percent)} %</p>
           </div>
-          <div className={`rounded-lg border p-3 ${data.finalized ? "border-current/40 bg-white/75 dark:bg-background/55" : "border-border/50 bg-white/35 dark:bg-background/20"}`}>
+          <div className={`rounded-lg border p-3 ${data.final.available ? "border-current/40 bg-white/75 dark:bg-background/55" : "border-border/50 bg-white/35 dark:bg-background/20"}`}>
             <p className={`text-[10px] uppercase tracking-wide ${p.muted}`}>Définitive</p>
-            <p className={`font-display text-xl font-semibold mt-0.5 ${p.title}`}>{fmt(data.final.margin)}</p>
-            <p className={`text-[11px] ${p.muted}`}>{pct(data.final.percent)} %</p>
+            {data.final.available ? (
+              <>
+                <p className={`font-display text-xl font-semibold mt-0.5 ${p.title}`}>{fmt(data.final.margin)}</p>
+                <p className={`text-[11px] ${p.muted}`}>{pct(data.final.percent)} %</p>
+              </>
+            ) : (
+              <p className={`text-sm font-medium mt-1 ${p.muted}`}>En attente</p>
+            )}
           </div>
         </div>
 
@@ -214,7 +220,11 @@ export default function SaleProfitability({ saleId }) {
               <p className="overline mb-2">Main-d’œuvre</p>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label>Heures</Label><Input type="number" min="0" step="0.5" value={form.internal_labor_hours ?? ""} onChange={(e) => setForm({ ...form, internal_labor_hours: e.target.value })} data-testid="profitability-hours" /></div>
-                <div><Label>Coût (€)</Label><Input type="number" min="0" step="0.01" value={form.internal_labor_cost ?? ""} onChange={(e) => setForm({ ...form, internal_labor_cost: e.target.value })} data-testid="profitability-labor" /></div>
+                <div>
+                  <Label>Coût (€)</Label>
+                  <Input type="number" min="0" step="0.01" placeholder={data.breakdown?.labor_rate ? `Auto : ${fmt(data.breakdown.labor_rate)}/h` : "Automatique"} value={form.internal_labor_cost ?? ""} onChange={(e) => setForm({ ...form, internal_labor_cost: e.target.value })} data-testid="profitability-labor" />
+                  {data.breakdown?.labor_rate > 0 && <p className="mt-1 text-[10px] text-muted-foreground">{fmt(data.breakdown.labor_rate)}/h chargé · laisser vide pour calcul automatique</p>}
+                </div>
               </div>
             </div>
             <div>
