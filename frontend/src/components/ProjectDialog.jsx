@@ -260,7 +260,9 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
         duration_days: Number(form.duration_days) || 1,
         notes: form.notes,
         day_exclusions: form.day_exclusions || {},
-        extra_dates: Array.isArray(form.extra_dates) ? form.extra_dates.filter(Boolean) : [],
+        extra_dates: Array.isArray(form.extra_dates)
+          ? form.extra_dates.filter((d) => d && (!form.scheduled_date || d > form.scheduled_date))
+          : [],
       });
       toast.success("Chantier mis à jour");
       // iter216 : broadcast Kanban ↔ Planning sync
@@ -278,6 +280,10 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
     if (!newExtraDate || !/^\d{4}-\d{2}-\d{2}$/.test(newExtraDate)) return;
     // Refuse si la date est déjà dans la plage consécutive ou déjà présente
     const base = form.scheduled_date || "";
+    if (base && newExtraDate <= base) {
+      toast.error("Le jour supplémentaire doit être après la date de début du chantier.");
+      return;
+    }
     const dur = Math.max(1, Number(form.duration_days) || 1);
     if (base) {
       const start = new Date(base + "T00:00:00");

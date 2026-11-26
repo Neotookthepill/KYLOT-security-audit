@@ -3810,11 +3810,19 @@ async def _sync_one_sale_project_date(user: dict, sale: dict) -> int:
         return 0
     is_14j = sale.get("desired_intervention_date") == "attente_14j"
     changed = 0
-    rows = await db.projects.find(cq(user, {"sale_id": sale.get("id"), "cancelled": {"$ne": True}}), {"_id": 0, "id": 1, "status": 1, "scheduled_date": 1}).to_list(10)
+    rows = await db.projects.find(
+        cq(user, {"sale_id": sale.get("id"), "cancelled": {"$ne": True}}),
+        {"_id": 0, "id": 1, "status": 1, "scheduled_date": 1, "extra_dates": 1},
+    ).to_list(10)
     for row in rows:
         fields = {}
         if row.get("scheduled_date") != pdate:
             fields["scheduled_date"] = pdate
+        # Toute date supplémentaire doit rester STRICTEMENT après le début.
+        extras = [str(x) for x in (row.get("extra_dates") or []) if isinstance(x, str)]
+        valid_extras = [x for x in extras if x > pdate]
+        if valid_extras != extras:
+            fields["extra_dates"] = sorted(set(valid_extras))
         if is_14j and row.get("status") != "a_planifier":
             fields["status"] = "a_planifier"
         elif not is_14j and row.get("status") == "a_planifier":
@@ -4318,6 +4326,22 @@ async def update_project(pid: str, data: ProjectUpdate, background_tasks: Backgr
         raise HTTPException(status_code=404, detail="Chantier introuvable")
     await _ensure_project_scope(user, exists)
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    # La date de début doit précéder strictement chaque jour supplémentaire.
+    if "scheduled_date" in updates or "extra_dates" in updates:
+        start = updates.get("scheduled_date", exists.get("scheduled_date"))
+        extras = updates.get("extra_dates", exists.get("extra_dates") or [])
+        extras = [str(x) for x in (extras or []) if isinstance(x, str) and x]
+        if start:
+            invalid = [x for x in extras if x <= start]
+            if invalid:
+                if "extra_dates" in updates:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Un jour supplémentaire doit être postérieur à la date de début du chantier.",
+                    )
+                # Une nouvelle date de début peut rendre d’anciens jours invalides :
+                # on les supprime pour ne pas laisser de dates fantômes au planning.
+                updates["extra_dates"] = sorted({x for x in extras if x > start})
     if "photos" in updates:
         # Valide d'abord (ex: javascript: → 422), puis impose la route atomique.
         _validated_photo_entries(updates["photos"])
@@ -4355,6 +4379,13 @@ async def update_project(pid: str, data: ProjectUpdate, background_tasks: Backgr
         seen = set()
         updates["assigned_to"] = [x for x in clean if not (x in seen or seen.add(x))]
     await db.projects.update_one(cq(user, {"id": pid}), {"$set": updates})
+    # Réciprocité : une date saisie dans Planning doit être visible dans Ventes.
+    # On ne touche qu’à la date d’intervention, jamais au statut ni aux commissions.
+    if updates.get("scheduled_date") and exists.get("sale_id"):
+        await db.sales.update_one(
+            cq(user, {"id": exists["sale_id"]}),
+            {"$set": {"desired_intervention_date": updates["scheduled_date"]}},
+        )
     if updates.get("status") == "termine" and exists.get("status") != "termine":
         await _sync_sale_after_project_completion(user, exists.get("sale_id"))
     updated = await db.projects.find_one(cq(user, {"id": pid}), {"_id": 0})
