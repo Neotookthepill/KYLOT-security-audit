@@ -13626,7 +13626,7 @@ async def list_prospection(
     if sale_ids:
         projects = await db.projects.find(
             cq(user, {"sale_id": {"$in": sale_ids}}),
-            {"_id": 0, "sale_id": 1, "scheduled_date": 1, "completion": 1},
+            {"_id": 0, "sale_id": 1, "scheduled_date": 1, "status": 1, "completion": 1},
         ).to_list(20000)
         for project in projects:
             sid = project.get("sale_id")
@@ -13651,7 +13651,8 @@ async def list_prospection(
             commission_source = "sale_date"
         row = {**s, "client_name": c.get("name", ""), "client_phone": c.get("phone", ""), "client_city": c.get("city", ""),
                "client_postal_code": c.get("postal_code", ""), "prospecteur_commission": float(s.get("prospecteur_commission") or 0),
-               "project_date": project_date, "commission_month": commission_month,
+               "project_date": project_date, "project_status": project.get("status") or "",
+               "commission_month": commission_month,
                "commission_month_source": commission_source}
         if role == "prospecteur":
             for k in ("amount", "service", "bdc"):

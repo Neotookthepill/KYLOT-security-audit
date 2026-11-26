@@ -62,6 +62,29 @@ const comMonth = (r) => {
   const raw = r.commission_month || r.prospect_commission_month || (r.sale_date || "").slice(0, 7);
   return /^\d{4}-\d{2}$/.test(String(raw || "")) ? String(raw) : (r.sale_date || "").slice(0, 7);
 };
+const saleMonth = (r) => String(r.sale_date || "").slice(0, 7);
+const projectValidated = (r) => ["termine", "encaisse"].includes(String(r.project_status || ""))
+  || ["chantier_fini", "argent_recupere"].includes(String(r.status || ""));
+const managerRateFor = (rows, goal, below, above) => {
+  const grouped = {};
+  for (const r of rows) {
+    if (!r.sale_date || INACTIVE.includes(r.status)) continue;
+    const m = saleMonth(r);
+    grouped[m] = grouped[m] || { count: 0, ca: 0 };
+    grouped[m].count += 1;
+    grouped[m].ca += parseFloat(r.amount) || 0;
+  }
+  return Object.fromEntries(Object.entries(grouped).map(([m, x]) => [m, {
+    ...x,
+    rate: x.count >= goal ? above : below,
+    reached: x.count >= goal,
+  }]));
+};
+const managerAcquired = (r, rates) => {
+  const x = rates[saleMonth(r)];
+  return (parseFloat(r.amount) || 0) * ((x?.rate ?? 0) / 100);
+};
+
 const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const monthLabel = (ym) => (/^\d{4}-\d{2}$/.test(String(ym || "")) ? `${MONTHS_FR[parseInt(ym.slice(5, 7), 10) - 1]} ${ym.slice(0, 4)}` : "—");
 const monthOptions = (saleYm) => {
@@ -140,22 +163,14 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonu
   );
 }
 
-function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrBase, monthsCount, bonuses, deferred = 0 }) {
-  const byMonth = {};
-  rows.forEach((r) => {
-    const m = comMonth(r);
-    byMonth[m] = byMonth[m] || { count: 0, ca: 0 };
-    byMonth[m].count += 1; byMonth[m].ca += parseFloat(r.amount) || 0;
-  });
-  const months = Object.values(byMonth).map((x) => ({ ...x, reached: x.count >= goal, rate: x.count >= goal ? rateAbove : rateBelow }));
-  const ca = months.reduce((a, x) => a + x.ca, 0);
-  const comm = months.reduce((a, x) => a + (x.ca * x.rate) / 100, 0);
-  const reachedBonuses = Object.values(byMonth).flatMap((x) => mgrBonusesFor(bonuses, x.count, x.ca));
-  const primes = reachedBonuses.reduce((a, b) => a + b.amount, 0);
+function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrBase, monthsCount, bonuses, acquired = 0, payable = 0, deferred = 0, pending = 0, rate = 0, signatureMonths = {} }) {
   const count = rows.length;
-  const cur = months[0];
+  const ca = rows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
   const reached = singleMonth ? count >= goal : null;
-  const rate = singleMonth ? (reached ? rateAbove : rateBelow) : null;
+  const reachedBonuses = singleMonth
+    ? mgrBonusesFor(bonuses, count, ca)
+    : Object.values(signatureMonths).flatMap((x) => mgrBonusesFor(bonuses, x.count, x.ca));
+  const primes = reachedBonuses.reduce((a, b) => a + b.amount, 0);
   return (
     <Card className="p-5 border-slate-200 shadow-sm" data-testid="prospect-manager-commission">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -163,21 +178,40 @@ function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrB
           <p className="overline">Commission responsable prospection</p>
           {singleMonth ? (
             <p className="text-sm text-slate-600 mt-2">
-              <b className="font-display text-2xl text-slate-900" data-testid="prospect-mgr-progress">{count} / {goal}</b> ventes ·{" "}
+              <b className="font-display text-2xl text-slate-900" data-testid="prospect-mgr-progress">{count} / {goal}</b> ventes signées ·{" "}
               <span className={reached ? "text-emerald-700 font-semibold" : "text-amber-700 font-semibold"} data-testid="prospect-mgr-rate">{String(rate).replace(".", ",")} %</span>{" "}
-              {reached ? "(objectif atteint)" : `(objectif à ${goal} ventes → ${String(rateAbove).replace(".", ",")} %)`}
+              {reached ? "(palier atteint)" : `(palier à ${goal} ventes → ${String(rateAbove).replace(".", ",")} %)`}
             </p>
           ) : (
-            <p className="text-sm text-slate-600 mt-2">{months.length} mois · {months.filter((m) => m.reached).length} objectif{months.filter((m) => m.reached).length > 1 ? "s" : ""} atteint{months.filter((m) => m.reached).length > 1 ? "s" : ""} · calculé mois par mois</p>
+            <p className="text-sm text-slate-600 mt-2">{Object.keys(signatureMonths).length} mois · {Object.values(signatureMonths).filter((m) => m.reached).length} palier(s) atteint(s) · calculé par mois de signature</p>
           )}
         </div>
         <div className="text-right">
-          <p className="text-xs text-slate-500">{singleMonth && cur ? `${String(rate).replace(".", ",")} % de ${fmtEur(ca)}` : `sur ${fmtEur(ca)} de CA`}</p>
-          <p className="font-display text-3xl font-semibold text-emerald-700" data-testid="prospect-mgr-commission">{fmtEur(comm)}</p>
-          <p className="text-xs text-slate-500 mt-1" data-testid="prospect-mgr-total">Base {fmtEur2(mgrBase * monthsCount)} brut + commission{primes > 0 ? ` + primes ${fmtEur2(primes)}` : ""} = <b className="text-slate-900">{fmtEur2(mgrBase * monthsCount + comm + primes)}</b></p>
-          {deferred > 0 && <p className="text-xs text-amber-700 mt-1" data-testid="prospect-mgr-deferred-total">dont {fmtEur2(deferred)} reporté au mois suivant</p>}
+          <p className="text-xs text-slate-500">Commissions acquises</p>
+          <p className="font-display text-3xl font-semibold text-emerald-700" data-testid="prospect-mgr-acquired">{fmtEur(acquired)}</p>
+          <p className="text-xs text-slate-500 mt-1" data-testid="prospect-mgr-total">Base {fmtEur2(mgrBase * monthsCount)} brut + commissions{primes > 0 ? ` + primes ${fmtEur2(primes)}` : ""} = <b className="text-slate-900">{fmtEur2(mgrBase * monthsCount + acquired + primes)}</b></p>
         </div>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-slate-500">Payable ce mois</p>
+          <p className="font-display text-xl font-semibold text-emerald-700" data-testid="prospect-mgr-payable">{fmtEur(payable)}</p>
+        </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-amber-700">Reporté au mois suivant</p>
+          <p className="font-display text-xl font-semibold text-amber-800" data-testid="prospect-mgr-deferred-total">{fmtEur(deferred)}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-slate-500">En attente validation</p>
+          <p className="font-display text-xl font-semibold text-slate-700" data-testid="prospect-mgr-pending">{fmtEur(pending)}</p>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-slate-500">CA signé</p>
+          <p className="font-display text-xl font-semibold text-slate-700">{fmtEur(ca)}</p>
+        </div>
+      </div>
+
       {cleanMgrBonuses(bonuses).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3" data-testid="prospect-mgr-bonuses-status">
           {cleanMgrBonuses(bonuses).map((b) => {
@@ -306,36 +340,21 @@ export default function Prospecteur() {
   const mgrAbove = parseFloat(settings?.prospect_mgr_rate_above ?? 2) || 0;
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
   const prospectBonusTiers = settings?.prospect_bonuses || [];
-  const commissionRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
-  const deferredRows = singleMonth
-    ? rows.filter((r) => !INACTIVE.includes(r.status) && comMonth(r) > monthKey)
-    : [];
-  const deferredCountByMonth = deferredRows.reduce((acc, r) => {
-    const m = comMonth(r);
-    acc[m] = (acc[m] || 0) + 1;
-    return acc;
-  }, {});
-  const deferredCommission = (r) => {
-    const count = deferredCountByMonth[comMonth(r)] || 0;
-    const rate = count >= mgrGoal ? mgrAbove : mgrBelow;
-    return (parseFloat(r.amount) || 0) * rate / 100;
-  };
-  const managerCommission = (list) => {
-    const by = {};
-    for (const r of list) {
-      const m = comMonth(r);
-      if (!m) continue;
-      by[m] = by[m] || { count: 0, ca: 0 };
-      by[m].count += 1;
-      by[m].ca += parseFloat(r.amount) || 0;
-    }
-    return Object.values(by).reduce((sum, x) => {
-      const rate = x.count >= mgrGoal ? mgrAbove : mgrBelow;
-      return sum + (x.ca * rate) / 100;
-    }, 0);
-  };
-  const actualMgr = managerCommission(commissionRows);
-  const deferredMgr = managerCommission(deferredRows);
+  const activeManagerRows = rows.filter((r) => !INACTIVE.includes(r.status) && r.sale_date);
+  const managerRates = managerRateFor(activeManagerRows, mgrGoal, mgrBelow, mgrAbove);
+  const managerSignedRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
+  const managerPaymentRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
+  const managerDeferredRows = activeManagerRows.filter((r) => comMonth(r) > bounds.to.slice(0, 7));
+  const managerPendingRows = activeManagerRows.filter((r) => comMonth(r) <= bounds.to.slice(0, 7) && !projectValidated(r));
+  const managerAcquiredTotal = managerSignedRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
+  const managerPayableTotal = managerPaymentRows.filter(projectValidated).reduce((a, r) => a + managerAcquired(r, managerRates), 0);
+  const managerDeferredTotal = managerDeferredRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
+  const managerPendingTotal = managerPendingRows.reduce((a, r) => a + managerAcquired(r, managerRates), 0);
+  const managerCurrentRate = managerRates[monthKey]?.rate ?? mgrBelow;
+  const deferredRows = managerDeferredRows;
+  const deferredCommission = (r) => managerAcquired(r, managerRates);
+  const actualMgr = managerPayableTotal;
+  const deferredMgr = managerDeferredTotal;
   const mgrIds = new Set(prospecteurs.filter((p) => p.role === "responsable_prospecteur").map((p) => p.id));
   const monthsCount = (() => {
     const [y1, m1] = bounds.from.slice(0, 7).split("-").map(Number);
@@ -378,7 +397,7 @@ export default function Prospecteur() {
         </Card>
       )}
 
-      {isManager && <ManagerCommission rows={commissionRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} deferred={deferredMgr} />}
+      {isManager && <ManagerCommission rows={managerSignedRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} acquired={managerAcquiredTotal} payable={managerPayableTotal} deferred={managerDeferredTotal} pending={managerPendingTotal} rate={managerCurrentRate} signatureMonths={managerRates} />}
 
       {isManager && singleMonth && deferredRows.length > 0 && (
         <Card className="p-5 border-amber-200 bg-amber-50/30 shadow-sm" data-testid="prospect-deferred-detail">
