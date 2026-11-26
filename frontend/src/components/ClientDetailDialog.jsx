@@ -46,7 +46,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange, onClien
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="client-detail-dialog">
+      <DialogContent className={`sm:max-w-2xl max-h-[90vh] overflow-y-auto ${editOpen ? "[&>button]:hidden" : ""}`} data-testid="client-detail-dialog">
         <DialogHeader>
           <div className="flex flex-col gap-2 pr-10 sm:flex-row sm:items-start sm:justify-between">
             <DialogTitle className="font-display text-2xl break-words">{client.name}</DialogTitle>

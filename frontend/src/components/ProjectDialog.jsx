@@ -462,7 +462,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 text-[13px]" closeClassName="right-2 top-16" data-testid="project-dialog">
+      <DialogContent className={`sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 text-[13px] ${clientEditOpen ? "[&>button]:hidden" : ""}`} closeClassName="right-2 top-16" data-testid="project-dialog">
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
