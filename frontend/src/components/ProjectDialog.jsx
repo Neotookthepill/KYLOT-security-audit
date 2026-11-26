@@ -533,6 +533,12 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
               {project.is_de && project.commercial_2 && (
                 <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-800 text-xs px-2 py-0.5 font-medium">{project.commercial_2}</span>
               )}
+              {project.prospecteur_name && (
+                <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-slate-600" data-testid="project-prospecteur-label">
+                  <UserCircle size={12} /> Prospecteur
+                  <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-800 text-xs px-2 py-0.5 font-medium normal-case tracking-normal" data-testid="project-prospecteur-badge">{project.prospecteur_name}</span>
+                </span>
+              )}
             </div>
           )}
           {/* "Avec vous sur ce chantier" — only when >= 2 people involved */}

@@ -4020,7 +4020,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
     sale_ids = list({p.get("sale_id") for p in projects if p.get("sale_id")})
     sales_map = {}
     if sale_ids:
-        srows = await db.sales.find(cq(user, {"id": {"$in": sale_ids}}), {"_id": 0, "id": 1, "commercial": 1, "commercial_2": 1, "is_de": 1, "prestations": 1, "status": 1, "desired_intervention_date": 1}).to_list(len(sale_ids))
+        srows = await db.sales.find(cq(user, {"id": {"$in": sale_ids}}), {"_id": 0, "id": 1, "commercial": 1, "commercial_2": 1, "is_de": 1, "prospecteur_id": 1, "prospecteur_name": 1, "prestations": 1, "status": 1, "desired_intervention_date": 1}).to_list(len(sale_ids))
         sales_map = {s["id"]: s for s in srows}
     # iter106 : n'affiche PAS les chantiers orphelins (sale_id pointant vers une vente supprimée
     # ou vers un client absent). Un chantier sans vente ni client visible = résidu → masqué.
@@ -4035,6 +4035,7 @@ async def _fetch_projects_list(user: dict, include_deleted: str, *, perm_resourc
         s = sales_map.get(p.get("sale_id")) or {}
         p["commercial"] = s.get("commercial", "")
         p["commercial_2"] = s.get("commercial_2", "") if s.get("is_de") else ""
+        p["prospecteur_name"] = (s.get("prospecteur_name") or "").strip()
         p["is_de"] = bool(s.get("is_de")) and bool((s.get("commercial_2") or "").strip())
         # iter197 — Expose le statut de la vente pour que le Kanban puisse afficher
         # « En attente acceptation financement » quand la vente est en `attente_fi`,
@@ -4132,6 +4133,7 @@ async def get_project_full(pid: str, user: dict = Depends(get_current_user)):
     p["client_city"] = c.get("city", "")
     p["commercial"] = s.get("commercial", "")
     p["commercial_2"] = s.get("commercial_2", "") if s.get("is_de") else ""
+    p["prospecteur_name"] = (s.get("prospecteur_name") or "").strip()
     p["is_de"] = bool(s.get("is_de")) and bool((s.get("commercial_2") or "").strip())
     p["sale_status"] = s.get("status") or ""
     if not p.get("prestations") and s.get("prestations"):
