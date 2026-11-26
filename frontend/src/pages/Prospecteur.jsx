@@ -289,8 +289,9 @@ export default function Prospecteur() {
   useEffect(() => {
     const fetchRows = () => {
       setLoading(true);
-      const params = isManager && filter !== "all" ? { prospecteur_id: filter } : {};
-      api.get("/prospection", { params }).then((r) => setRows(r.data || [])).catch((e) => toast.error(formatApiError(e))).finally(() => setLoading(false));
+      // Toujours charger toute l'équipe : le filtre prospecteur ne doit pas
+      // changer le palier ni la commission du responsable.
+      api.get("/prospection").then((r) => setRows(r.data || [])).catch((e) => toast.error(formatApiError(e))).finally(() => setLoading(false));
     };
     fetchRows();
     // Une annulation/modification de vente doit recalculer le compteur et les primes.
@@ -303,8 +304,10 @@ export default function Prospecteur() {
   const singleMonth = bounds.from.slice(0, 7) === bounds.to.slice(0, 7);
   const monthKey = bounds.from.slice(0, 7);
   const isFutureCommission = (r) => singleMonth && comMonth(r) > monthKey;
-  const visible = useMemo(() => rows.filter((r) => inSale(r) || inCom(r) || isFutureCommission(r))
-    .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [rows, q, bounds, singleMonth, monthKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const periodVisible = useMemo(() => rows.filter((r) => inSale(r) || inCom(r) || isFutureCommission(r)), [rows, bounds, singleMonth, monthKey]);
+  const visible = useMemo(() => periodVisible
+    .filter((r) => filter === "all" || r.prospecteur_id === filter)
+    .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [periodVisible, filter, q]);
   const caRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
   const payRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
   const totalCA = caRows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
@@ -319,7 +322,7 @@ export default function Prospecteur() {
   // Un seul moteur : mêmes règles pour le palier, la commission et la
   // répartition payable / reportée / en attente que la page Commissions.
   const managerSummary = buildManagerSummary({
-    rows, visible, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
+    rows, visible: periodVisible, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
   });
   const managerRates = managerSummary.rates;
   const managerSignedRows = managerSummary.signedRows;
