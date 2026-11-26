@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Palette, Type, Image as ImageIcon, Save, RotateCcw, LayoutGrid, Clock, Bell, GripVertical, TrendingUp, Pencil, AlarmClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, AVAILABLE_FONTS } from "@/contexts/SettingsContext";
-import { SALE_STATUSES, orderStatuses } from "@/lib/saleConstants";
+import { SALE_STATUSES, SOURCES, orderStatuses } from "@/lib/saleConstants";
 import api, { formatApiError } from "@/lib/api";
 import BonusesDialog from "@/components/BonusesDialog";
 import { ProspectMgrBonusesEditor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
@@ -110,6 +110,7 @@ export default function Settings() {
         prospect_mgr_base_amount: parseFloat(form.prospect_mgr_base_amount ?? 2329.97) || 0,
         prospect_mgr_bonuses: cleanMgrBonuses(form.prospect_mgr_bonuses),
         prospect_bonuses: cleanProspectBonuses(form.prospect_bonuses),
+        acquisition_costs: form.acquisition_costs || {},
       });
       toast.success("Paramètres enregistrés");
     } catch (err) { toast.error(formatApiError(err)); }
@@ -475,6 +476,33 @@ export default function Settings() {
         </Card>
 
         {settings?.mfa_required !== false && <MfaSettingsCard />}
+
+        <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-acquisition-costs">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp size={16} className="text-slate-500" />
+            <p className="font-display text-lg font-semibold">Frais d’acquisition par provenance</p>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">Coût fixe ou pourcentage du CA HT. R1 utilise uniquement les commissions prospecteur et responsable, sans frais fixe supplémentaire.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {SOURCES.filter((src) => src.value !== "R1").map((src) => {
+              const cfg = (form.acquisition_costs || {})[src.value] || { mode: "fixed", value: 0 };
+              return (
+                <div key={src.value} className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-sm font-medium mb-2">{src.label}</p>
+                  <div className="flex gap-2">
+                    <Select value={cfg.mode || "fixed"} onValueChange={(v) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, mode: v } } }))}>
+                      <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="fixed">Fixe €</SelectItem><SelectItem value="percent">% CA</SelectItem></SelectContent>
+                    </Select>
+                    <Input type="number" min="0" step="0.01" className="h-8" value={cfg.value ?? 0}
+                      onChange={(e) => setForm((prev) => ({ ...prev, acquisition_costs: { ...(prev.acquisition_costs || {}), [src.value]: { ...cfg, value: Number(e.target.value) || 0 } } }))}
+                      data-testid={`acquisition-${src.value}`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
 
         {/* Primes par palier CA */}
         <Card className="border-slate-200 shadow-sm p-6 lg:col-span-2" data-testid="settings-bonuses">

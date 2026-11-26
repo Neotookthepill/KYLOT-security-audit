@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Trash2, KeyRound, Shield } from "lucide-react";
+import { Trash2, KeyRound, Shield, Settings2 } from "lucide-react";
 import TeamSection from "@/components/TeamSection";
 import PermissionsDialog from "@/components/PermissionsDialog";
 import { ROLE_LABELS } from "@/lib/permissions";
@@ -27,7 +27,9 @@ const roleMeta = {
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "technicien" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
+  const [collabEditing, setCollabEditing] = useState(null);
+  const [collabForm, setCollabForm] = useState({ collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
   const [pwEditing, setPwEditing] = useState(null);
   const [newPw, setNewPw] = useState("");
   const [permsEditing, setPermsEditing] = useState(null);
@@ -59,7 +61,7 @@ export default function Users() {
       if (!form.name || !form.email || !form.password) return toast.error("Tous les champs sont requis");
       await api.post("/users", form);
       toast.success("Utilisateur créé");
-      setForm({ name: "", email: "", password: "", role: "technicien" });
+      setForm({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
       setOpen(false);
       load();
       notifyTeamSync();
@@ -100,6 +102,28 @@ export default function Users() {
       toast.success("Rôle mis à jour");
       load();
       notifyTeamSync();
+    } catch (err) { toast.error(formatApiError(err)); }
+  };
+
+  const openCollab = (u) => {
+    setCollabEditing(u);
+    setCollabForm({
+      collaborator_status: u.collaborator_status || "salarie",
+      cost_coefficient: u.cost_coefficient ?? 1.875,
+      hourly_cost: u.hourly_cost ?? 0,
+    });
+  };
+  const saveCollab = async () => {
+    if (!collabEditing) return;
+    try {
+      await api.put(`/users/${collabEditing.id}`, {
+        collaborator_status: collabForm.collaborator_status,
+        cost_coefficient: Number(collabForm.cost_coefficient) || 1,
+        hourly_cost: Number(collabForm.hourly_cost) || 0,
+      });
+      toast.success("Statut et coûts mis à jour");
+      setCollabEditing(null);
+      load();
     } catch (err) { toast.error(formatApiError(err)); }
   };
 
@@ -192,6 +216,16 @@ export default function Users() {
                 </Select>
                 <p className="text-[11px] text-slate-600 mt-1.5">Le rôle définit les droits par défaut, vous pourrez ensuite les personnaliser via le bouton bouclier.</p>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Statut collaborateur</Label>
+                  <Select value={form.collaborator_status || "salarie"} onValueChange={(v) => setForm({ ...form, collaborator_status: v })}>
+                    <SelectTrigger data-testid="user-collab-status"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="salarie">Salarié</SelectItem><SelectItem value="independant">Indépendant</SelectItem><SelectItem value="sous_traitant">Sous-traitant</SelectItem></SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Coefficient charges</Label><Input type="number" min="1" step="0.01" value={form.cost_coefficient ?? 1.875} onChange={(e) => setForm({ ...form, cost_coefficient: e.target.value })} data-testid="user-cost-coefficient" /></div>
+              </div>
+              <div><Label>Coût horaire chargé (€)</Label><Input type="number" min="0" step="0.01" value={form.hourly_cost ?? 0} onChange={(e) => setForm({ ...form, hourly_cost: e.target.value })} data-testid="user-hourly-cost" /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
@@ -238,6 +272,9 @@ export default function Users() {
                     </Select>
                   </td>
                   <td className="px-5 py-3 text-right space-x-1">
+                    <Button variant="ghost" size="sm" onClick={() => openCollab(u)} data-testid={`user-collab-${u.id}`} aria-label="Statut et coût" title="Statut et coût">
+                      <Settings2 size={14} />
+                    </Button>
                     <Button variant="ghost" size="sm" onClick={() => setPermsEditing(u)} data-testid={`user-perms-${u.id}`} aria-label="Personnaliser les permissions" title="Personnaliser les permissions">
                       <Shield size={14} />
                     </Button>
@@ -266,6 +303,26 @@ export default function Users() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setPwEditing(null); setNewPw(""); }}>Annuler</Button>
             <Button onClick={savePassword} data-testid="user-save-password-btn">Enregistrer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!collabEditing} onOpenChange={(v) => { if (!v) setCollabEditing(null); }}>
+        <DialogContent className="sm:max-w-sm" data-testid="user-collab-dialog">
+          <DialogHeader><DialogTitle className="font-display text-xl">Statut et coût — {collabEditing?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Statut collaborateur</Label>
+              <Select value={collabForm.collaborator_status} onValueChange={(v) => setCollabForm({ ...collabForm, collaborator_status: v })}>
+                <SelectTrigger data-testid="user-collab-edit-status"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="salarie">Salarié</SelectItem><SelectItem value="independant">Indépendant</SelectItem><SelectItem value="sous_traitant">Sous-traitant</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><Label>Coefficient de charges</Label><Input type="number" min="1" step="0.01" value={collabForm.cost_coefficient} onChange={(e) => setCollabForm({ ...collabForm, cost_coefficient: e.target.value })} data-testid="user-collab-edit-coefficient" /></div>
+            <div><Label>Coût horaire chargé (€)</Label><Input type="number" min="0" step="0.01" value={collabForm.hourly_cost} onChange={(e) => setCollabForm({ ...collabForm, hourly_cost: e.target.value })} data-testid="user-collab-edit-hourly" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCollabEditing(null)}>Annuler</Button>
+            <Button onClick={saveCollab} data-testid="user-collab-save">Enregistrer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

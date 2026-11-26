@@ -111,7 +111,10 @@ export const RESOURCES = [
   {
     key: "financial",
     label: "Informations financières",
-    actions: [{ key: "view", label: "Voir", type: "bool" }],
+    actions: [
+      { key: "view", label: "Voir les marges", type: "bool" },
+      { key: "edit", label: "Modifier / valider les marges", type: "bool" },
+    ],
   },
   {
     key: "users",

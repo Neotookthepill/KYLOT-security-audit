@@ -576,6 +576,9 @@ def public_user(u: dict) -> dict:
         "email": u["email"],
         "name": u.get("name", ""),
         "role": u.get("role", "commercial"),
+        "collaborator_status": u.get("collaborator_status") or "salarie",
+        "cost_coefficient": float(u.get("cost_coefficient") or 1.875),
+        "hourly_cost": float(u.get("hourly_cost") or 0),
         "is_active": u.get("is_active", True),
         "company_id": u.get("company_id") or DEFAULT_COMPANY_ID,
         "permissions": merged,
@@ -726,7 +729,7 @@ DEFAULT_PERMISSIONS = {
         "reports": {"view": True},
         "users": {"manage": True},
         "settings": {"modify": True},
-        "financial": {"view": True},
+        "financial": {"view": True, "edit": True},
         "photos": {"view": True, "add": True},
         # iter68 : Stock — admin voit et modifie tout.
         "stock": {"view": True, "edit": True, "view_own": True, "view_others": True, "view_company": True},
@@ -742,7 +745,7 @@ DEFAULT_PERMISSIONS = {
         "reports": {"view": True},
         "users": {"manage": False},
         "settings": {"modify": False},
-        "financial": {"view": False},
+        "financial": {"view": False, "edit": False},
         "photos": {"view": True, "add": True},
         "stock": {"view": True, "edit": True, "view_own": True, "view_others": True, "view_company": True},
     },
@@ -7755,6 +7758,11 @@ DEFAULT_PROSPECT_BONUSES = [
 ]
 
 
+class AcquisitionCostIn(BaseModel):
+    mode: Literal["fixed", "percent"] = "fixed"
+    value: float = Field(default=0, ge=0, le=1_000_000)
+
+
 class SettingsIn(BaseModel):
     objectif_ca: Optional[float] = Field(default=None, ge=0, le=1_000_000_000, allow_inf_nan=False)
     # iter132 : objectif annuel avec override manuel (null => fallback objectif_ca * 12)
@@ -7785,6 +7793,7 @@ class SettingsIn(BaseModel):
     prospect_mgr_base_amount: Optional[float] = Field(default=None, ge=0, le=1_000_000)
     prospect_mgr_bonuses: Optional[List[ProspectManagerBonusIn]] = Field(default=None, max_length=100)
     prospect_bonuses: Optional[List[ProspectBonusIn]] = Field(default=None, max_length=100)
+    acquisition_costs: Optional[Dict[str, AcquisitionCostIn]] = Field(default=None, max_length=50)
 
     @field_validator("notifications")
     @classmethod
@@ -8290,6 +8299,7 @@ async def get_settings(user: dict = Depends(get_current_user)):
         "prospect_mgr_base_amount": float(s.get("prospect_mgr_base_amount") if s.get("prospect_mgr_base_amount") is not None else 2329.97) if can_view_prospect_bonus_config else 0,
         "prospect_mgr_bonuses": (s.get("prospect_mgr_bonuses") or []) if can_view_prospect_bonus_config else [],
         "prospect_bonuses": (s.get("prospect_bonuses") if isinstance(s.get("prospect_bonuses"), list) else DEFAULT_PROSPECT_BONUSES) if (can_view_prospect_bonus_config or (user or {}).get("role") in ("prospecteur", "responsable_prospecteur")) else [],
+        "acquisition_costs": (s.get("acquisition_costs") or {}) if can_view_commission_config else {},
     }
 
 @api_router.put("/settings")
@@ -8310,6 +8320,192 @@ async def update_settings(data: SettingsIn, user: dict = Depends(get_current_use
     return after
 
 
+class ProfitabilitySaveIn(BaseModel):
+    internal_labor_hours: Optional[float] = Field(default=None, ge=0, le=100000)
+    internal_labor_cost: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    subcontract_cost: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    materials_cost: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    extra_costs: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    other_costs: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    acquisition_cost_override: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    manager_cost_override: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    commercial_cost_override: Optional[float] = Field(default=None, ge=0, le=10_000_000)
+    finalized: Optional[bool] = None
+
+
+def _profitability_multiplier(u: Optional[dict]) -> float:
+    if not u:
+        return 1.0
+    if (u.get("collaborator_status") or "salarie") == "salarie":
+        return float(u.get("cost_coefficient") or 1.875)
+    return 1.0
+
+
+async def _profitability_user(user: dict, uid: Optional[str], name: Optional[str]) -> Optional[dict]:
+    if uid:
+        u = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1})
+        if u:
+            return u
+    if name:
+        u = await db.users.find_one(cq(user, {"name": name}), {"_id": 0, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1})
+        if u:
+            return u
+    return None
+
+
+async def _sale_profitability(user: dict, sale: dict) -> dict:
+    sid = sale["id"]
+    amount = float(sale.get("amount") or 0)
+    settings = await db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}) or {}
+    is_de = bool(sale.get("is_de")) and bool((sale.get("commercial_2") or "").strip())
+    share = 0.5 if is_de else 1.0
+    details = []
+
+    commercial_cost = 0.0
+    commercial_names = [(sale.get("commercial"), sale.get("commercial_user_id"), 1, sale.get("commission_rate"))]
+    if is_de:
+        commercial_names.append((sale.get("commercial_2"), sale.get("commercial_2_user_id"), 2, sale.get("commission_rate_2") if sale.get("commission_rate_2") is not None else sale.get("commission_rate")))
+    for name, uid, slot, rate in commercial_names:
+        if not name:
+            continue
+        base = amount * (0.5 if is_de else 1.0) * float(rate or 0)
+        u = await _profitability_user(user, uid, name)
+        cost = base * _profitability_multiplier(u)
+        commercial_cost += cost
+        details.append({"label": f"Commission commercial {name}", "amount": round(cost, 2), "kind": "commercial"})
+
+    prospecteur_cost = 0.0
+    p_amount = float(sale.get("prospecteur_commission") or 0)
+    if p_amount:
+        pu = await _profitability_user(user, sale.get("prospecteur_id"), sale.get("prospecteur_name"))
+        prospecteur_cost = p_amount * _profitability_multiplier(pu)
+        details.append({"label": f"Commission prospecteur {sale.get('prospecteur_name') or ''}".strip(), "amount": round(prospecteur_cost, 2), "kind": "prospecteur"})
+
+    # Manager: rate based on the signature month, not payment month.
+    manager_cost = 0.0
+    month = (sale.get("sale_date") or "")[:7]
+    if month:
+        active_count = await db.sales.count_documents(cq(user, {
+            "sale_date": {"$regex": f"^{re.escape(month)}"},
+            "status": {"$nin": ["annule", "litige"]},
+        }))
+        goal = int(settings.get("prospect_mgr_goal_sales") or 12)
+        rate = float(settings.get("prospect_mgr_rate_above") if active_count >= goal else settings.get("prospect_mgr_rate_below") if settings.get("prospect_mgr_rate_below") is not None else 1.0)
+        manager = await db.users.find_one(cq(user, {"role": "responsable_prospecteur", "is_active": {"$ne": False}}), {"_id": 0, "collaborator_status": 1, "cost_coefficient": 1})
+        manager_cost = amount * (rate or 0) / 100 * _profitability_multiplier(manager)
+        details.append({"label": f"Commission responsable prospection ({rate:g} %)", "amount": round(manager_cost, 2), "kind": "manager"})
+
+    source = (sale.get("source") or "").strip()
+    acquisition_cost = 0.0
+    if source and _norm_name(source) != "r1":
+        cfg = (settings.get("acquisition_costs") or {}).get(source) or {}
+        if cfg.get("mode") == "percent":
+            acquisition_cost = amount * float(cfg.get("value") or 0) / 100
+        else:
+            acquisition_cost = float(cfg.get("value") or 0)
+    if acquisition_cost:
+        details.append({"label": f"Frais acquisition {source}", "amount": round(acquisition_cost, 2), "kind": "acquisition"})
+
+    p = sale.get("profitability") or {}
+    project = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}), {"_id": 0, "scheduled_date": 1, "duration_days": 1, "assigned_to": 1, "status": 1})
+    assigned = []
+    if project:
+        assigned = project.get("assigned_to") or []
+        if isinstance(assigned, str):
+            assigned = [assigned]
+    hourly_rate = 0.0
+    for name in assigned:
+        u = await _profitability_user(user, None, name)
+        hourly_rate += float((u or {}).get("hourly_cost") or 0)
+    duration = max(1, int((project or {}).get("duration_days") or 1))
+    forecast_hours = float(p.get("internal_labor_hours") if p.get("internal_labor_hours") is not None else duration * 8 * max(1, len(assigned)))
+    actual_hours = float(p.get("internal_labor_hours") if p.get("internal_labor_hours") is not None else forecast_hours)
+    forecast_labor = float(p.get("internal_labor_cost")) if p.get("internal_labor_cost") is not None else forecast_hours * hourly_rate
+    final_labor = float(p.get("internal_labor_cost")) if p.get("internal_labor_cost") is not None else actual_hours * hourly_rate
+    manual = {
+        "subcontract_cost": float(p.get("subcontract_cost") or 0),
+        "materials_cost": float(p.get("materials_cost") or 0),
+        "extra_costs": float(p.get("extra_costs") or 0),
+        "other_costs": float(p.get("other_costs") or 0),
+    }
+    forecast_total = commercial_cost + prospecteur_cost + manager_cost + acquisition_cost + forecast_labor + sum(manual.values())
+    final_total = commercial_cost + prospecteur_cost + manager_cost + acquisition_cost + final_labor + sum(manual.values())
+    if p.get("commercial_cost_override") is not None:
+        forecast_total += float(p["commercial_cost_override"]) - commercial_cost
+        final_total += float(p["commercial_cost_override"]) - commercial_cost
+    forecast_margin = amount - forecast_total
+    final_margin = amount - final_total
+    project_done = bool(project and (project.get("status") in ("termine", "encaisse")))
+    completed_costs = bool(p.get("costs_complete"))
+    finalized = bool(p.get("finalized_at"))
+    stage = "final" if finalized else ("provisional" if project_done else "forecast")
+    percent = lambda m: round((m / amount * 100), 1) if amount else 0
+    color = "gray" if not completed_costs else ("gold" if percent(final_margin if finalized else forecast_margin) >= 45 else "green" if percent(final_margin if finalized else forecast_margin) >= 25 else "red")
+    history = await db.sale_profitability_history.find(cq(user, {"sale_id": sid}), {"_id": 0}).sort("at", -1).to_list(50)
+    return {
+        "sale_id": sid,
+        "amount": round(amount, 2),
+        "forecast": {"total_cost": round(forecast_total, 2), "margin": round(forecast_margin, 2), "percent": percent(forecast_margin)},
+        "final": {"total_cost": round(final_total, 2), "margin": round(final_margin, 2), "percent": percent(final_margin)},
+        "stage": stage,
+        "color": color,
+        "costs_complete": completed_costs,
+        "finalized": finalized,
+        "breakdown": {
+            "commercial": round(commercial_cost, 2),
+            "prospecteur": round(prospecteur_cost, 2),
+            "manager": round(manager_cost, 2),
+            "acquisition": round(acquisition_cost, 2),
+            "labor_forecast": round(forecast_labor, 2),
+            "labor_final": round(final_labor, 2),
+            **{k: round(v, 2) for k, v in manual.items()},
+        },
+        "details": details,
+        "manual": manual,
+        "internal_labor_hours": actual_hours,
+        "project_status": (project or {}).get("status") or "",
+        "history": history,
+    }
+
+
+@api_router.get("/sales/{sid}/profitability")
+async def get_sale_profitability(sid: str, user: dict = Depends(get_current_user)):
+    if not has_perm(user, "financial", "view"):
+        raise HTTPException(status_code=403, detail="Accès aux marges non autorisé")
+    sale = await db.sales.find_one(cq(user, {"id": sid}), {"_id": 0})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Vente introuvable")
+    return await _sale_profitability(user, sale)
+
+
+@api_router.put("/sales/{sid}/profitability")
+async def put_sale_profitability(sid: str, data: ProfitabilitySaveIn, user: dict = Depends(get_current_user)):
+    if not has_perm(user, "financial", "edit"):
+        raise HTTPException(status_code=403, detail="Modification des marges non autorisée")
+    sale = await db.sales.find_one(cq(user, {"id": sid}), {"_id": 0})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Vente introuvable")
+    p = dict(sale.get("profitability") or {})
+    for key, value in data.model_dump(exclude_none=True).items():
+        if key != "finalized":
+            p[key] = value
+    p["costs_complete"] = all(k in p for k in ("subcontract_cost", "materials_cost", "extra_costs", "other_costs"))
+    if data.finalized is True:
+        p["finalized_at"] = now_iso(); p["finalized_by"] = user.get("id"); p["finalized_by_name"] = user.get("name") or ""
+    elif data.finalized is False:
+        p.pop("finalized_at", None); p.pop("finalized_by", None); p.pop("finalized_by_name", None)
+    before = sale.get("profitability") or {}
+    await db.sales.update_one(cq(user, {"id": sid}), {"$set": {"profitability": p}})
+    await db.sale_profitability_history.insert_one(with_company({
+        "id": str(uuid.uuid4()), "sale_id": sid, "at": now_iso(),
+        "user_id": user.get("id"), "user_name": user.get("name") or user.get("email") or "?",
+        "action": "finalize" if data.finalized is True else "reopen" if data.finalized is False else "update",
+        "before": before, "after": p,
+    }, user))
+    updated = await db.sales.find_one(cq(user, {"id": sid}), {"_id": 0})
+    return await _sale_profitability(user, updated)
+
+
 # ---------------- Users (admin) ----------------
 
 class UserCreateIn(BaseModel):
@@ -8317,11 +8513,17 @@ class UserCreateIn(BaseModel):
     password: str = Field(min_length=12, max_length=72)
     name: str = Field(min_length=1, max_length=120)
     role: Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"] = "commercial"
+    collaborator_status: Literal["salarie", "independant", "sous_traitant"] = "salarie"
+    cost_coefficient: float = Field(default=1.875, ge=1, le=10)
+    hourly_cost: float = Field(default=0, ge=0, le=100000)
 
 class UserInviteIn(BaseModel):
     email: EmailStr
     name: str = Field(min_length=1, max_length=120)
     role: Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"] = "commercial"
+    collaborator_status: Literal["salarie", "independant", "sous_traitant"] = "salarie"
+    cost_coefficient: float = Field(default=1.875, ge=1, le=10)
+    hourly_cost: float = Field(default=0, ge=0, le=100000)
 
 
 class InviteAcceptIn(BaseModel):
@@ -8334,6 +8536,9 @@ class UserUpdateIn(BaseModel):
     role: Optional[Literal["admin", "commercial", "technicien", "comptable", "responsable", "sous_traitant", "prospecteur", "responsable_prospecteur"]] = None
     password: Optional[str] = Field(default=None, min_length=12, max_length=72)
     is_active: Optional[bool] = None
+    collaborator_status: Optional[Literal["salarie", "independant", "sous_traitant"]] = None
+    cost_coefficient: Optional[float] = Field(default=None, ge=1, le=10)
+    hourly_cost: Optional[float] = Field(default=None, ge=0, le=100000)
 
 @api_router.get("/users")
 async def list_users(user: dict = Depends(require_admin)):
@@ -8397,7 +8602,9 @@ async def invite_user(data: UserInviteIn, user: dict = Depends(require_admin)):
     doc = with_company({
         "id": uid, "email": email, "name": data.name,
         "password_hash": hash_password(secrets.token_urlsafe(32)),
-        "role": data.role, "is_active": False, "invite_pending": True,
+        "role": data.role, "collaborator_status": data.collaborator_status,
+        "cost_coefficient": data.cost_coefficient, "hourly_cost": data.hourly_cost,
+        "is_active": False, "invite_pending": True,
         "invite_token_hash": token_hash, "invite_created_at": now,
         "invite_expires_at": now + timedelta(days=7),
         "permissions": get_default_permissions(data.role),
@@ -8495,6 +8702,9 @@ async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
         "id": uid, "email": email, "name": data.name,
         "password_hash": hash_password(data.password),
         "role": data.role,
+        "collaborator_status": data.collaborator_status,
+        "cost_coefficient": data.cost_coefficient,
+        "hourly_cost": data.hourly_cost,
         "is_active": True,
         "permissions": get_default_permissions(data.role),
         "subscription_plan": admin.get("subscription_plan"),
@@ -8533,6 +8743,12 @@ async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require
         updates["role"] = data.role
         # Reset permissions to role defaults when role changes (admin can then customize)
         updates["permissions"] = get_default_permissions(data.role)
+    if data.collaborator_status is not None:
+        updates["collaborator_status"] = data.collaborator_status
+    if data.cost_coefficient is not None:
+        updates["cost_coefficient"] = data.cost_coefficient
+    if data.hourly_cost is not None:
+        updates["hourly_cost"] = data.hourly_cost
     if data.password:
         updates["password_hash"] = hash_password(data.password)
         updates["token_epoch_ms"] = int(datetime.now(timezone.utc).timestamp() * 1000) + 1

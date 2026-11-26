@@ -22,6 +22,7 @@ import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
 import Sale14DaysBadge from "@/components/Sale14DaysBadge";
+import SaleProfitability from "@/components/SaleProfitability";
 import { useAuth } from "@/contexts/AuthContext";
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
 const fmtEur2 = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
@@ -1210,6 +1211,7 @@ export default function Sales() {
                   <p className="overline">Produit / prestation</p>
                   <p className="mt-1 text-sm text-slate-700">{panelSale.service || "—"}</p>
                 </div>
+                <SaleProfitability saleId={panelSale.id} />
                 {panelSale.notes && <div className="mt-5 border-t border-slate-200 pt-4"><p className="overline">Notes</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{panelSale.notes}</p></div>}
                 <div className="mt-6 flex gap-2">
                   {canEditSaleAny ? (
