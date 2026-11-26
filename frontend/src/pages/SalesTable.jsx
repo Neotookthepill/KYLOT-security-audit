@@ -103,6 +103,9 @@ export default function SalesTable() {
         ))}
         <span className="text-xs text-slate-500">{bounds.from === bounds.to ? bounds.from : `${bounds.from} → ${bounds.to}`}</span>
       </div>
+      <p className="mb-4 text-[11px] text-slate-500">
+        Objectif période = objectif annuel du commercial × jours de la période / 365. L’objectif annuel enregistré n’est pas modifié.
+      </p>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="commercials-summary">
         <div className="p-4 border-b border-slate-200 flex items-center gap-2 flex-wrap">
