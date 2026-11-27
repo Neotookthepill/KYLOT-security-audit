@@ -329,6 +329,7 @@ export default function Sales() {
   const [sales, setSales] = useState([]);
   const [loadError, setLoadError] = useState(false);
   const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [] });
+  const [summaryKey, setSummaryKey] = useState("");
   const [pageTotal, setPageTotal] = useState(0);
   const [pageOffset, setPageOffset] = useState(0);
   const [salesLoading, setSalesLoading] = useState(false);
@@ -397,10 +398,17 @@ export default function Sales() {
     return { from: iso(first), to: iso(last), label: "Ce mois" };
   }, [period, customFrom, customTo]);
 
+  const periodKey = `${bounds.from}|${bounds.to}`;
+  const summaryReady = summaryKey === periodKey;
   const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
 
   const load = async (nextOffset = 0, { append = false } = {}) => {
     setSalesLoading(true);
+    if (!append) {
+      setSales([]);
+      setSummary({ count: 0, total: 0, by_commercial: [] });
+      setSummaryKey("");
+    }
     try {
       const params = new URLSearchParams({
         limit: String(pageSize()),
@@ -420,6 +428,7 @@ export default function Sales() {
       setPageTotal(Number(rows.headers?.["x-total-count"] || incoming.length));
       setPageOffset(Math.max(0, nextOffset));
       setSummary(aggregates.data || { count: 0, total: 0, by_commercial: [] });
+      setSummaryKey(periodKey);
       setLoadError(false);
     } catch (_) { setLoadError(true); }
     finally { setSalesLoading(false); }
@@ -613,7 +622,7 @@ export default function Sales() {
       }
       return grouped[key];
     };
-    for (const row of summary.by_commercial || []) {
+    for (const row of (summary?.by_commercial || [])) {
       const rowKey = norm(row.name);
       const exact = commercialsToShow.find((c) => norm(c.name) === rowKey);
       const firstMatches = commercialsToShow.filter((c) => firstOf(c.name) === firstOf(row.name));
@@ -639,8 +648,8 @@ export default function Sales() {
       ? byCommercial.find((c) => norm(c.name) === norm(user?.name || "")) ||
         byCommercial.find((c) => firstOf(c.name) === firstOf(user?.name || ""))
       : null;
-    return { total: ownScope ? Number(ownRow?.ca || 0) : Number(summary.total || 0), byCommercial };
-  }, [summary, commerciaux, user]);
+    return { total: ownScope ? Number(ownRow?.ca || 0) : Number(summary?.total || 0), byCommercial, ready: summaryKey === `${bounds.from}|${bounds.to}` };
+  }, [summary, summaryKey, bounds.from, bounds.to, commerciaux, user]);
 
   const exportCsv = async () => {
     await downloadApiFile("/export/sales.csv", "ventes.csv");
@@ -756,7 +765,7 @@ export default function Sales() {
   })();
   const remaining = Math.max(0, effectiveObjectif - stats.total);
   const objectifPct = effectiveObjectif > 0 ? (stats.total / effectiveObjectif) * 100 : 0;
-  const objectifReached = stats.total >= effectiveObjectif && effectiveObjectif > 0;
+  const objectifReached = summaryReady && stats.total >= effectiveObjectif && effectiveObjectif > 0;
 
   return (
     <div className="p-4 md:p-8 max-w-[1700px]">
@@ -842,7 +851,7 @@ export default function Sales() {
             <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-8 w-36" data-testid="sales-period-to" />
           </div>
         )}
-        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {summary.count} vente{summary.count > 1 ? "s" : ""}{summary.ca_count != null ? ` · ${summary.ca_count} comptée${summary.ca_count > 1 ? "s" : ""} dans le CA` : ""}</span>
+        <span className="text-xs text-slate-500 ml-1" data-testid="sales-period-count">{bounds.label} — {summaryReady ? <>{summary.count} vente{summary.count > 1 ? "s" : ""}{summary.ca_count != null ? ` · ${summary.ca_count} comptée${summary.ca_count > 1 ? "s" : ""} dans le CA` : ""}</> : "chargement…"}</span>
       </div>
 
       {/* Synthèse en haut : CA total / Objectif / % atteint (suit le filtre période) */}
@@ -856,9 +865,9 @@ export default function Sales() {
               <Wallet size={12} className="text-slate-500" /> {isCommercial ? "Mon CA signé" : "CA total"}
             </p>
             <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums" data-testid="sales-top-summary-ca">
-              {fmtEur(stats.total)}
+              {summaryReady ? fmtEur(stats.total) : "…"}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · statuts comptés dans le CA</p>
+            <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · {summaryReady ? "statuts comptés dans le CA" : "chargement…"}</p>
           </div>
           <div className="p-4 sm:p-5">
             <div className="flex items-center gap-2">
@@ -895,13 +904,13 @@ export default function Sales() {
               className={`font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums ${objectifReached ? "text-emerald-700" : "text-slate-900"}`}
               data-testid="sales-top-summary-pct"
             >
-              {effectiveObjectif > 0 ? (objectifReached ? `+${(objectifPct - 100).toFixed(0)} %` : `${objectifPct.toFixed(0)} %`) : "—"}
+              {effectiveObjectif > 0 && summaryReady ? (objectifReached ? `+${(objectifPct - 100).toFixed(0)} %` : `${objectifPct.toFixed(0)} %`) : "…"}
             </p>
             {effectiveObjectif > 0 && (
               <p className="text-[11px] text-slate-500 mt-1">
-                {objectifReached
+                {summaryReady ? (objectifReached
                   ? `${objectifPct.toFixed(0)} % de l’objectif réalisé`
-                  : `reste ${(100 - objectifPct).toFixed(0)} % pour l’atteindre`}
+                  : `reste ${(100 - objectifPct).toFixed(0)} % pour l’atteindre`) : "chargement de la période…"}
               </p>
             )}
             {effectiveObjectif > 0 && (
