@@ -904,13 +904,13 @@ export default function Sales() {
               className={`font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums ${objectifReached ? "text-emerald-700" : "text-slate-900"}`}
               data-testid="sales-top-summary-pct"
             >
-              {effectiveObjectif > 0 && summaryReady ? (objectifReached ? `+${(objectifPct - 100).toFixed(0)} %` : `${objectifPct.toFixed(0)} %`) : "…"}
+              {effectiveObjectif > 0 && summaryReady ? (objectifReached ? `+${(objectifPct - 100).toFixed(1).replace(".", ",")} %` : `${objectifPct.toFixed(1).replace(".", ",")} %`) : "…"}
             </p>
             {effectiveObjectif > 0 && (
               <p className="text-[11px] text-slate-500 mt-1">
                 {summaryReady ? (objectifReached
-                  ? `${objectifPct.toFixed(0)} % de l’objectif réalisé`
-                  : `reste ${(100 - objectifPct).toFixed(0)} % pour l’atteindre`) : "chargement de la période…"}
+                  ? `${objectifPct.toFixed(1).replace(".", ",")} % de l’objectif réalisé`
+                  : `reste ${(100 - objectifPct).toFixed(1).replace(".", ",")} % pour l’atteindre`) : "chargement de la période…"}
               </p>
             )}
             {effectiveObjectif > 0 && (
