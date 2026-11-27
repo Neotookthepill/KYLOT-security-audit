@@ -396,9 +396,19 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 .qy-sidebar-nav::-webkit-scrollbar-thumb { background: hsl(0 0% 100% / .24); border-radius: 99px; }
 .qy-sidebar-nav .qy-nav-group-label {
-  position: sticky; top: 0; z-index: 2;
-  background: hsl(var(--sidebar));
-  padding-top: .8rem; padding-bottom: .35rem;
+  /* Un titre de groupe n'est pas un bouton : pas de bloc plein, pas de sticky. */
+  position: static;
+  z-index: auto;
+  background: transparent;
+  margin-top: .45rem;
+  padding: .65rem .5rem .3rem;
+  border-top: 1px solid hsl(0 0% 100% / .075);
+  letter-spacing: .16em;
+  font-size: 9px;
+}
+.qy-sidebar-nav > div:first-child .qy-nav-group-label {
+  border-top: 0;
+  margin-top: 0;
 }
 
 @media (max-width: 767px) {
