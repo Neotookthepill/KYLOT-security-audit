@@ -378,7 +378,7 @@ export default function Prospecteur() {
       <PeriodFilter period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom}
         customTo={customTo} setCustomTo={setCustomTo} label={bounds.label} count={periodClientCountWithoutCanceled} />
 
-      <div className={`grid grid-cols-1 gap-4 ${isManager ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+      <div className={`grid grid-cols-1 gap-4 ${isManager ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-3"}`}>
         {isManager && <Stat label="CA généré" value={fmtEur(totalCA)} icon={Euro} testId="prospect-stat-ca" />}
         <Stat label="Clients" value={periodClientCountWithoutCanceled} icon={UsersIcon} testId="prospect-stat-clients" />
         <Stat label={period === "month" ? "Ventes en commission" : "Ventes commissionnées (mois)"} value={payRows.length} icon={UserSearch} testId="prospect-stat-active" />
