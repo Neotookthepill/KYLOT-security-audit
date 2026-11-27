@@ -201,6 +201,8 @@ export default function Layout() {
             <ChevronsRight size={17} />
           </button>
         )}
+        <div className={compact ? "space-y-0.5" : "qy-sidebar-utility"}>
+          {!compact && <p className="qy-sidebar-utility-label">Outils</p>}
         {(user?.role === "admin" || user?.role === "super_admin") && !isSuper && (
           <NavLink to="/abonnement" data-testid="nav-subscription" onClick={closeMobile} title={compact ? "Abonnement" : undefined} className={({ isActive }) => cn("qy-nav-item", isActive && "is-active", compact && "justify-center px-0")}>
             <Star size={17} strokeWidth={1.9} />
@@ -225,7 +227,8 @@ export default function Layout() {
             {!compact && <span>Assistant Qylot</span>}
           </button>
         )}
-        <div className={cn("mt-2 flex items-center gap-2 border-t border-white/[.08] pt-3", compact && "justify-center")}>
+        </div>
+        <div className={cn("mt-3 flex items-center gap-2 border-t border-white/[.08] pt-3", compact && "justify-center")}>
           <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#0b1220] text-[11px] font-semibold text-[#f7f3e9] ring-1 ring-white/20" title={user?.name}>
             {initials(user?.name)}
           </div>
