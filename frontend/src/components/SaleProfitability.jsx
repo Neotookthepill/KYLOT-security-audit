@@ -38,6 +38,7 @@ export default function SaleProfitability({ saleId }) {
   const { user, can } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
@@ -48,8 +49,13 @@ export default function SaleProfitability({ saleId }) {
   const load = React.useCallback(async () => {
     if (!saleId || !canView) return;
     setLoading(true);
+    setLoadError(false);
     try { setData((await api.get(`/sales/${saleId}/profitability`)).data); }
-    catch (err) { if (err?.response?.status !== 403) toast.error(formatApiError(err)); }
+    catch (err) {
+      setData(null);
+      setLoadError(true);
+      if (err?.response?.status !== 403) toast.error(formatApiError(err));
+    }
     finally { setLoading(false); }
   }, [saleId, canView]);
   useEffect(() => { load(); }, [load]);
@@ -90,8 +96,16 @@ export default function SaleProfitability({ saleId }) {
   };
 
   if (!canView) return null;
-  if (loading && !data) return <Card className="mt-5 p-4 text-sm text-muted-foreground">Chargement de la rentabilité…</Card>;
-  if (!data?.forecast || !data?.final) return null;
+  if (loading && !data) return <Card className="mt-5 p-4 text-sm text-muted-foreground" data-testid="sale-profitability-loading">Chargement de la rentabilité…</Card>;
+  if (!data?.forecast || !data?.final) {
+    return (
+      <Card className="mt-5 p-4 text-sm" data-testid="sale-profitability-error">
+        <p className="font-medium">Rentabilité momentanément indisponible.</p>
+        <p className="mt-1 text-muted-foreground">Les autres informations de la vente restent accessibles.</p>
+        <Button size="sm" variant="outline" className="mt-2" onClick={load}>Réessayer</Button>
+      </Card>
+    );
+  }
 
   const p = PALETTE[data.color === "gold" ? "amber" : data.color] || PALETTE.gray;
   const marginLabel = data.color === "red" ? "Marge faible" : data.color === "green" ? "Marge solide" : data.color === "amber" || data.color === "gold" ? "Marge à surveiller" : "Coûts à compléter";

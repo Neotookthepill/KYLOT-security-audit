@@ -1224,7 +1224,7 @@ export default function Sales() {
                   <p className="overline">Produit / prestation</p>
                   <p className="mt-1 text-sm text-slate-700">{panelSale.service || "—"}</p>
                 </div>
-                <SaleProfitability saleId={panelSale.id} />
+                <SaleProfitability key={panelSale.id} saleId={panelSale.id} />
                 {panelSale.notes && <div className="mt-5 border-t border-slate-200 pt-4"><p className="overline">Notes</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{panelSale.notes}</p></div>}
                 <div className="mt-6 flex gap-2">
                   {canEditSaleAny ? (
