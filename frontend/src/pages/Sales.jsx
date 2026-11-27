@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal, Columns3, MapPin, Eye } from "lucide-react";
+import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal, Columns3, MapPin } from "lucide-react";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
@@ -1016,11 +1016,10 @@ export default function Sales() {
                 <th className="px-4 py-3 overline whitespace-nowrap">Règlement</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Commercial</th>
                 <th className="px-4 py-3 overline whitespace-nowrap">Source</th>
-                <th className="px-3 py-3 overline whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (<tr><td colSpan={11} className="p-8 text-center text-slate-500">Aucune vente.</td></tr>)}
+              {filtered.length === 0 && (<tr><td colSpan={10} className="p-8 text-center text-slate-500">Aucune vente.</td></tr>)}
               {filtered.map((s) => {
                 const st = statusMap[s.status] || STATUS_MAP[s.status];
                 const src = SOURCE_MAP[s.source];
@@ -1121,33 +1120,7 @@ export default function Sales() {
                         testId={`sale-source-${s.id}`}
                       />
                     </td>
-                    <td className="px-3 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="inline-flex items-center gap-1.5">
-                        <button type="button" onClick={() => setPanelSale(s)} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50" title="Voir le détail de la vente" aria-label={`Voir le détail de la vente ${s.client_name || s.bdc || ""}`} data-testid={`sale-view-${s.id}`}>
-                          <Eye size={13} /> Voir
-                        </button>
-                        {canEditSaleAny && (
-                          <button type="button" onClick={() => setEditingSale(s)} className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-900 px-2 py-1.5 text-xs font-medium text-white hover:bg-slate-700" title="Modifier la vente" aria-label={`Modifier la vente ${s.client_name || s.bdc || ""}`} data-testid={`sale-edit-${s.id}`}>
-                            <Pencil size={12} /> Modifier
-                          </button>
-                        )}
-                        {canDeleteSale && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="h-8 w-8 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition" title="Plus d’actions" aria-label="Plus d’actions sur la vente" data-testid={`sale-actions-${s.id}`}>
-                                <MoreHorizontal size={15} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setConfirmDelete(s)} data-testid={`sale-delete-btn-${s.id}`}>
-                                <Trash2 size={14} className="mr-2" /> Supprimer
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </td>
+
                   </tr>
                 );
               })}
@@ -1178,12 +1151,7 @@ export default function Sales() {
                     <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} compact />
                     <Sale14DaysBadge sale={s} mobile />
                     <span className="min-w-0 truncate">{s.sale_date ? formatDateFR(s.sale_date) : "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
-                    <span className="ml-auto flex shrink-0 items-center gap-2">
-                      <span className="font-medium text-slate-700">Voir ›</span>
-                      {canEditSaleAny && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); setEditingSale(s); }} className="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-medium text-slate-700" aria-label={`Modifier la vente ${s.client_name || s.bdc || ""}`} data-testid={`sale-mobile-edit-${s.id}`}>Modifier</button>
-                      )}
-                    </span>
+                    <span className="ml-auto shrink-0 font-medium text-slate-700">Voir ›</span>
                   </span>
                 </span>
               </div>
@@ -1248,6 +1216,7 @@ export default function Sales() {
                     <Button variant="outline" className="flex-1" onClick={() => { setViewSale(panelSale); setPanelSale(null); }}>Ouvrir la fiche</Button>
                   )}
                   <Button variant="outline" onClick={() => setPanelSale(null)}>Fermer</Button>
+                  {canDeleteSale && <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirmDelete(panelSale)}>Supprimer</Button>}
                 </div>
               </>
             );
