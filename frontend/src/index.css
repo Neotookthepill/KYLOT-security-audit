@@ -417,6 +417,16 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-dashboard-hero .qy-hero-button:hover { background: rgba(255,255,255,.16) !important; }
 .qy-dashboard-hero .qy-hero-button-primary { background: #fff !important; color: #0b1220 !important; }
 .qy-dashboard-hero .qy-hero-button-primary:hover { background: #e8edff !important; }
+/* Synthèse Ventes : les trois blocs importants ont la même logique de couleur. */
+.qy-sales-summary-ca { background: linear-gradient(135deg, #eef2ff, #e0e7ff); }
+.qy-sales-summary-objective { background: linear-gradient(135deg, #f0f9ff, #e0f2fe); }
+.qy-sales-summary-reached { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
+.qy-sales-summary-pending { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+.dark .qy-sales-summary-ca { background: linear-gradient(135deg, hsl(235 35% 18%), hsl(235 30% 22%)); }
+.dark .qy-sales-summary-objective { background: linear-gradient(135deg, hsl(200 35% 17%), hsl(200 30% 21%)); }
+.dark .qy-sales-summary-reached { background: linear-gradient(135deg, hsl(160 35% 16%), hsl(160 30% 20%)); }
+.dark .qy-sales-summary-pending { background: linear-gradient(135deg, hsl(38 35% 18%), hsl(38 30% 22%)); }
+
 /* Rapport mensuel : même palette que le dashboard. */
 .qy-page [data-testid="report-stat-active"] {
   background: linear-gradient(135deg, #eef2ff, #c7d2fe) !important;

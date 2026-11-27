@@ -866,7 +866,7 @@ export default function Sales() {
         data-testid="sales-top-summary"
       >
         <div className="grid grid-cols-2 sm:grid-cols-3">
-          <div className="col-span-2 border-b border-slate-200 p-4 sm:col-span-1 sm:border-b-0 sm:border-r sm:p-5">
+          <div className="qy-sales-summary-ca col-span-2 border-b border-slate-200 p-4 sm:col-span-1 sm:border-b-0 sm:border-r sm:p-5">
             <p className="overline flex items-center gap-1.5">
               <Wallet size={12} className="text-indigo-600" /> {isCommercial ? "Mon CA signé" : "CA total"}
             </p>
@@ -875,7 +875,7 @@ export default function Sales() {
             </p>
             <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · {summaryReady ? "statuts comptés dans le CA" : "chargement…"}</p>
           </div>
-          <div className="border-r border-slate-200 p-4 sm:p-5">
+          <div className="qy-sales-summary-objective border-r border-slate-200 p-4 sm:p-5">
             <div className="flex items-center gap-2">
               <p className="overline flex items-center gap-1.5">
                 <Target size={12} className="text-slate-500" /> {isCommercial ? "Mon objectif" : "Objectif"}
@@ -904,7 +904,7 @@ export default function Sales() {
                 : "Définir ci-dessous"}
             </p>
           </div>
-          <div className="p-4 sm:p-5">
+          <div className={`p-4 sm:p-5 ${effectiveObjectif > 0 ? (objectifReached ? "qy-sales-summary-reached" : "qy-sales-summary-pending") : ""}`}>
             <p className="overline">{objectifReached ? "Objectif dépassé" : "Objectif réalisé"}</p>
             <p
               className={`font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums ${objectifReached ? "text-emerald-700" : "text-slate-900"}`}
