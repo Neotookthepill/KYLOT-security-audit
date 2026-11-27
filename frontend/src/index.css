@@ -382,6 +382,11 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   box-shadow: inset 0 -2px 0 hsl(var(--ring) / .55);
 }
 
+.qy-sidebar-search {
+  position: relative;
+  z-index: 3;
+  background: hsl(var(--sidebar));
+}
 .qy-sidebar-nav {
   scrollbar-width: thin;
   scrollbar-color: hsl(0 0% 100% / .28) transparent;

@@ -170,7 +170,7 @@ export default function Layout() {
       </div>
 
       {!isSuper && (
-        <div className={cn("px-3 pt-3", compact && "px-2")}>
+        <div className={cn("qy-sidebar-search shrink-0 px-3 pt-3", compact && "px-2")}>
           {canCreateSale && (
             <button
               type="button"
@@ -198,7 +198,7 @@ export default function Layout() {
         </div>
       )}
 
-      <nav className={cn("qy-sidebar-nav flex-1 overflow-y-auto pb-4", compact ? "px-2 pt-3" : "px-3 pt-2")} aria-label="Navigation principale" data-testid="sidebar-nav">
+      <nav className={cn("qy-sidebar-nav min-h-0 flex-1 overflow-y-auto pb-4", compact ? "px-2 pt-3" : "px-3 pt-2")} aria-label="Navigation principale" data-testid="sidebar-nav">
         {groups.map(([group, items]) => (
           <div key={group}>
             {!compact && <div className="qy-nav-group-label">{group}</div>}
