@@ -415,7 +415,8 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-sidebar-search {
   position: relative;
   z-index: 3;
-  background: hsl(var(--sidebar));
+  /* Pas de bande opaque : le fond doit rester celui du dégradé du menu. */
+  background: transparent;
 }
 .qy-sidebar-nav {
   scrollbar-width: thin;
