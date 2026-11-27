@@ -133,7 +133,7 @@ export default function Progression() {
           <p className="overline">Suivi annuel</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Progression {year}</h1>
           <p className="text-sm text-slate-500 mt-2">
-            CA mensuel {isCommercial ? "personnel" : "par commercial"} — objectif matérialisé par la ligne rouge pointillée. Les barres passent au vert dès que l'objectif mensuel est atteint.
+            CA mensuel {isCommercial ? "personnel" : "par commercial"} · ligne rouge = objectif mensuel · vert = objectif atteint.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function Progression() {
       </div>
 
       {!isCommercial && (
-        <Card className="p-5 border-slate-200 shadow-sm mb-6" data-testid="progression-company">
+        <Card className="p-4 sm:p-5 border-slate-200 shadow-sm mb-4" data-testid="progression-company">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
             <div>
               <p className="overline">Société · Total {year}</p>
@@ -162,7 +162,7 @@ export default function Progression() {
               </p>
             </div>
             <div className="w-full min-w-0 sm:flex-1">
-              <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} year={year} height={70} />
+              <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} year={year} height={58} />
             </div>
           </div>
         </Card>
@@ -172,21 +172,33 @@ export default function Progression() {
         <div className="text-sm text-slate-500 flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Chargement…</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-slate-500 mb-2">
+          <span><span className="inline-block w-2 h-2 rounded-sm bg-indigo-500 mr-1 align-middle" />mois en cours</span>
+          <span><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1 align-middle" />objectif atteint</span>
+          <span><span className="inline-block w-3 h-px bg-red-500 mr-1 align-middle" />objectif mensuel</span>
+        </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {rows.map((r) => {
           const reached = r.objectif_annual > 0 && r.total >= r.objectif_annual;
           return (
-            <Card key={r.commercial} className={`p-5 border shadow-sm ${reached ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200"}`} data-testid={`progression-row-${r.commercial}`}>
-              <div className="flex items-start justify-between gap-3 mb-3">
+            <Card key={r.commercial} className={`p-4 border shadow-sm ${reached ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200"}`} data-testid={`progression-row-${r.commercial}`}>
+              <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-widest text-slate-500">{r.commercial}</p>
                   <p className="font-display text-2xl font-semibold mt-1">{fmtEur(r.total)}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Objectif annuel : <span className="font-semibold text-slate-700">{r.objectif_annual > 0 ? fmtEur(r.objectif_annual) : "—"}</span>
                     {r.objectif_annual > 0 && (
-                      <> · <span className={reached ? "text-emerald-700 font-semibold" : "text-slate-700 font-semibold"}>{r.progress_pct}%</span></>
+                      <> · <span className={reached ? "text-emerald-700 font-semibold" : "text-slate-700 font-semibold"}>{r.progress_pct}% de l’objectif</span></>
                     )}
                   </p>
+                  {r.objectif_annual > 0 && (
+                    <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full rounded-full ${reached ? "bg-emerald-500" : "bg-indigo-500"}`} style={{ width: `${Math.min(100, r.progress_pct)}%` }} />
+                    </div>
+                  )}
                 </div>
                 {reached && (
                   <span className="inline-flex items-center gap-1 text-emerald-700 text-xs bg-emerald-100 border border-emerald-200 rounded-full px-2 py-1">
@@ -194,12 +206,7 @@ export default function Progression() {
                   </span>
                 )}
               </div>
-              <AnnualChart monthly={r.monthly} objectifMonthly={r.objectif_monthly} year={year} />
-              <p className="text-[10px] text-slate-500 mt-2">
-                <span className="inline-block w-2 h-2 rounded-sm bg-indigo-500 mr-1 align-middle" /> mois en cours &nbsp;·&nbsp;
-                <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1 align-middle" /> objectif atteint &nbsp;·&nbsp;
-                <span className="inline-block w-3 h-px bg-red-500 mr-1 align-middle" /> objectif mensuel
-              </p>
+              <AnnualChart monthly={r.monthly} objectifMonthly={r.objectif_monthly} year={year} height={66} />
             </Card>
           );
         })}
