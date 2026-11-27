@@ -169,35 +169,19 @@ export default function Layout() {
         )}
       </div>
 
-      {!isSuper && (
-        <div className={cn("qy-sidebar-search shrink-0 px-3 pt-3", compact && "px-2")}>
-          <div className="flex items-center gap-2">
-            {canCreateSale && (
-              <button
-                type="button"
-                onClick={() => { closeMobile(); setNewSaleOpen(true); }}
-                data-testid="sidebar-quick-create"
-                className={cn("qy-quick-create grid h-9 w-9 shrink-0 place-items-center rounded-[9px] px-0", compact && "w-full")}
-                title="Nouvelle vente"
-                aria-label="Nouvelle vente"
-              >
-                <Plus size={17} strokeWidth={2.3} />
-              </button>
-            )}
-            {!compact && (
-              <button
-                type="button"
-                onClick={() => setSearchOpen(true)}
-                data-testid="sidebar-search"
-                className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[9px] border border-white/15 bg-white/[.055] px-2.5 text-left text-[12px] text-white/75 hover:border-white/25 hover:text-white"
-              >
-                <Search size={14} className="shrink-0" />
-                <span className="flex-1 truncate">Rechercher…</span>
-                <kbd className="rounded border border-white/15 px-1 py-0.5 text-[9px] text-white/65">⌘K</kbd>
-              </button>
-            )}
+      {!isSuper && !compact && (
+          <div className="qy-sidebar-search shrink-0 px-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              data-testid="sidebar-search"
+              className="flex h-9 w-full items-center gap-2 rounded-[9px] border border-white/15 bg-white/[.055] px-2.5 text-left text-[12px] text-white/75 hover:border-white/25 hover:text-white"
+            >
+              <Search size={14} className="shrink-0" />
+              <span className="flex-1 truncate">Rechercher…</span>
+              <kbd className="rounded border border-white/15 px-1 py-0.5 text-[9px] text-white/65">⌘K</kbd>
+            </button>
           </div>
-        </div>
       )}
 
       <nav className={cn("qy-sidebar-nav min-h-0 flex-1 overflow-y-auto pb-4", compact ? "px-2 pt-3" : "px-3 pt-2")} aria-label="Navigation principale" data-testid="sidebar-nav">
@@ -292,6 +276,11 @@ export default function Layout() {
             </div>
           </div>
           <div className="ml-auto flex items-center gap-1">
+            {canCreateSale && (
+              <button type="button" onClick={() => { closeMobile(); setNewSaleOpen(true); }} data-testid="global-new-sale-mobile" aria-label="Nouvelle vente" title="Nouvelle vente" className="grid h-9 w-9 place-items-center rounded-lg border border-primary/40 text-primary hover:bg-primary/10">
+                <Plus size={18} />
+              </button>
+            )}
             {!isSuper && (
               <button type="button" onClick={() => setSearchOpen(true)} data-testid="global-search-btn-mobile" aria-label="Recherche globale" className="grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
                 <Search size={18} />
@@ -313,6 +302,11 @@ export default function Layout() {
             </div>
             <div className="mt-0.5 truncate text-[11px] capitalize text-muted-foreground">{today}</div>
           </div>
+          {canCreateSale && (
+            <button type="button" onClick={() => setNewSaleOpen(true)} data-testid="global-new-sale" aria-label="Nouvelle vente" title="Nouvelle vente" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-primary/40 text-primary hover:bg-primary/10">
+              <Plus size={17} />
+            </button>
+          )}
           {!isSuper && (
             <button type="button" onClick={() => setSearchOpen(true)} data-testid="global-search-btn" className="flex h-9 w-[240px] items-center gap-2 rounded-lg border border-border bg-card px-3 text-left text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground xl:w-[300px]">
               <Search size={14} />
