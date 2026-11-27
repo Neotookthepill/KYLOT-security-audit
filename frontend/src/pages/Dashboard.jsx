@@ -773,7 +773,7 @@ export default function Dashboard() {
       </Card>
       );
     },
-    challenge: () => <ChallengeWidget />,
+    challenge: () => <ChallengeWidget compact />,
     recent_sales: () => (
       <Card className="border-slate-200 shadow-sm">
         <div className="p-4 border-b border-slate-200 flex items-center justify-between"><div className="flex items-center gap-2"><Wallet size={16} className="text-slate-500" /><p className="font-display text-base font-semibold">Ventes récentes</p></div><button onClick={() => !editing && nav("/ventes")} className="text-xs text-slate-500 hover:text-slate-900">Voir tout →</button></div>
@@ -827,7 +827,7 @@ export default function Dashboard() {
 
   return (
     <div className="qy-dashboard mx-auto max-w-[1440px] p-4 md:p-8">
-      <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
+      <header className="qy-dashboard-hero mb-7 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="qy-eyebrow capitalize">{todayLabel}</p>
           <h1 className="mt-2 font-display text-[30px] font-semibold leading-[1.05] tracking-[-.045em] md:text-[40px]">
@@ -859,21 +859,21 @@ export default function Dashboard() {
       </header>
 
       <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:border-primary/35 sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:border-primary/35">
+        <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>

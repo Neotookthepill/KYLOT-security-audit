@@ -44,7 +44,7 @@ function pointsLabel(row, criterion) {
   return `${row.count} assistance${row.count > 1 ? "s" : ""}`;
 }
 
-export default function ChallengeWidget() {
+export default function ChallengeWidget({ compact = false }) {
   const { user } = useAuth();
   const { commerciaux } = useTeam();
   const [data, setData] = useState({ challenge: null, ranking: [], me: null, days_left: 0 });
@@ -61,6 +61,7 @@ export default function ChallengeWidget() {
   const [assistLoading, setAssistLoading] = useState(false);
   const [assistSaving, setAssistSaving] = useState(false);
   const [assistHistory, setAssistHistory] = useState([]);
+  const [expanded, setExpanded] = useState(false);
   const isAdmin = user?.role === "admin";
 
   const load = async () => {
@@ -302,6 +303,7 @@ export default function ChallengeWidget() {
               ))}
             </div>
 
+            {(!compact || expanded) && (
             <div className="mt-4 rounded-lg border border-slate-200 overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
               <table className="qy-challenge-table w-full text-sm">
                 <thead className="bg-muted/60 text-left">
@@ -328,6 +330,13 @@ export default function ChallengeWidget() {
                 </tbody>
               </table>
             </div>
+            )}
+
+            {compact && ranking.length > 3 && (
+              <button type="button" onClick={() => setExpanded((v) => !v)} className="mt-3 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400" data-testid="challenge-expand-btn">
+                {expanded ? "Réduire le classement" : `Voir le classement complet (${ranking.length})`}
+              </button>
+            )}
 
             {!!(ch.rewards || []).length && (
               <div className="flex flex-wrap gap-2 mt-3">
