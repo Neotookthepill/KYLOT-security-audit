@@ -232,7 +232,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="mt-10 flex items-center justify-between gap-4 text-[10px] text-[#98a2b3] lg:mt-auto">
+          <div className="mt-10 flex items-center justify-between gap-4 text-[10px] text-[#98a2b3] lg:absolute lg:inset-x-14 lg:bottom-8 lg:mt-0 xl:inset-x-20">
             <span>© 2026 {appName}</span>
             <span>Connexion sécurisée</span>
           </div>
