@@ -12,10 +12,10 @@ import { Lock, TrendingUp, RotateCcw, Pencil, ChevronDown, ShieldCheck } from "l
 const fmt = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n || 0);
 const pct = (n) => (Number.isFinite(n) ? n : 0).toFixed(1).replace(".", ",");
 const PALETTE = {
-  gold: {
-    card: "border-amber-300 border-l-amber-500 bg-amber-50/90 dark:border-amber-800/70 dark:border-l-amber-500 dark:bg-amber-950/20",
-    title: "text-amber-950 dark:text-amber-100", muted: "text-amber-800/85 dark:text-amber-200/75",
-    chip: "bg-amber-500 text-white dark:bg-amber-500 dark:text-amber-950", bar: "bg-amber-500",
+  amber: {
+    card: "border-orange-300 border-l-orange-500 bg-orange-50/90 dark:border-orange-800/70 dark:border-l-orange-500 dark:bg-orange-950/20",
+    title: "text-orange-950 dark:text-orange-100", muted: "text-orange-800/85 dark:text-orange-200/75",
+    chip: "bg-orange-500 text-white dark:bg-orange-500 dark:text-orange-950", bar: "bg-orange-500",
   },
   green: {
     card: "border-emerald-300 border-l-emerald-600 bg-emerald-50/90 dark:border-emerald-800/70 dark:border-l-emerald-500 dark:bg-emerald-950/20",
@@ -93,7 +93,8 @@ export default function SaleProfitability({ saleId }) {
   if (loading && !data) return <Card className="mt-5 p-4 text-sm text-muted-foreground">Chargement de la rentabilité…</Card>;
   if (!data?.forecast || !data?.final) return null;
 
-  const p = PALETTE[data.color] || PALETTE.gray;
+  const p = PALETTE[data.color === "gold" ? "amber" : data.color] || PALETTE.gray;
+  const marginLabel = data.color === "red" ? "Marge faible" : data.color === "green" ? "Marge solide" : data.color === "amber" || data.color === "gold" ? "Marge à surveiller" : "Coûts à compléter";
   const current = data.finalized ? data.final : data.forecast;
   const barWidth = Math.max(0, Math.min(100, current.percent));
   const commercialLines = [
@@ -121,6 +122,7 @@ export default function SaleProfitability({ saleId }) {
               <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.chip}`}>
                 <ShieldCheck size={10} /> {STAGE[data.stage] || "Prévisionnelle"}
               </span>
+              <span className={`text-[10px] font-medium ${p.muted}`}>{marginLabel}</span>
               {!data.costs_complete && <span className={`text-[10px] ${p.muted}`}>Coûts à compléter</span>}
             </div>
           </div>
