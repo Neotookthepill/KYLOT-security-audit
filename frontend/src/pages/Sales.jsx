@@ -172,12 +172,18 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif, obj
 
   return (
     <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors" data-testid={`commercial-row-${c.name}`}>
-      <td className="px-4 py-3 font-medium whitespace-nowrap">{c.name}</td>
-      <td className="px-4 py-3 text-right font-display text-base font-semibold whitespace-nowrap">{fmtEur(c.ca)}</td>
+      <td className="px-4 py-3 font-medium">
+        <div className="whitespace-nowrap">{c.name}</div>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {SOURCES.filter((s) => Number(c.sources?.[s.value] || 0) > 0).map((s) => (
+            <span key={s.value} className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-medium text-slate-600" title={`${s.label} : ${c.sources[s.value]}`}>
+              {s.label} {c.sources[s.value]}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-right font-display text-lg font-semibold whitespace-nowrap">{fmtEur(c.ca)}</td>
       <td className="px-3 py-3 text-right text-slate-600">{c.count}</td>
-      {SOURCES.map((s) => (
-        <td key={s.value} className="px-2.5 py-3 text-right text-slate-600">{c.sources[s.value] || 0}</td>
-      ))}
       <td className="px-3 py-3 text-right text-slate-500 whitespace-nowrap">
         {editing ? (
           <div className="flex items-center gap-1 justify-end">

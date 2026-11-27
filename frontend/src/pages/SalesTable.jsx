@@ -118,13 +118,12 @@ export default function SalesTable() {
           </div>
         </div>
         <div className="hidden overflow-x-auto md:block" tabIndex={0} role="region" aria-label="Tableau défilant">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline">Commercial</th>
                 <th className="px-4 py-3 overline text-right">Chiffre d’affaires</th>
                 <th className="px-3 py-3 overline text-right">Ventes</th>
-                {SOURCES.map((s) => <th key={s.value} className="px-2.5 py-3 overline text-right">{s.label}</th>)}
                 <th className="px-3 py-3 overline text-right" title="Objectif annuel proratisé sur la période sélectionnée">Objectif période</th>
                 <th className="px-4 py-3 overline">Progression</th>
                 <th className="px-3 py-3 overline text-right">Comptant</th>
@@ -132,8 +131,8 @@ export default function SalesTable() {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={12} className="p-8 text-center text-sm text-slate-500">Chargement…</td></tr>}
-              {!loading && rows.length === 0 && <tr><td colSpan={12} className="p-8 text-center text-sm text-slate-500">Aucune vente sur la période.</td></tr>}
+              {loading && <tr><td colSpan={7} className="p-8 text-center text-sm text-slate-500">Chargement…</td></tr>}
+              {!loading && rows.length === 0 && <tr><td colSpan={7} className="p-8 text-center text-sm text-slate-500">Aucune vente sur la période.</td></tr>}
               {!loading && rows.map((c) => (
                 <CommercialRow key={c.name} c={c} isAdmin={user?.role === "admin"} targetObjectif={Math.round((c.objectif || 0) * objectiveRatio)} objectiveRatio={objectiveRatio} onObjectifSaved={async () => { await reload(); await load(); }} />
               ))}
