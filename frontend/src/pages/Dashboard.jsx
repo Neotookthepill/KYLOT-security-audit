@@ -258,6 +258,26 @@ function writeDashCache(userId, period, data) {
   } catch (_) {}
 }
 
+function ObjectiveRing({ progress = 0, size = 116 }) {
+  const pct = Math.max(0, Math.min(100, Number(progress) || 0));
+  const reached = pct >= 100;
+  const radius = (size - 14) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (pct / 100) * circumference;
+  return (
+    <div className="relative grid place-items-center" style={{ width: size, height: size }} aria-label={`Objectif réalisé : ${pct.toFixed(1)} %`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--border))" strokeOpacity=".65" strokeWidth="10" />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={reached ? "#10b981" : "#6366f1"} strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} className="transition-[stroke-dashoffset] duration-700" />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`font-display text-xl font-semibold leading-none ${reached ? "text-emerald-700" : "text-indigo-700"}`}>{pct.toFixed(0)}<span className="text-xs">%</span></span>
+        <span className="mt-1 text-[9px] uppercase tracking-[.12em] text-slate-500">réalisé</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData] = useState(null);
   const loadSeq = useRef(0);
@@ -457,9 +477,11 @@ export default function Dashboard() {
     ca_hero: () => {
       const remaining = Math.max(0, (ca.objectif || 0) - (ca.total || 0));
       return (
-      <Card className="p-5 md:p-6 border-slate-200 shadow-sm" data-testid="dashboard-ca-hero">
+      <Card className="relative overflow-hidden border-indigo-100 bg-gradient-to-br from-indigo-50/90 via-white to-emerald-50/50 p-5 shadow-sm md:p-6 dark:border-indigo-900/40 dark:from-indigo-950/20 dark:via-card dark:to-emerald-950/10" data-testid="dashboard-ca-hero">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-indigo-400/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-emerald-400/10 blur-2xl" />
         {/* Section 1 : Performance personnelle (ou société pour non-commercial) */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div className="min-w-0">
             {isCommercial && <p className="overline text-primary" data-testid="dashboard-personal-label">Ma performance personnelle</p>}
             <p className="overline">{isCommercial ? "Mon CA signé" : "Chiffre d'affaires signé"}</p>
@@ -502,9 +524,14 @@ export default function Dashboard() {
               </>
             )}
           </div>
-          <div className="h-10 w-10 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center shrink-0"><Euro size={18} /></div>
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <ObjectiveRing progress={ca.progress} size={116} />
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${ca.progress >= 100 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-indigo-200 bg-indigo-50 text-indigo-700"}`}>
+              {ca.progress >= 100 ? "Objectif atteint" : "Objectif en cours"}
+            </span>
+          </div>
         </div>
-        <div className="mt-4"><div className="h-2 bg-slate-100 rounded-full overflow-hidden"><div className={`h-full ${barColor} transition-all`} style={{ width: `${barPct}%` }} /></div></div>
+        <div className="relative mt-4 max-w-[620px]"><div className="h-2 overflow-hidden rounded-full bg-slate-200/70"><div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${barPct}%` }} /></div></div>
 
         {/* Section 2 : Périmètre société — visible uniquement pour un commercial, séparateur explicite */}
         {isCommercial && companyCmp && (companyCmp.can_view_ca || companyCmp.can_view_objectif || companyCmp.can_view_progress) && (
@@ -514,7 +541,7 @@ export default function Dashboard() {
                 <div className="w-full border-t-2 border-dashed border-slate-200" />
               </div>
               <div className="relative flex justify-start">
-                <span className="bg-white pr-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Périmètre société</span>
+                <span className="bg-white/80 pr-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:bg-card/80">Périmètre société</span>
               </div>
             </div>
             <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-xs text-slate-500" data-testid="dashboard-ca-company">
