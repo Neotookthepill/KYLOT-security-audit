@@ -127,7 +127,7 @@ export default function SaleProfitability({ saleId }) {
   ];
 
   return (
-    <Card className={`mt-5 overflow-hidden border border-l-4 ${p.card}`} data-testid="sale-profitability">
+    <Card className={`mt-5 overflow-hidden border border-l-4 ${p.card}`} title="Seuils : rouge < 25 %, orange 25–40 %, vert ≥ 40 %. Gris = coûts incomplets." data-testid="sale-profitability">
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -148,7 +148,7 @@ export default function SaleProfitability({ saleId }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-[1.2fr_1fr] gap-3 mt-4">
           <div className="min-w-0">
-            <p className={`text-xs ${p.muted}`}>Marge restante</p>
+            <p className={`text-xs ${p.muted}`}>{data.costs_complete ? "Marge restante" : "Marge estimée"}</p>
             <p className={`font-display text-4xl font-semibold tracking-tight mt-0.5 ${p.title}`} data-testid="profitability-margin">{fmt(current.margin)}</p>
             <p className={`text-sm mt-1 ${p.muted}`}><b className={p.title}>{pct(current.percent)} %</b> du CA HT</p>
           </div>
@@ -203,6 +203,11 @@ export default function SaleProfitability({ saleId }) {
           </div>
         </details>
 
+        {!data.costs_complete && (
+          <p className={`mt-2 text-[10px] ${p.muted}`}>
+            Marge estimée tant que les coûts ne sont pas complets. Elle ne peut pas être validée.
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {!data.costs_complete && data.project_status && ["termine", "encaisse"].includes(data.project_status) && (
             <p className={`text-[11px] ${p.muted}`}>Complétez les coûts du chantier pour pouvoir valider la marge définitive.</p>
