@@ -580,7 +580,17 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
             </div>
             <div className="min-w-0">
               <Label>Durée (jours consécutifs)</Label>
-              <Input type="number" min={1} value={form.duration_days || 1} onChange={(e) => setForm({ ...form, duration_days: e.target.value })} data-testid="project-duration" />
+              <Input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={form.duration_days ?? ""}
+                onChange={(e) => setForm({ ...form, duration_days: e.target.value })}
+                onBlur={() => {
+                  if (form.duration_days === "" || Number(form.duration_days) < 1) setForm((prev) => ({ ...prev, duration_days: 1 }));
+                }}
+                data-testid="project-duration"
+              />
               <p className="text-[11px] text-slate-600 mt-1">Nombre de jours d'affilée à partir de la date de début.</p>
             </div>
           </div>
