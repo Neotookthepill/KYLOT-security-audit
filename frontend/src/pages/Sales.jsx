@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal, Columns3, MapPin } from "lucide-react";
+import { Download, Search, Target, Check, Pencil, Wallet, Banknote, Loader2, X, ChevronDown, ChevronRight, Calendar as CalIcon, Trash2, ListChecks, AlertTriangle, Sparkles, MoreHorizontal, Columns3, MapPin } from "lucide-react";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
@@ -1028,6 +1028,7 @@ export default function Sales() {
                     key={s.id}
                     className="data-row border-b border-slate-100 cursor-pointer"
                     onClick={() => setPanelSale(s)}
+                    title="Ouvrir le détail"
                     data-testid={`sale-row-${s.id}`}
                   >
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -1056,8 +1057,8 @@ export default function Sales() {
                       />
                     </td>
                     <td className="px-4 py-3 text-slate-900">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setPanelSale(s); }} className="text-left font-semibold hover:underline" aria-label={`Ouvrir le détail de la vente ${s.client_name || s.bdc || ""}`}>
-                        {s.client_name || "—"}
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setPanelSale(s); }} className="inline-flex items-center gap-0.5 text-left font-semibold text-slate-900 hover:text-primary hover:underline" title="Ouvrir le détail" aria-label={`Ouvrir le détail de la vente ${s.client_name || s.bdc || ""}`}>
+                        {s.client_name || "—"}<ChevronRight size={13} className="text-slate-400" aria-hidden="true" />
                       </button>
                       {(s.client_address || s.client_postal_code || s.client_city) && (
                         <div className="mt-1 text-[11px] font-normal text-slate-500">
