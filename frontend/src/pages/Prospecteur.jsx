@@ -11,6 +11,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { mgrBonusesFor, cleanMgrBonuses } from "@/components/ProspectMgrBonuses";
 import { primeForCount } from "@/components/ProspectBonuses";
 import { resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
+import { formatDateFR } from "@/lib/dateFormat";
 import { INACTIVE_SALE_STATUSES as INACTIVE, commissionMonth as comMonth, saleMonth, projectValidated, managerRatesFor, managerCommissionFor, buildManagerSummary } from "@/lib/prospectionCommission";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
@@ -417,9 +418,9 @@ export default function Prospecteur() {
               <tbody>
                 {deferredRows.map((r) => (
                   <tr key={r.id} className="border-b border-amber-100 last:border-0">
-                    <td className="py-2">{r.sale_date || "—"}</td>
+                    <td className="py-2">{r.sale_date ? formatDateFR(r.sale_date) : "—"}</td>
                     <td className="py-2">{r.client_name || "—"}</td>
-                    <td className="py-2">{r.project_date || "—"}</td>
+                    <td className="py-2">{r.project_date ? formatDateFR(r.project_date) : "—"}</td>
                     <td className="py-2 whitespace-nowrap font-medium text-amber-800" data-testid={`prospect-deferred-month-${r.id}`}>{monthLabel(comMonth(r))}</td>
                     <td className="py-2 text-right">{fmtEur2(r.amount)}</td>
                     <td className="py-2 text-right font-semibold text-amber-800">{fmtEur2(deferredCommission(r))}</td>
@@ -472,7 +473,7 @@ export default function Prospecteur() {
               const st = statusMap[r.status];
               return (
                 <tr key={r.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40" data-testid={`prospect-row-${r.id}`}>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-500">{r.sale_date ? new Date(r.sale_date).toLocaleDateString("fr-FR") : "—"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-slate-500">{r.sale_date ? formatDateFR(r.sale_date) : "—"}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold">{r.client_name || "—"}</p>
                     {r.client_phone && <PhoneNumbers value={r.client_phone} iconSize={11} className="text-xs text-slate-500 mt-0.5" />}

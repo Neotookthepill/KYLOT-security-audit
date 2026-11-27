@@ -1,13 +1,12 @@
 import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { formatDateFR } from "@/lib/dateFormat";
 import { CalendarDays, Clock, MapPin, Pencil, Sparkles } from "lucide-react";
 
 function formatDate(value) {
   if (!value) return "—";
-  const d = new Date(`${value}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString("fr-FR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+  return formatDateFR(value);
 }
 
 export default function EventDetailsDialog({ open, onOpenChange, event, canEdit = false, onEdit }) {

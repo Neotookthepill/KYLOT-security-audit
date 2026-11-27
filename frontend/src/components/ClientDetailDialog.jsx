@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { statusCountsCA } from "@/lib/workflows";
@@ -98,14 +99,14 @@ export default function ClientDetailDialog({ client, open, onOpenChange, onClien
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-slate-900">{s.sale_date}</span>
+                        <span className="font-semibold text-slate-900">{s.sale_date ? formatDateFR(s.sale_date) : "—"}</span>
                         {s.bdc && <span className="text-xs font-mono text-slate-600">· {s.bdc}</span>}
                         {s.commercial && <span className="text-xs text-slate-600">· par {s.commercial}</span>}
                       </div>
                       <div className="text-sm text-slate-700 mt-1">{s.service}</div>
                       <div className="flex flex-wrap gap-3 text-xs text-slate-600 mt-2">
                         <span>Règlement : <span className="font-medium text-slate-700">{formatPayment(s.payment_method, s.payment_installments)}</span></span>
-                        {s.desired_intervention_date && <span>Intervention : <span className="font-medium text-slate-700">{s.desired_intervention_date}</span></span>}
+                        {s.desired_intervention_date && <span>Intervention : <span className="font-medium text-slate-700">{s.desired_intervention_date ? formatDateFR(s.desired_intervention_date) : "—"}</span></span>}
                         <span>Comm. : <span className="font-medium text-slate-700">{formatRate(s.commission_rate)}</span></span>
                       </div>
                       {s.notes && <div className="text-xs text-slate-600 mt-1.5 italic">« {s.notes} »</div>}
@@ -140,7 +141,7 @@ export default function ClientDetailDialog({ client, open, onOpenChange, onClien
                       <Badge className={`border-0 ${r.status === "terminee" ? "bg-emerald-100 text-emerald-800" : "bg-orange-100 text-orange-800"}`}>
                         {r.status === "terminee" ? "Terminée" : "À faire"}
                       </Badge>
-                      <span className="font-semibold text-slate-900">{r.scheduled_date}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}</span>
+                      <span className="font-semibold text-slate-900">{r.scheduled_date ? formatDateFR(r.scheduled_date) : "—"}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}</span>
                       {r.technician_name && <span className="text-xs text-slate-600">→ {r.technician_name}</span>}
                     </div>
                     {r.note && <div className="text-sm text-slate-700 mt-1">{r.note}</div>}

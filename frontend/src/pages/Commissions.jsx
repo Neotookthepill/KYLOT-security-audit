@@ -14,6 +14,7 @@ import useTeam from "@/lib/useTeam";
 import { useSettings } from "@/contexts/SettingsContext";
 import { invalidateCommissionRatesCache } from "@/lib/useCommissionRates";
 import InlineCell from "@/components/InlineCell";
+import { formatDateFR } from "@/lib/dateFormat";
 import BonusesProgress from "@/components/BonusesProgress";
 import StatusManagerDialog from "@/components/StatusManagerDialog";
 import CommissionHistory from "@/components/CommissionHistory";
@@ -533,7 +534,7 @@ export default function Commissions() {
                   <tr key={`${r.sale_id}-${r.commercial_slot || 1}`} className={`border-b border-slate-100 ${r.commission_paid ? "bg-emerald-50/30" : ""}`} data-testid={`commission-row-${r.sale_id}${r.commercial_slot === 2 ? '-2' : ''}`}>
                     <td className="px-3 py-3 whitespace-nowrap text-slate-600">
                       <InlineCell type="date" value={r.sale_date || ""} disabled={!canEditCommissions}
-                        display={r.sale_date || <span className="text-slate-400 italic">—</span>}
+                        display={r.sale_date ? formatDateFR(r.sale_date) : <span className="text-slate-400 italic">—</span>}
                         onSave={(v) => patchSale(r.sale_id, { sale_date: v })}
                         testId={`commission-date-${r.sale_id}`} />
                     </td>

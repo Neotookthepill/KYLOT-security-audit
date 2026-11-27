@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useState, useMemo } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -90,7 +91,7 @@ export default function AbsencesDialog({ open, onOpenChange, onChanged }) {
   };
 
   const fmtRange = (a) => {
-    const dateRange = a.date_from === a.date_to ? a.date_from : `${a.date_from} → ${a.date_to}`;
+    const dateRange = a.date_from === a.date_to ? formatDateFR(a.date_from) : `${formatDateFR(a.date_from)} → ${formatDateFR(a.date_to)}`;
     if (!a.all_day && a.start_time && a.end_time) return `${dateRange} · ${a.start_time}–${a.end_time}`;
     return dateRange;
   };

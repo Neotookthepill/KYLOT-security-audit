@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Loader2, ShieldCheck, AlertTriangle, Check, X, Pencil, Ban, History, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { currentMonth, shiftMonth, monthLabel } from "@/lib/saleConstants";
+import { formatDateFR } from "@/lib/dateFormat";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import OvertimeAccessDialog from "@/components/OvertimeAccessDialog";
@@ -173,7 +174,7 @@ function RefuseDialog({ open, onOpenChange, entry, onDone }) {
         <DialogHeader>
           <DialogTitle>Refuser la saisie</DialogTitle>
           <DialogDescription>
-            {entry ? <>Vous refusez <b>{entry.hours}h</b> de <b>{entry.technician_name}</b> le <b>{entry.date}</b>. Le technicien sera notifié.</> : null}
+            {entry ? <>Vous refusez <b>{entry.hours}h</b> de <b>{entry.technician_name}</b> le <b>{formatDateFR(entry.date)}</b>. Le technicien sera notifié.</> : null}
           </DialogDescription>
         </DialogHeader>
         <div className="py-2">

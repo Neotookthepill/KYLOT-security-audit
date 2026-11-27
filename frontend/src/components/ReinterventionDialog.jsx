@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -255,7 +256,7 @@ export default function ReinterventionDialog({ open, onOpenChange, client, onCha
                   <Badge className={`border-0 ${r.status === "terminee" ? "bg-emerald-100 text-emerald-800" : "bg-orange-100 text-orange-800"}`}>
                     {r.status === "terminee" ? "Terminée" : "À faire"}
                   </Badge>
-                  <span>{r.scheduled_date}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}</span>
+                  <span>{r.scheduled_date ? formatDateFR(r.scheduled_date) : "—"}{r.scheduled_time ? ` · ${r.scheduled_time}` : ""}</span>
                   {r.technician_name && <span className="text-slate-500 text-xs">→ {r.technician_name}</span>}
                 </div>
                 {!client && r.client_name && <div className="text-xs text-slate-600 mt-0.5">{r.client_name}</div>}

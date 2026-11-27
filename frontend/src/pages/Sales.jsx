@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { SALE_STATUSES, STATUS_MAP, STATUS_COLOR_HEX, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
 import { statusCountsCA } from "@/lib/workflows";
+import { formatDateFR } from "@/lib/dateFormat";
 import { SALES_COLUMNS, DEFAULT_HIDDEN_COLUMNS } from "@/lib/salesColumns";
 import useTeam from "@/lib/useTeam";
 import { toast } from "sonner";
@@ -228,7 +229,7 @@ function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
   const st = statusMap?.[sale.status] || STATUS_MAP[sale.status];
   const src = SOURCE_MAP[sale.source];
   const fields = [
-    ["Date", sale.sale_date],
+    ["Date", formatDateFR(sale.sale_date)],
     ["BDC", sale.bdc],
     ["Client", sale.client_name],
     ["Téléphone", sale.client_phone],
@@ -1040,7 +1041,7 @@ export default function Sales() {
                         type="date"
                         value={s.sale_date}
                         disabled={!canInlineEdit(s)}
-                        display={s.sale_date || <span className="text-slate-400 italic">—</span>}
+                        display={s.sale_date ? formatDateFR(s.sale_date) : <span className="text-slate-400 italic">—</span>}
                         onSave={(v) => patchSale(s.id, { sale_date: v })}
                         testId={`sale-date-${s.id}`}
                       />
@@ -1166,7 +1167,7 @@ export default function Sales() {
                   <span className="mt-1 flex min-w-0 items-center gap-2 text-[10px] text-slate-500">
                     <StatusSelect sale={s} statuses={statuses} statusMap={statusMap} canEdit={canEditSaleAny} onChange={changeStatus} compact />
                     <Sale14DaysBadge sale={s} mobile />
-                    <span className="min-w-0 truncate">{s.sale_date || "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
+                    <span className="min-w-0 truncate">{s.sale_date ? formatDateFR(s.sale_date) : "—"} · {commercial}{s.is_de && s.commercial_2 ? ` + ${s.commercial_2}` : ""}</span>
                     <span className="ml-auto shrink-0">Détail ›</span>
                   </span>
                 </span>
@@ -1206,8 +1207,8 @@ export default function Sales() {
                   </div>
                 </SheetHeader>
                 <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                  <div><p className="overline">Date de vente</p><p className="mt-1 font-medium">{panelSale.sale_date || "—"}</p></div>
-                  <div><p className="overline">Intervention</p><p className="mt-1 font-medium">{panelSale.desired_intervention_date || "—"}</p></div>
+                  <div><p className="overline">Date de vente</p><p className="mt-1 font-medium">{panelSale.sale_date ? formatDateFR(panelSale.sale_date) : "—"}</p></div>
+                  <div><p className="overline">Intervention</p><p className="mt-1 font-medium">{panelSale.desired_intervention_date ? formatDateFR(panelSale.desired_intervention_date) : "—"}</p></div>
                   <div><p className="overline">BDC</p><p className="mt-1 font-mono text-xs">{panelSale.bdc || "—"}</p></div>
                   <div><p className="overline">Source</p><p className="mt-1 font-medium">{src?.label || panelSale.source || "—"}</p></div>
                   <div><p className="overline">Règlement</p><p className="mt-1 font-medium">{formatPayment(panelSale.payment_method, panelSale.payment_installments)}</p></div>

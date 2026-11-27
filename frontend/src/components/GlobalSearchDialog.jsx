@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "@/lib/api";
@@ -142,9 +143,9 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
                       </p>
                       <p className="text-xs text-slate-500 truncate">
                         {cat === "clients" && [it.city, it.postal_code, it.phone].filter(Boolean).join(" · ")}
-                        {cat === "sales" && [it.service, it.commercial, it.sale_date, it.amount ? `${it.amount} €` : ""].filter(Boolean).join(" · ")}
-                        {cat === "projects" && [it.city, it.status, it.scheduled_date].filter(Boolean).join(" · ")}
-                        {cat === "reinterventions" && [it.reason, it.assigned_to, it.scheduled_date].filter(Boolean).join(" · ")}
+                        {cat === "sales" && [it.service, it.commercial, formatDateFR(it.sale_date), it.amount ? `${it.amount} €` : ""].filter(Boolean).join(" · ")}
+                        {cat === "projects" && [it.city, it.status, formatDateFR(it.scheduled_date)].filter(Boolean).join(" · ")}
+                        {cat === "reinterventions" && [it.reason, it.assigned_to, formatDateFR(it.scheduled_date)].filter(Boolean).join(" · ")}
                         {cat === "users" && [it.email, it.role].filter(Boolean).join(" · ")}
                       </p>
                       {(cat === "clients" || cat === "projects") && (() => {
@@ -153,7 +154,7 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
                           : (Array.isArray(it.assigned_to) ? it.assigned_to : (it.assigned_to ? [it.assigned_to] : []));
                         const intervention = cat === "clients"
                           ? [it.intervention_date, it.intervention_status ? (PROJECT_STATUS_LABEL[it.intervention_status] || it.intervention_status) : null]
-                          : [it.scheduled_date, it.status ? (PROJECT_STATUS_LABEL[it.status] || it.status) : null];
+                          : [formatDateFR(it.scheduled_date), it.status ? (PROJECT_STATUS_LABEL[it.status] || it.status) : null];
                         return (
                           <>
                             {intervention.some(Boolean) && (

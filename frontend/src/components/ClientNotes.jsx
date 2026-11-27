@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
+import { formatDateTimeFR } from "@/lib/dateFormat";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StickyNote, Trash2, Loader2 } from "lucide-react";
@@ -56,7 +57,7 @@ export const ClientNotes = ({ clientId }) => {
                 <button type="button" onClick={() => remove(n.id)} className="text-slate-400 hover:text-red-600 transition-colors shrink-0" data-testid={`client-note-delete-${n.id}`} title="Supprimer"><Trash2 size={14} /></button>
               )}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">{n.author_name || "—"} · {new Date(n.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</p>
+            <p className="text-[11px] text-slate-500 mt-1">{n.author_name || "—"} · {formatDateTimeFR(n.created_at)}</p>
           </div>
         ))}
       </div>

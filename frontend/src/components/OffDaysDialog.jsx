@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useMemo, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -175,7 +176,7 @@ export default function OffDaysDialog({ open, onOpenChange, onChanged, month }) 
                   <Badge className={`border-0 ${o.scope === "company" ? "bg-slate-100 text-slate-700" : "bg-indigo-50 text-indigo-800"}`}>
                     {o.scope === "company" ? "Société" : (o.person_names || []).join(", ")}
                   </Badge>
-                  {o.date}
+                  {formatDateFR(o.date)}
                 </div>
                 {o.reason && <div className="text-xs text-slate-500 mt-0.5">{o.reason}</div>}
               </div>

@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useState, useCallback } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -92,7 +93,7 @@ export default function UnmatchedCommercialsDialog({ open, onOpenChange, onBound
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-t border-slate-100" data-testid={`unmatched-row-${r.id}`}>
-                    <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{r.sale_date}</td>
+                    <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{formatDateFR(r.sale_date)}</td>
                     <td className="px-3 py-2 font-medium">{r.client_name || "—"}</td>
                     <td className="px-3 py-2 text-slate-700 italic">{r.commercial || <span className="text-slate-400">—</span>}</td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">{fmtEur(r.amount)}</td>

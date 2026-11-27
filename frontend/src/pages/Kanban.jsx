@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useState, useMemo } from "react";
 import api, { downloadApiFile, formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -336,7 +337,7 @@ export default function Kanban() {
                         <span className="flex items-center gap-1 text-red-600 font-medium"><CalIcon size={11} /> En attente acceptation financement</span>
                       )}
                       {p.scheduled_date === "attente_14j" && p.sale_status !== "attente_fi" && <span className="flex items-center gap-1 text-amber-700 font-medium"><CalIcon size={11} /> En attente délai 14 jours</span>}
-                      {p.scheduled_date && !["attente_financement","attente_14j"].includes(p.scheduled_date) && p.sale_status !== "attente_fi" && <span className="flex items-center gap-1"><CalIcon size={11} /> {p.scheduled_date}</span>}
+                      {p.scheduled_date && !["attente_financement","attente_14j"].includes(p.scheduled_date) && p.sale_status !== "attente_fi" && <span className="flex items-center gap-1"><CalIcon size={11} /> {formatDateFR(p.scheduled_date)}</span>}
                     </div>
                     {(() => {
                       const list = Array.isArray(p.assigned_to) ? p.assigned_to : (p.assigned_to ? [p.assigned_to] : []);

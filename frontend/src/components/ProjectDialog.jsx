@@ -1,3 +1,4 @@
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api, { formatApiError } from "@/lib/api";
@@ -598,7 +599,7 @@ export default function ProjectDialog({ project, onClose, onSaved, contextDate =
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {form.extra_dates.map((d) => (
                     <span key={d} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-300 text-slate-800 text-xs px-2 py-1" data-testid={`project-extra-date-chip-${d}`}>
-                      {new Date(d + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" })}
+                      {formatDateFR(d)}
                       <button type="button" onClick={() => removeExtraDate(d)} className="text-slate-600 hover:text-red-600" aria-label={`Retirer ${d}`} data-testid={`project-extra-date-remove-${d}`}>
                         <X size={11} />
                       </button>

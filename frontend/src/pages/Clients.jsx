@@ -1,4 +1,5 @@
 import PhoneNumbers from "@/components/PhoneNumbers";
+import { formatDateFR } from "@/lib/dateFormat";
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api, { downloadApiFile, formatApiError } from "@/lib/api";
@@ -361,7 +362,7 @@ export default function Clients() {
                     </div>
                     {(c.intervention_date || c.intervention_status) && (
                       <div className="mt-0.5 text-[10px] text-slate-500">
-                        {[c.intervention_date, c.intervention_status === "en_cours" ? "Programmé" : c.intervention_status === "a_planifier" ? "À planifier" : c.intervention_status === "termine" ? "Terminé" : c.intervention_status].filter(Boolean).join(" · ")}
+                        {[c.intervention_date ? formatDateFR(c.intervention_date) : null, c.intervention_status === "en_cours" ? "Programmé" : c.intervention_status === "a_planifier" ? "À planifier" : c.intervention_status === "termine" ? "Terminé" : c.intervention_status].filter(Boolean).join(" · ")}
                       </div>
                     )}
                   </td>
