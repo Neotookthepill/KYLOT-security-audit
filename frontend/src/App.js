@@ -83,6 +83,30 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   const location = useLocation();
   useVersionPoll();
+  // Précharge les pages après connexion : évite le fallback « Chargement »
+  // quand on clique sur une entrée du menu (notamment Utilisateurs).
+  useEffect(() => {
+    if (!user) return undefined;
+    const load = () => {
+      [
+        () => import("@/pages/Users"),
+        () => import("@/pages/Sales"),
+        () => import("@/pages/Clients"),
+        () => import("@/pages/CalendarPage"),
+        () => import("@/pages/Commissions"),
+        () => import("@/pages/Prospecteur"),
+        () => import("@/pages/Stock"),
+        () => import("@/pages/Settings"),
+      ].forEach((fn) => fn().catch(() => {}));
+    };
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(load, { timeout: 2500 })
+      : window.setTimeout(load, 1200);
+    return () => {
+      if (window.cancelIdleCallback && typeof idle === "number") window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
+  }, [user]);
   // Pas de spinner plein écran avant la page de connexion : si aucune session
   // en cache et que l'on arrive sur la racine, on affiche directement /login.
   if (loading && !user && location.pathname === "/") {
