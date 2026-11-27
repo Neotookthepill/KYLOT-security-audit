@@ -807,16 +807,16 @@ export default function AIHelper() {
             )}
             <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { onFilesSelected(e.target.files); e.target.value = ""; }} data-testid="ai-camera-input" />
             <input ref={filesRef} type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={(e) => { onFilesSelected(e.target.files); e.target.value = ""; }} data-testid="ai-files-input" />
-            <div className="flex gap-2">
-              <div className="flex gap-1">
-                <button type="button" onClick={pickCamera} className="h-10 w-10 rounded-md border border-slate-200 text-slate-500 grid place-items-center hover:bg-slate-50" aria-label="Prendre une photo" data-testid="ai-camera-btn"><ImageIcon size={15} /></button>
-                <button type="button" onClick={pickFiles} className="h-10 w-10 rounded-md border border-slate-200 text-slate-500 grid place-items-center hover:bg-slate-50" aria-label="Joindre un fichier" data-testid="ai-attach-btn"><Paperclip size={15} /></button>
+            <div className="flex min-w-0 gap-1.5">
+              <div className="flex shrink-0 gap-1">
+                <button type="button" onClick={pickCamera} className="h-10 w-9 sm:w-10 rounded-md border border-slate-200 text-slate-500 grid place-items-center hover:bg-slate-50" aria-label="Prendre une photo" data-testid="ai-camera-btn"><ImageIcon size={15} /></button>
+                <button type="button" onClick={pickFiles} className="h-10 w-9 sm:w-10 rounded-md border border-slate-200 text-slate-500 grid place-items-center hover:bg-slate-50" aria-label="Joindre un fichier" data-testid="ai-attach-btn"><Paperclip size={15} /></button>
               </div>
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={listening ? "🎙️ Écoute en cours…" : (state.preview?.missing?.length ? "Réponds courtement…" : (attachments.length ? "Ex: Analyse ce devis, remplis la vente…" : (mode === "action" ? "Ex: Vente Kilian 5000€ 20% chez Dupont R1" : "Votre question…")))}
-                className="flex-1 h-10 px-3 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                placeholder={listening ? "🎙️ Écoute…" : (state.preview?.missing?.length ? "Réponds courtement…" : (attachments.length ? "Analyse ce devis…" : (mode === "action" ? "Décris la vente…" : "Votre question…")))}
+                className="min-w-0 flex-1 h-10 px-2.5 sm:px-3 rounded-md border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
                 data-testid="ai-input"
               />
               {/* iter69 : dictée vocale via SpeechRecognition (Web Speech API) — mobile-first, transcription live */}
@@ -826,13 +826,13 @@ export default function AIHelper() {
                   onClick={toggleDictation}
                   aria-label={listening ? "Arrêter la dictée" : "Dicter à l’assistant Qylot"}
                   title={listening ? "Arrêter la dictée" : "Dicter à l’assistant Qylot"}
-                  className={`h-10 w-10 rounded-md grid place-items-center transition ${listening ? "bg-red-600 text-white animate-pulse" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}
+                  className={`h-10 w-9 sm:w-10 shrink-0 rounded-md grid place-items-center transition ${listening ? "bg-red-600 text-white animate-pulse" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}
                   data-testid="ai-dictate-btn"
                 >
                   {listening ? <MicOff size={15} /> : <Mic size={15} />}
                 </button>
               )}
-              <button type="submit" disabled={loading || (!input.trim() && attachments.length === 0)} className="h-10 w-10 rounded-md bg-slate-900 text-white grid place-items-center disabled:opacity-50" data-testid="ai-send-btn">
+              <button type="submit" disabled={loading || (!input.trim() && attachments.length === 0)} className="h-10 w-9 sm:w-10 shrink-0 rounded-md bg-slate-900 text-white grid place-items-center disabled:opacity-50" data-testid="ai-send-btn">
                 <Send size={15} />
               </button>
             </div>
