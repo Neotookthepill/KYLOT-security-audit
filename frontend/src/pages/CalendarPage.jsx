@@ -254,12 +254,12 @@ export default function CalendarPage() {
           {(user?.role === "technicien" || user?.role === "sous_traitant") && <p className="text-sm text-slate-500 mt-2">Vous voyez uniquement vos chantiers.</p>}
           {isProspect && <p className="text-sm text-slate-500 mt-2" data-testid="calendar-prospect-note">Chantiers des clients issus de la prospection.</p>}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex w-full min-w-0 max-w-full items-center gap-2 flex-wrap">
           {canFilter && (
-            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
+            <div className="flex w-full min-w-0 max-w-full items-center gap-2 overflow-hidden sm:w-auto">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full min-w-0 max-w-full flex-1 overflow-hidden text-ellipsis whitespace-nowrap sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous les techniciens & sous-traitants</SelectItem>
                   <SelectItem value="__none">Non assignés</SelectItem>
