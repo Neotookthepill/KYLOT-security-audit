@@ -754,8 +754,11 @@ export default function Stock() {
               </div>
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div className="rounded-lg bg-slate-50 p-2.5">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Stock physique</p>
-                  <NumberEditor value={r.stock_disponible} onCommit={(n) => updateField(r, { stock_disponible: n })} disabled={!canEdit} testId={`m-stock-dispo-${r.product_key}`} label={`Stock physique ${r.product_name}`} />
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Stock dépôt</p>
+                  <NumberEditor value={r.stock_disponible} onCommit={(n) => updateField(r, { stock_disponible: n })} disabled={!canEdit} testId={`m-stock-dispo-${r.product_key}`} label={`Stock dépôt ${r.product_name}`} />
+                  <p className="mt-1 text-[10px] text-slate-500" title="Dépôt + matériel détenu par les techniciens">
+                    Total {r.stock_total ?? r.stock_disponible}{r.holders_total > 0 ? ` · tech. ${r.holders_total}` : ""}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-2.5">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Besoin chantiers</p>
@@ -785,7 +788,7 @@ export default function Stock() {
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline w-6"></th>
                 <th className="px-4 py-3 overline">Produit</th>
-                <th className="px-4 py-3 overline text-right">Stock physique</th>
+                <th className="px-4 py-3 overline text-right" title="Dépôt et total société, techniciens inclus">Stock dépôt / total</th>
                 <th className="px-4 py-3 overline text-right">Besoin chantiers</th>
                 <th className="px-4 py-3 overline text-right">À commander</th>
                 <th className="px-4 py-3 overline text-right" title="Seuil d'alerte stock bas (par produit) — 0 pour désactiver">Alerte ≤</th>
@@ -806,7 +809,7 @@ export default function Stock() {
                       <StatusDot status={r.status} />
                       {r.low_stock && (
                         <AlertCircle size={12} className="text-amber-600" aria-label="Stock bas (≤ 2)" data-testid={`stock-low-badge-${r.product_key}`}>
-                          <title>Stock bas — plus que {r.stock_disponible} unité(s) au dépôt</title>
+                          <title>Stock bas — {r.stock_total ?? r.stock_disponible} unité(s) au total</title>
                         </AlertCircle>
                       )}
                     </div>
@@ -818,8 +821,11 @@ export default function Stock() {
                       onCommit={(n) => updateField(r, { stock_disponible: n })}
                       disabled={!canEdit}
                       testId={`stock-dispo-${r.product_key}`}
-                      label={`Stock physique ${r.product_name}`}
+                      label={`Stock dépôt ${r.product_name}`}
                     />
+                    <p className="mt-1 text-[10px] text-slate-500" title="Dépôt + matériel détenu par les techniciens">
+                      Total {r.stock_total ?? r.stock_disponible}{r.holders_total > 0 ? ` · tech. ${r.holders_total}` : ""}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-right">
                     {(() => {

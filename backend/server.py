@@ -12696,6 +12696,10 @@ async def list_stock(
             "commande_en_cours": int(r.get("commande_en_cours") or 0),
             # iter57 : liste des emplacements (techniciens / dépôt) qui détiennent ce produit
             "holders": list(r.get("holders") or []),
+            # Le stock société se lit en deux endroits : le dépôt et les techniciens.
+            # On expose le total pour que la couverture et l'affichage ne l'ignorent plus.
+            "holders_total": _holders_total(list(r.get("holders") or [])),
+            "stock_total": int(r.get("stock_disponible") or 0) + _holders_total(list(r.get("holders") or [])),
             # iter65 : overrides manuels stockés sur la ligne
             "manual_overrides": dict(r.get("manual_overrides") or {}),
             # iter75 : seuil d'alerte configurable par produit (défaut 2, 0 = alerte désactivée)
@@ -12725,8 +12729,9 @@ async def list_stock(
     for k, m in merged.items():
         overrides = m.get("manual_overrides") or {}
         besoin_auto = m["besoin"]
-        reste_auto = max(0, besoin_auto - m["stock_disponible"] - m["commande_en_cours"])
-        prev_auto = m["stock_disponible"] + m["commande_en_cours"] - besoin_auto
+        stock_total = int(m.get("stock_total") or 0)
+        reste_auto = max(0, besoin_auto - stock_total - m["commande_en_cours"])
+        prev_auto = stock_total + m["commande_en_cours"] - besoin_auto
 
         # Apply overrides
         besoin_eff = int(overrides["besoin"]["value"]) if "besoin" in overrides else besoin_auto
@@ -12736,14 +12741,16 @@ async def list_stock(
         # Status derived from effective values (respect admin overrides)
         if reste_eff > 0:
             status = "red"
-        elif m["commande_en_cours"] > 0 and m["stock_disponible"] < besoin_eff:
+        elif m["commande_en_cours"] > 0 and stock_total < besoin_eff:
             status = "orange"
         else:
             status = "green"
 
         # iter75 : alerte stock bas — seuil configurable PAR PRODUIT (défaut 2). Seuil=0 → alerte désactivée.
         threshold = int(m.get("low_stock_threshold") if m.get("low_stock_threshold") is not None else 2)
-        low_stock = threshold > 0 and 0 < int(m["stock_disponible"] or 0) <= threshold
+        # Le seuil porte sur le stock total (dépôt + techniciens) et zéro compte :
+        # un produit absent du dépôt et des camions doit déclencher une alerte.
+        low_stock = threshold > 0 and stock_total <= threshold
 
         m["besoin"] = besoin_eff
         m["besoin_auto"] = besoin_auto
@@ -12751,6 +12758,8 @@ async def list_stock(
         m["stock_previsionnel_auto"] = prev_auto
         m["reste_a_commander"] = reste_eff
         m["reste_a_commander_auto"] = reste_auto
+        m["stock_total"] = stock_total
+        m["holders_total"] = int(m.get("holders_total") or 0)
         m["status"] = status
         m["low_stock"] = low_stock
         m["low_stock_threshold"] = threshold
@@ -12830,6 +12839,8 @@ async def list_stock(
                     "product_name": row.get("product_name"),
                     "product_key": row.get("product_key"),
                     "qty": company_qty,
+                    "stock_total": row.get("stock_total", company_qty),
+                    "holders_total": row.get("holders_total", 0),
                     "commande_en_cours": row.get("commande_en_cours", 0),
                     "besoin": row.get("besoin", 0),
                     "status": row.get("status"),
