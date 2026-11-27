@@ -909,8 +909,8 @@ export default function Dashboard() {
         </button>
         <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Panier moyen</p>
-            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">par vente</span></p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
               {data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}
             </p>
           </div>
