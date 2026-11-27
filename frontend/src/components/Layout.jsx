@@ -171,30 +171,32 @@ export default function Layout() {
 
       {!isSuper && (
         <div className={cn("qy-sidebar-search shrink-0 px-3 pt-3", compact && "px-2")}>
-          {canCreateSale && (
-            <button
-              type="button"
-              onClick={() => { closeMobile(); setNewSaleOpen(true); }}
-              data-testid="sidebar-quick-create"
-              className={cn("qy-quick-create flex w-full items-center justify-center gap-2 rounded-[10px] px-3 py-2.5 text-[13px] font-semibold", compact && "px-0")}
-              title="Nouvelle vente"
-            >
-              <Plus size={16} strokeWidth={2.2} />
-              {!compact && "Nouvelle vente"}
-            </button>
-          )}
-          {!compact && (
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              data-testid="sidebar-search"
-              className="mt-2 flex w-full items-center gap-2 rounded-[10px] border border-white/[.08] bg-white/[.035] px-3 py-2 text-left text-[12px] text-white/65 hover:border-white/15 hover:text-white/75"
-            >
-              <Search size={14} />
-              <span className="flex-1">Rechercher…</span>
-              <kbd className="rounded border border-white/10 px-1 py-0.5 text-[9px] text-white/60">⌘K</kbd>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {canCreateSale && (
+              <button
+                type="button"
+                onClick={() => { closeMobile(); setNewSaleOpen(true); }}
+                data-testid="sidebar-quick-create"
+                className={cn("qy-quick-create grid h-9 w-9 shrink-0 place-items-center rounded-[9px] px-0", compact && "w-full")}
+                title="Nouvelle vente"
+                aria-label="Nouvelle vente"
+              >
+                <Plus size={17} strokeWidth={2.3} />
+              </button>
+            )}
+            {!compact && (
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                data-testid="sidebar-search"
+                className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-[9px] border border-white/15 bg-white/[.055] px-2.5 text-left text-[12px] text-white/75 hover:border-white/25 hover:text-white"
+              >
+                <Search size={14} className="shrink-0" />
+                <span className="flex-1 truncate">Rechercher…</span>
+                <kbd className="rounded border border-white/15 px-1 py-0.5 text-[9px] text-white/65">⌘K</kbd>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
