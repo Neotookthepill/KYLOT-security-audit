@@ -5,6 +5,7 @@ import { Wallet, Banknote, CalendarDays } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import useTeam from "@/lib/useTeam";
 import { SOURCES } from "@/lib/saleConstants";
+import { formatDateFR } from "@/lib/dateFormat";
 import { CommercialRow } from "@/pages/Sales";
 
 const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n || 0);
@@ -101,10 +102,10 @@ export default function SalesTable() {
             {p.l}
           </button>
         ))}
-        <span className="text-xs text-slate-500">{bounds.from === bounds.to ? bounds.from : `${bounds.from} → ${bounds.to}`}</span>
+        <span className="text-xs text-slate-500">{bounds.from === bounds.to ? formatDateFR(bounds.from) : `${formatDateFR(bounds.from)} → ${formatDateFR(bounds.to)}`}</span>
       </div>
       <p className="mb-4 text-[11px] text-slate-500">
-        Objectif période = objectif annuel du commercial × jours de la période / 365. L’objectif annuel enregistré n’est pas modifié.
+        Objectif période = objectif annuel × jours de la période / 365. L’objectif annuel enregistré n’est pas modifié.
       </p>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="commercials-summary">
@@ -116,7 +117,7 @@ export default function SalesTable() {
             <span className="flex items-center gap-1"><Banknote size={12} /> Financement</span>
           </div>
         </div>
-        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau défilant">
+        <div className="hidden overflow-x-auto md:block" tabIndex={0} role="region" aria-label="Tableau défilant">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
@@ -138,6 +139,44 @@ export default function SalesTable() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="divide-y divide-slate-100 md:hidden" data-testid="commercials-mobile-list">
+          {loading && <p className="p-6 text-center text-sm text-slate-500">Chargement…</p>}
+          {!loading && rows.length === 0 && <p className="p-6 text-center text-sm text-slate-500">Aucune vente sur la période.</p>}
+          {!loading && rows.map((c) => {
+            const target = Math.round((c.objectif || 0) * objectiveRatio);
+            const pct = target > 0 ? Math.min(100, Math.round((c.ca / target) * 100)) : 0;
+            const reached = target > 0 && c.ca >= target;
+            return (
+              <div key={`mobile-${c.name}`} className="p-4 space-y-3" data-testid={`commercial-mobile-${c.name}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{c.name}</p>
+                    <p className="text-[11px] text-slate-500">{c.count} vente{c.count > 1 ? "s" : ""}</p>
+                  </div>
+                  <p className="font-display text-xl font-semibold whitespace-nowrap">{fmtEur(c.ca)}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-500">Objectif période</p>
+                    <p className="mt-0.5 font-semibold">{target > 0 ? fmtEur(target) : "Non défini"}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-500">Progression</p>
+                    <p className={`mt-0.5 font-semibold ${reached ? "text-emerald-700" : "text-slate-900"}`}>{target > 0 ? `${Math.round((c.ca / target) * 100)} %` : "—"}</p>
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full ${reached ? "bg-gradient-to-r from-emerald-500 to-teal-400" : "bg-gradient-to-r from-indigo-500 to-violet-500"}`} style={{ width: `${pct}%` }} />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500">
+                  <span>{fmtEur(c.comptant)} comptant</span>
+                  <span>{fmtEur(c.financement)} financement</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Card>
       <p className="mt-3 text-xs text-slate-500">Total affiché : {fmtEur(rows.reduce((a, c) => a + (c.ca || 0), 0))} · {rows.reduce((a, c) => a + (c.count || 0), 0)} vente(s)</p>
