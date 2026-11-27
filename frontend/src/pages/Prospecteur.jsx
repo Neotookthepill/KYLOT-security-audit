@@ -310,6 +310,8 @@ export default function Prospecteur() {
     .filter((r) => !q || norm(`${r.client_name} ${r.client_city} ${r.service} ${r.prospecteur_name}`).includes(norm(q))), [periodVisible, filter, q]);
   const caRows = visible.filter((r) => inSale(r) && !INACTIVE.includes(r.status));
   const payRows = visible.filter((r) => inCom(r) && !INACTIVE.includes(r.status));
+  const periodClientCount = new Set(visible.map((r) => r.client_id || r.client_name)).size;
+  const periodClientCountWithoutCanceled = new Set(caRows.map((r) => r.client_id || r.client_name)).size;
   const totalCA = caRows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
   const threshold = parseInt(settings?.prospect_smic_threshold ?? 3, 10) || 3;
   const baseAmt = parseFloat(settings?.prospect_smic_amount ?? 1867) || 0;
@@ -357,11 +359,11 @@ export default function Prospecteur() {
       </div>
 
       <PeriodFilter period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom}
-        customTo={customTo} setCustomTo={setCustomTo} label={bounds.label} count={visible.length} />
+        customTo={customTo} setCustomTo={setCustomTo} label={bounds.label} count={periodClientCount} />
 
       <div className={`grid grid-cols-1 gap-4 ${isManager ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
         {isManager && <Stat label="CA généré" value={fmtEur(totalCA)} icon={Euro} testId="prospect-stat-ca" />}
-        <Stat label="Clients" value={caRows.length} icon={UsersIcon} testId="prospect-stat-clients" />
+        <Stat label="Clients" value={periodClientCountWithoutCanceled} icon={UsersIcon} testId="prospect-stat-clients" />
         <Stat label="Ventes en commission" value={payRows.length} icon={UserSearch} testId="prospect-stat-active" />
         <Stat label="Rémunération" value={fmtEur(totalPay)} icon={Euro} testId="prospect-stat-commission" />
         {isManager && singleMonth && <Stat label="Commission resp. réelle" value={fmtEur(actualMgr)} icon={Euro} testId="prospect-mgr-real" />}
