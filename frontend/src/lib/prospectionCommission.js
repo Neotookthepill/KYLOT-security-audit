@@ -41,19 +41,22 @@ export function managerCommissionFor(row, rates) {
  * @param {object} p
  * @param {Array} p.rows toutes les ventes, sans filtre prospecteur
  * @param {Array} p.visible ventes de la période affichée
- * @param {string} p.fromMonth premier mois de la période (YYYY-MM)
- * @param {string} p.endMonth dernier mois de la période (YYYY-MM)
+ * @param {string} p.fromDate premier jour de la période (YYYY-MM-DD)
+ * @param {string} p.toDate dernier jour de la période (YYYY-MM-DD)
+ * @param {string} p.fromMonth premier mois (info palier)
+ * @param {string} p.endMonth dernier mois (info palier)
  * @param {number} p.goal p.below p.above
  */
-export function buildManagerSummary({ rows, visible, fromMonth, endMonth, goal = 12, below = 1, above = 2 }) {
+export function buildManagerSummary({ rows, visible, fromDate, toDate, fromMonth, endMonth, goal = 12, below = 1, above = 2 }) {
   const activeRows = rows.filter(isActive);
   const rates = managerRatesFor(activeRows, goal, below, above);
   // Les ventes retenues sont celles SIGNÉES dans la période, même si la page
   // les affiche aussi à cause de leur mois de paiement reporté.
   const signed = visible.filter((row) => {
     if (!isActive(row)) return false;
-    const month = saleMonth(row);
-    return (!fromMonth || month >= fromMonth) && month <= endMonth;
+    const day = String(row.sale_date || "").slice(0, 10);
+    // Période exacte (jour/semaine/mois), pas seulement le mois de la carte.
+    return (!fromDate || day >= fromDate) && (!toDate || day <= toDate);
   });
   const deferredRows = signed.filter((row) => commissionMonth(row) > endMonth);
   const pendingRows = signed.filter((row) => commissionMonth(row) <= endMonth && !projectValidated(row));

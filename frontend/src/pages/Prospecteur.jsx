@@ -322,7 +322,7 @@ export default function Prospecteur() {
   // Un seul moteur : mêmes règles pour le palier, la commission et la
   // répartition payable / reportée / en attente que la page Commissions.
   const managerSummary = buildManagerSummary({
-    rows, visible: periodVisible, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
+    rows, visible: periodVisible, fromDate: bounds.from, toDate: bounds.to, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
   });
   const managerRates = managerSummary.rates;
   const managerSignedRows = managerSummary.signedRows;
