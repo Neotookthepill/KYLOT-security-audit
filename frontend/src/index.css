@@ -417,12 +417,30 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-dashboard-hero .qy-hero-button:hover { background: rgba(255,255,255,.16) !important; }
 .qy-dashboard-hero .qy-hero-button-primary { background: #fff !important; color: #0b1220 !important; }
 .qy-dashboard-hero .qy-hero-button-primary:hover { background: #e8edff !important; }
-.qy-kpi-sales { border-color: transparent !important; background: linear-gradient(135deg, #4f46e5, #7c3aed) !important; color: #fff !important; }
-.qy-kpi-alerts { border-color: transparent !important; background: linear-gradient(135deg, #f59e0b, #ea580c) !important; color: #fff !important; }
-.qy-kpi-agenda { border-color: transparent !important; background: linear-gradient(135deg, #059669, #0d9488) !important; color: #fff !important; }
-.qy-kpi-sales .text-muted-foreground, .qy-kpi-alerts .text-muted-foreground, .qy-kpi-agenda .text-muted-foreground { color: rgba(255,255,255,.76) !important; }
-.qy-kpi-sales .mt-1, .qy-kpi-alerts .mt-1, .qy-kpi-agenda .mt-1 { color: #fff !important; }
-.qy-kpi-sales span, .qy-kpi-alerts span, .qy-kpi-agenda span { border-color: rgba(255,255,255,.2); }
+.qy-kpi-sales {
+  border-color: rgba(99, 102, 241, .28) !important;
+  background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 58%, #ddd6fe 100%) !important;
+  color: #1e1b4b !important;
+}
+.qy-kpi-alerts {
+  border-color: rgba(245, 158, 11, .32) !important;
+  background: linear-gradient(135deg, #fffbeb 0%, #fde68a 58%, #fed7aa 100%) !important;
+  color: #7c2d12 !important;
+}
+.qy-kpi-agenda {
+  border-color: rgba(16, 185, 129, .30) !important;
+  background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 58%, #ccfbf1 100%) !important;
+  color: #064e3b !important;
+}
+.qy-kpi-sales .text-muted-foreground { color: rgba(30, 27, 75, .70) !important; }
+.qy-kpi-alerts .text-muted-foreground { color: rgba(124, 45, 18, .72) !important; }
+.qy-kpi-agenda .text-muted-foreground { color: rgba(6, 78, 59, .70) !important; }
+.qy-kpi-sales .mt-1 { color: #1e1b4b !important; }
+.qy-kpi-alerts .mt-1 { color: #7c2d12 !important; }
+.qy-kpi-agenda .mt-1 { color: #064e3b !important; }
+.qy-kpi-sales span { background-color: rgba(255,255,255,.50) !important; color: #312e81 !important; border-color: rgba(99,102,241,.22); }
+.qy-kpi-alerts span { background-color: rgba(255,255,255,.55) !important; color: #9a3412 !important; border-color: rgba(245,158,11,.25); }
+.qy-kpi-agenda span { background-color: rgba(255,255,255,.55) !important; color: #047857 !important; border-color: rgba(16,185,129,.25); }
 @media (max-width: 640px) {
   .qy-dashboard-hero { padding: 1rem; border-radius: 12px; }
 }
