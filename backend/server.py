@@ -8505,8 +8505,8 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
     completed_costs = bool(p.get("costs_complete"))
     finalized = bool(p.get("finalized_at"))
     # La marge définitive n'est disponible qu'après validation explicite.
-    final_available = bool(finalized and project_done)
-    stage = "final" if final_available else ("provisional" if project_done else "forecast")
+    final_available = bool(finalized and project_done and completed_costs)
+    stage = "final" if final_available else ("provisional" if project_done and completed_costs else "forecast")
     percent = lambda m: round((m / amount * 100), 1) if amount else 0
     margin_pct = percent(final_margin if finalized else forecast_margin)
     color = "gray" if not completed_costs else ("green" if margin_pct >= 40 else "amber" if margin_pct >= 25 else "red")

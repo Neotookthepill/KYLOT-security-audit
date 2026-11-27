@@ -204,7 +204,10 @@ export default function SaleProfitability({ saleId }) {
         </details>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {!data.finalized && data.stage === "provisional" && canEdit && (
+          {!data.costs_complete && data.project_status && ["termine", "encaisse"].includes(data.project_status) && (
+            <p className={`text-[11px] ${p.muted}`}>Complétez les coûts du chantier pour pouvoir valider la marge définitive.</p>
+          )}
+          {!data.finalized && data.stage === "provisional" && data.costs_complete && canEdit && (
             <Button size="sm" onClick={() => save(true)} disabled={saving} className="flex-1 min-w-[180px]" data-testid="profitability-finalize-btn">
               <TrendingUp size={13} className="mr-1.5" /> Valider la marge définitive
             </Button>
