@@ -9,7 +9,7 @@ import {
   Bell, ArrowRight, ArrowUp, ArrowDown, Percent, Wallet, Sparkles,
   CalendarClock, GripVertical, EyeOff, Eye, RotateCcw, Settings2, Plus, Check,
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, CalendarDays, X, User as UserIcon, UserCheck, UserX,
-  Maximize2,
+  Maximize2, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import NewSaleSheet from "@/components/NewSaleSheet";
@@ -885,7 +885,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
@@ -902,10 +902,19 @@ export default function Dashboard() {
         </button>
         <button type="button" onClick={() => nav("/planning")} className="qy-kpi qy-kpi-agenda group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
+        </button>
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Panier moyen</p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">
+              {data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}
+            </p>
+          </div>
+          <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--info-soft))] text-[hsl(var(--info))] sm:grid"><Receipt size={16} /></span>
         </button>
       </div>
 

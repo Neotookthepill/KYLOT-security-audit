@@ -423,17 +423,25 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   color: #1e1b4b !important;
 }
 .qy-kpi-alerts {
-  border-color: rgba(245, 158, 11, .32) !important;
-  background: linear-gradient(135deg, #fffbeb 0%, #fde68a 58%, #fed7aa 100%) !important;
+  border-color: rgba(251, 146, 60, .26) !important;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 58%, #fecdd3 100%) !important;
   color: #7c2d12 !important;
 }
+.qy-kpi-basket {
+  border-color: rgba(14, 165, 233, .26) !important;
+  background: linear-gradient(135deg, #f0f9ff 0%, #bae6fd 58%, #cffafe 100%) !important;
+  color: #0c4a6e !important;
+}
+.qy-kpi-basket .text-muted-foreground { color: rgba(12, 74, 110, .70) !important; }
+.qy-kpi-basket .mt-1 { color: #0c4a6e !important; }
+.qy-kpi-basket span { background-color: rgba(255,255,255,.55) !important; color: #0369a1 !important; border-color: rgba(14,165,233,.25); }
 .qy-kpi-agenda {
   border-color: rgba(16, 185, 129, .30) !important;
   background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 58%, #ccfbf1 100%) !important;
   color: #064e3b !important;
 }
 .qy-kpi-sales .text-muted-foreground { color: rgba(30, 27, 75, .70) !important; }
-.qy-kpi-alerts .text-muted-foreground { color: rgba(124, 45, 18, .72) !important; }
+.qy-kpi-alerts .text-muted-foreground { color: rgba(124, 45, 18, .68) !important; }
 .qy-kpi-agenda .text-muted-foreground { color: rgba(6, 78, 59, .70) !important; }
 .qy-kpi-sales .mt-1 { color: #1e1b4b !important; }
 .qy-kpi-alerts .mt-1 { color: #7c2d12 !important; }
