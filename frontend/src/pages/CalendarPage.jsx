@@ -256,7 +256,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {canFilter && (
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
@@ -288,9 +288,9 @@ export default function CalendarPage() {
               </Button>
             </>
           )}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex w-full min-w-0 max-w-full items-center gap-2 justify-between sm:w-auto sm:justify-start">
             <Button variant="outline" size="icon" onClick={() => shift(-1)} data-testid="cal-prev" aria-label="Mois précédent"><ChevronLeft size={16} /></Button>
-            <div className="font-display text-lg font-semibold sm:w-44 text-center capitalize">{MONTHS[cursor.m]} {cursor.y}</div>
+            <div className="min-w-0 flex-1 truncate text-center font-display text-lg font-semibold capitalize sm:w-44 sm:flex-none">{MONTHS[cursor.m]} {cursor.y}</div>
             <Button variant="outline" size="icon" onClick={() => shift(1)} data-testid="cal-next" aria-label="Mois suivant"><ChevronRight size={16} /></Button>
           </div>
         </div>
