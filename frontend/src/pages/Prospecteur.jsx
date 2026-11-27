@@ -459,15 +459,14 @@ export default function Prospecteur() {
               <th className="px-4 py-3 overline">Ville</th>
               {isManager && <th className="px-4 py-3 overline">Prestation</th>}
               {isManager && <th className="px-4 py-3 overline text-right">Montant</th>}
-              {isManager && <th className="px-4 py-3 overline">Prospecteur</th>}
+              {isManager && <th className="px-4 py-3 overline">Prospecteur<span className="mt-0.5 block text-[9px] font-normal normal-case tracking-normal text-slate-400">Mois de paiement</span></th>}
               <th className="px-4 py-3 overline">Statut</th>
-              <th className="px-4 py-3 overline">Mois com.</th>
               <th className="px-4 py-3 overline text-right">Commission</th>
             </tr>
           </thead>
           <tbody>
             {!loading && visible.length === 0 && (
-              <tr><td colSpan={9} className="p-8 text-center text-slate-500" data-testid="prospect-empty">Aucun client pour le moment.</td></tr>
+              <tr><td colSpan={isManager ? 8 : 5} className="p-8 text-center text-slate-500" data-testid="prospect-empty">Aucun client pour le moment.</td></tr>
             )}
             {visible.map((r) => {
               const st = statusMap[r.status];
@@ -481,11 +480,17 @@ export default function Prospecteur() {
                   <td className="px-4 py-3 text-slate-600">{[r.client_postal_code, r.client_city].filter(Boolean).join(" ") || "—"}</td>
                   {isManager && <td className="px-4 py-3 text-slate-600 max-w-[220px] truncate" title={r.service}>{r.service || "—"}</td>}
                   {isManager && <td className="px-4 py-3 text-right whitespace-nowrap font-medium" data-testid={`prospect-amount-${r.id}`}>{fmtEur(r.amount)}</td>}
-                  {isManager && <td className="px-4 py-3 whitespace-nowrap">{r.prospecteur_name}</td>}
+                  {isManager && (
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div>{r.prospecteur_name || "—"}</div>
+                      <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
+                        <span>Paiement</span><ComMonthCell row={r} editable={canEdit} onSaved={onSaved} />
+                      </div>
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${st?.cls || "bg-slate-100 text-slate-700"}`} data-testid={`prospect-status-${r.id}`}>{st?.label || r.status}</span>
                   </td>
-                  <td className="px-4 py-3"><ComMonthCell row={r} editable={canEdit} onSaved={onSaved} /></td>
                   <td className="px-4 py-3 text-right"><CommissionCell row={r} editable={canEdit} onSaved={onSaved} /></td>
                 </tr>
               );
