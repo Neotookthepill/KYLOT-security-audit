@@ -138,12 +138,13 @@ export default function Users() {
 
   return (
     <div className="p-4 md:p-8 max-w-[1200px]">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-6">
+        <div className="min-w-0">
           <p className="overline">Comptes et droits d’accès</p>
           <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Utilisateurs & permissions</h1>
           <p className="text-sm text-slate-500 mt-2">Créez des comptes et personnalisez précisément les droits de chaque utilisateur.</p>
         </div>
+<div className="flex flex-wrap gap-2">
         <Dialog open={inviteOpen} onOpenChange={(v) => { setInviteOpen(v); if (!v) setInviteLink(""); }}>
           <DialogTrigger asChild>
             <Button variant="outline" data-testid="invite-user-btn">Inviter un utilisateur</Button>
@@ -233,6 +234,7 @@ export default function Users() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
