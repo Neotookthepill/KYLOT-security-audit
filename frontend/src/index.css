@@ -417,6 +417,49 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-dashboard-hero .qy-hero-button:hover { background: rgba(255,255,255,.16) !important; }
 .qy-dashboard-hero .qy-hero-button-primary { background: #fff !important; color: #0b1220 !important; }
 .qy-dashboard-hero .qy-hero-button-primary:hover { background: #e8edff !important; }
+/* Modules Commissions / Prospection : KPI colorés cohérents avec le dashboard. */
+.qy-page [data-testid="stat-commissions-total"],
+.qy-page [data-testid="prospect-stat-ca"] {
+  background: linear-gradient(135deg, #eef2ff, #c7d2fe) !important;
+  border-color: rgba(99,102,241,.25) !important;
+}
+.qy-page [data-testid="stat-commissions-topay"],
+.qy-page [data-testid="prospect-stat-active"] {
+  background: linear-gradient(135deg, #fff7ed, #fed7aa) !important;
+  border-color: rgba(245,158,11,.25) !important;
+}
+.qy-page [data-testid="stat-commissions-paid"],
+.qy-page [data-testid="prospect-stat-commission"] {
+  background: linear-gradient(135deg, #ecfdf5, #a7f3d0) !important;
+  border-color: rgba(16,185,129,.25) !important;
+}
+.qy-page [data-testid="prospect-stat-clients"] {
+  background: linear-gradient(135deg, #f5f3ff, #ddd6fe) !important;
+  border-color: rgba(139,92,246,.22) !important;
+}
+.qy-page [data-testid="prospect-mgr-real"] {
+  background: linear-gradient(135deg, #f0f9ff, #bae6fd) !important;
+  border-color: rgba(14,165,233,.22) !important;
+}
+.qy-page [data-testid="prospect-mgr-deferred"] {
+  background: linear-gradient(135deg, #fff7ed, #fecdd3) !important;
+  border-color: rgba(251,113,133,.22) !important;
+}
+.qy-page [data-testid="stat-commissions-total"] > div > div:last-child,
+.qy-page [data-testid="stat-commissions-topay"] > div > div:last-child,
+.qy-page [data-testid="stat-commissions-paid"] > div > div:last-child,
+.qy-page [data-testid^="prospect-stat-"] > div > div:last-child,
+.qy-page [data-testid^="prospect-mgr-"] > div > div:last-child {
+  background: rgba(255,255,255,.55) !important;
+  color: #334155 !important;
+}
+.qy-page [data-testid="stat-commissions-total"] .overline,
+.qy-page [data-testid="prospect-stat-ca"] .overline { color: #3730a3 !important; }
+.qy-page [data-testid="stat-commissions-topay"] .overline,
+.qy-page [data-testid="prospect-stat-active"] .overline { color: #9a3412 !important; }
+.qy-page [data-testid="stat-commissions-paid"] .overline,
+.qy-page [data-testid="prospect-stat-commission"] .overline { color: #065f46 !important; }
+
 .qy-kpi-sales {
   border-color: rgba(99, 102, 241, .28) !important;
   background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 58%, #ddd6fe 100%) !important;
