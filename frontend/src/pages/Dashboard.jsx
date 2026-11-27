@@ -753,7 +753,7 @@ export default function Dashboard() {
       };
       return (
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="dashboard-ranking">
-        <div className="p-4 border-b border-slate-200 flex items-center gap-2"><Trophy size={16} className="text-primary" /><p className="font-display text-base font-semibold">Classement commercial</p><span className="ml-auto text-xs text-slate-500">{PERIODS.find((p) => p.key === period)?.label}</span></div>
+        <div className="p-4 border-b border-slate-200 flex items-center gap-2"><Trophy size={16} className="text-primary" /><p className="font-display text-base font-semibold">Classement commercial</p><span className="text-xs text-slate-500">{PERIODS.find((p) => p.key === period)?.label}</span><button type="button" onClick={() => !editing && nav("/tableau-ventes")} className="ml-auto text-xs font-medium text-slate-500 hover:text-slate-900" data-testid="ranking-open-table">Voir le tableau →</button></div>
         <div className="divide-y divide-slate-100">
           {(!data?.ranking || data.ranking.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour la période.</p>}
           {data?.ranking?.map((r, i) => (
@@ -907,7 +907,7 @@ export default function Dashboard() {
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => nav("/tableau-ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">par vente</span></p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
