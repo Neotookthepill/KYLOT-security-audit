@@ -706,30 +706,6 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 }
 
 
-/* Dashboard : colonnes fluides pour éviter les grands trous sous les cartes courtes. */
-@media (min-width: 1024px) {
-  .qy-dashboard [data-testid="dashboard-grid"] {
-    display: block;
-    column-count: 2;
-    column-gap: 1.5rem;
-  }
-  .qy-dashboard [data-testid="dashboard-grid"] > div {
-    display: inline-block;
-    width: 100%;
-    margin: 0 0 1.5rem;
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .qy-dashboard [data-widget-key="ca_hero"],
-  .qy-dashboard [data-widget-key="challenge"],
-  .qy-dashboard [data-widget-key="activity"],
-  .qy-dashboard [data-widget-key="ranking"] {
-    column-span: all;
-  }
-  .qy-dashboard [data-testid="dashboard-grid"] > div[data-widget-key="ca_hero"] { margin-top: 0; }
-}
-
-
 /* Mode sombre : neutraliser les surfaces claires héritées. */
 .dark .bg-white,
 .dark .bg-slate-50,
