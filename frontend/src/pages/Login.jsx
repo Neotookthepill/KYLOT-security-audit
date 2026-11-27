@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Compass } from "lucide-react";
+import { ArrowUpRight, Check, Compass, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import IntroSplash from "@/components/IntroSplash";
 
 const PROOF = [
@@ -21,6 +21,7 @@ export default function Login() {
   const { settings } = useSettings();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [mfaChallenge, setMfaChallenge] = useState("");
   const [mfaCode, setMfaCode] = useState("");
@@ -112,7 +113,9 @@ export default function Login() {
         </section>
 
         {/* Form panel */}
-        <section className="flex min-h-screen flex-col items-center justify-center px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
+        <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#F7F9FC] px-5 py-10 sm:px-10 lg:px-14 xl:px-20">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_80%_10%,rgba(82,113,255,.08),transparent_70%)]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[.35]" style={{ backgroundImage: "linear-gradient(rgba(17,24,39,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(17,24,39,.04) 1px, transparent 1px)", backgroundSize: "56px 56px" }} />
           <div className="mb-10 flex items-center gap-2.5 lg:hidden">
             <div className="grid h-10 w-10 place-items-center overflow-visible">
               {settings.logo ? <img src={settings.logo} alt="logo" className="h-full w-full object-contain" /> : <img src="/brand/qylot-logo-nuit-azur.png" alt="Qylot" className="h-full w-full object-contain" />}
@@ -120,10 +123,15 @@ export default function Login() {
             <span className="font-display text-lg font-semibold tracking-[-.02em]">{appName}</span>
           </div>
 
-          <div className="w-full max-w-[430px]">
-            <div className="mb-8">
+          <div className="relative w-full max-w-[450px] rounded-2xl border border-[#E2E8F0] bg-white/90 p-5 shadow-[0_28px_80px_rgba(17,24,39,.10)] backdrop-blur-sm sm:p-8">
+            <div className="mb-7 flex items-center justify-between gap-3">
               <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#5271FF]">{mfaChallenge ? "Vérification" : "Connexion"}</p>
-              <h2 className="mt-3 font-display text-[32px] font-semibold leading-tight tracking-[-.04em] text-[#111827] sm:text-[38px]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#DDE3EC] bg-[#F8FAFC] px-2.5 py-1 text-[10px] font-medium text-[#667085]">
+                <ShieldCheck size={12} className="text-[#5271FF]" /> Accès sécurisé
+              </span>
+            </div>
+            <div className="mb-8">
+              <h2 className="font-display text-[32px] font-semibold leading-tight tracking-[-.04em] text-[#111827] sm:text-[38px]">
                 {mfaChallenge ? "Un dernier contrôle." : "Connectez-vous."}
               </h2>
               <p className="mt-3 text-[13px] leading-relaxed text-[#667085]">
@@ -166,7 +174,12 @@ export default function Login() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className="text-[12px] font-medium text-[#344054]">Mot de passe</Label>
-                  <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="qy-login-field h-12 rounded-xl border-[#DDE3EC] bg-white text-[15px] shadow-none focus-visible:ring-[#5271FF]" />
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} data-testid="login-password-input" placeholder="••••••••" className="qy-login-field h-12 rounded-xl border-[#DDE3EC] bg-white pr-12 text-[15px] shadow-none focus-visible:ring-[#5271FF]" />
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-[#667085] hover:bg-[#F2F4F7] hover:text-[#111827]" data-testid="login-password-toggle">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 {error && <ErrorBox error={error} />}
                 <div className="flex justify-end">
