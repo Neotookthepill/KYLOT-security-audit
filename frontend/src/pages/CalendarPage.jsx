@@ -259,7 +259,7 @@ export default function CalendarPage() {
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 flex-1 sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 min-w-0 flex-1 sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous les techniciens & sous-traitants</SelectItem>
                   <SelectItem value="__none">Non assignés</SelectItem>
@@ -330,7 +330,7 @@ export default function CalendarPage() {
             return (
               <div
                 key={key}
-                className={`min-w-0 min-h-[92px] p-1 sm:p-1.5 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
+                className={`min-w-0 min-h-[92px] overflow-hidden p-1 sm:p-1.5 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
                 data-testid={cell ? `cal-day-${cellIso}` : undefined}
               >
                 {cell && (

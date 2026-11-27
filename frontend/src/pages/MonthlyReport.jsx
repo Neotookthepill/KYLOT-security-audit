@@ -96,7 +96,7 @@ export default function MonthlyReport() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes comptées CA" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-indigo-100 text-indigo-700" />
         <StatCard testId="report-stat-cancelled" icon={XCircle} label="Annulations" value={totals.cancelled_count} sub={totals.litige_count ? `+ ${totals.litige_count} en litige` : "sur le mois"} accent="bg-rose-100 text-rose-700" />
         <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="statuts comptés dans le CA" accent="bg-sky-100 text-sky-700" />
