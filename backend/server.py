@@ -8569,6 +8569,9 @@ async def put_sale_profitability(sid: str, data: ProfitabilitySaveIn, user: dict
         project = await db.projects.find_one(cq(user, {"sale_id": sid, "cancelled": {"$ne": True}}), {"_id": 0, "status": 1})
         if not project or project.get("status") not in ("termine", "encaisse"):
             raise HTTPException(status_code=409, detail="La marge définitive ne peut être validée qu'après la fin du chantier.")
+        pcheck = sale.get("profitability") or {}
+        if not all(k in pcheck for k in ("subcontract_cost", "materials_cost", "extra_costs", "other_costs")):
+            raise HTTPException(status_code=409, detail="Complétez les coûts du chantier avant de valider la marge définitive.")
     p = dict(sale.get("profitability") or {})
     # exclude_unset permet de distinguer « champ omis » (on conserve) et
     # « champ remis à null » (on revient au calcul automatique, ex. frais
