@@ -8468,8 +8468,12 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
         "extra_costs": float(p.get("extra_costs") or 0),
         "other_costs": float(p.get("other_costs") or 0),
     }
-    forecast_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + forecast_labor + sum(manual.values())
-    final_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + final_labor + sum(manual.values())
+    manual_costs_total = (
+        manual["subcontract_cost"] + manual["materials_cost"]
+        + manual["extra_costs"] + manual["other_costs"]
+    )
+    forecast_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + forecast_labor + manual_costs_total
+    final_total = commercial_cost + prospecteur_cost + prospecteur_prime + manager_cost + acquisition_cost + final_labor + manual_costs_total
     if p.get("commercial_cost_override") is not None:
         forecast_total += float(p["commercial_cost_override"]) - commercial_cost
         final_total += float(p["commercial_cost_override"]) - commercial_cost
