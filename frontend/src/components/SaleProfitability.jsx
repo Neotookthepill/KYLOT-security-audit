@@ -137,7 +137,6 @@ export default function SaleProfitability({ saleId }) {
                 <ShieldCheck size={10} /> {STAGE[data.stage] || "Prévisionnelle"}
               </span>
               <span className={`text-[10px] font-medium ${p.muted}`}>{marginLabel}</span>
-              {!data.costs_complete && <span className={`text-[10px] ${p.muted}`}>Coûts à compléter</span>}
             </div>
           </div>
           {canEdit && (
