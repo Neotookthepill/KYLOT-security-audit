@@ -865,10 +865,10 @@ export default function Sales() {
         className="sales-top-summary border-[#DDE3EC] shadow-none overflow-hidden mb-4"
         data-testid="sales-top-summary"
       >
-        <div className="grid grid-cols-3 divide-x divide-slate-200">
+        <div className="grid grid-cols-1 divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <div className="p-4 sm:p-5">
             <p className="overline flex items-center gap-1.5">
-              <Wallet size={12} className="text-slate-500" /> {isCommercial ? "Mon CA signé" : "CA total"}
+              <Wallet size={12} className="text-indigo-600" /> {isCommercial ? "Mon CA signé" : "CA total"}
             </p>
             <p className="font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums" data-testid="sales-top-summary-ca">
               {summaryReady ? fmtEur(stats.total) : "…"}
