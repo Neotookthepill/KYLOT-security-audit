@@ -206,7 +206,7 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif, obj
             onClick={startEdit}
             disabled={!isAdmin || !c.id}
             className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${isAdmin && c.id ? "hover:bg-slate-100 cursor-pointer" : "cursor-default"}`}
-            title={isAdmin && c.id ? `Objectif période (annuel enregistré : ${fmtEur(c.objectif || 0)})` : "Objectif annuel proratisé sur la période"}
+            title={isAdmin && c.id ? `Objectif période (mensuel enregistré : ${fmtEur(c.objectif || 0)})` : "Objectif mensuel proratisé sur la période"}
             data-testid={`objectif-cell-${c.name}`}
           >
             {target > 0

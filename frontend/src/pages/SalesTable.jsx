@@ -44,10 +44,11 @@ export default function SalesTable() {
     const start = new Date(`${bounds.from}T00:00:00`);
     const end = new Date(`${bounds.to}T00:00:00`);
     const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
-    const year = start.getFullYear();
-    const yearDays = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
-    return days / yearDays;
-  }, [bounds.from, bounds.to]);
+    if (period === "year") return 12;
+    if (period === "month") return 1;
+    const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+    return days / daysInMonth;
+  }, [bounds.from, bounds.to, period]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -105,7 +106,7 @@ export default function SalesTable() {
         <span className="text-xs text-slate-500">{bounds.from === bounds.to ? formatDateFR(bounds.from) : `${formatDateFR(bounds.from)} → ${formatDateFR(bounds.to)}`}</span>
       </div>
       <p className="mb-4 text-[11px] text-slate-500">
-        Objectif période = objectif annuel × jours de la période / 365. L’objectif annuel enregistré n’est pas modifié.
+        Objectif période = objectif mensuel × jours de la période / jours du mois. L’objectif mensuel enregistré n’est pas modifié.
       </p>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden" data-testid="commercials-summary">
