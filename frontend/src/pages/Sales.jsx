@@ -1057,7 +1057,7 @@ export default function Sales() {
                       />
                     </td>
                     <td className="px-4 py-3 text-slate-900">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); if (canEditSaleAny) setEditingSale(s); else setViewSale(s); }} className="text-left font-semibold hover:underline" aria-label={`Ouvrir la vente ${s.client_name || s.bdc || ""}`}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setPanelSale(s); }} className="text-left font-semibold hover:underline" aria-label={`Ouvrir le détail de la vente ${s.client_name || s.bdc || ""}`}>
                         {s.client_name || "—"}
                       </button>
                       {(s.client_address || s.client_postal_code || s.client_city) && (
