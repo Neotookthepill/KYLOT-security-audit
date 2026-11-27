@@ -11,7 +11,6 @@ const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 
 function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
   const [active, setActive] = useState(null);
-  const [pinned, setPinned] = useState(false);
   const wrapRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(312);
   useEffect(() => {
@@ -40,11 +39,6 @@ function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
     : leftPct > 72
       ? { right: 0, left: "auto", transform: "none" }
       : { left: `${leftPct}%` };
-
-  const setFromPointer = (i, pin = false) => {
-    setActive(i);
-    if (pin) setPinned((p) => (p && active === i ? false : true));
-  };
 
   return (
     <div className="relative w-full pb-1" ref={wrapRef}>
@@ -85,15 +79,12 @@ function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
                 role="button"
                 aria-label={`${MONTHS[i]} ${year}, ${fmtEur(v)}, objectif ${objectifMonthly > 0 ? fmtEur(objectifMonthly) : "non défini"}`}
                 data-testid={`annual-bar-${i}`}
-                onMouseEnter={() => { if (!pinned) setActive(i); }}
-                onMouseLeave={() => { if (!pinned) setActive(null); }}
+                onMouseEnter={() => setActive(i)}
+                onMouseLeave={() => setActive(null)}
                 onFocus={() => setActive(i)}
-                onBlur={() => { if (!pinned) setActive(null); }}
-                onClick={() => setFromPointer(i, true)}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFromPointer(i, true); } }}
+                onBlur={() => setActive(null)}
                 style={{ cursor: "pointer", outline: "none" }}
               />
-              <rect x={x} y={0} width={barW} height={height} fill="transparent" style={{ cursor: "pointer" }} onClick={() => setFromPointer(i, true)} />
               <text x={x + barW / 2} y={height + 14} textAnchor="middle" fontSize="9" fill="#64748b">{MONTHS[i]}</text>
             </g>
           );
