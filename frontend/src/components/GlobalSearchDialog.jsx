@@ -22,6 +22,19 @@ const CAT_META = {
   users: { label: "Utilisateurs", icon: Shield, path: "/utilisateurs" },
 };
 
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const containsQuery = (text, query) => !!text && !!query && String(text).toLowerCase().includes(String(query).toLowerCase());
+
+function Highlight({ text, query }) {
+  const value = String(text ?? "");
+  const needle = String(query || "").trim();
+  if (!needle || !containsQuery(value, needle)) return value;
+  const parts = value.split(new RegExp(`(${escapeRegExp(needle)})`, "ig"));
+  return parts.map((part, i) => part.toLowerCase() === needle.toLowerCase()
+    ? <mark key={i} className="rounded bg-amber-200 px-0.5 text-slate-900">{part}</mark>
+    : <React.Fragment key={i}>{part}</React.Fragment>);
+}
+
 export default function GlobalSearchDialog({ open, onOpenChange }) {
   const nav = useNavigate();
   const { user } = useAuth();
@@ -139,14 +152,29 @@ export default function GlobalSearchDialog({ open, onOpenChange }) {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-800 truncate">
-                        {it.name || it.client_name || it.service || "—"}
+                        <Highlight text={it.name || it.client_name || it.service || "—"} query={q} />
                       </p>
                       <p className="text-xs text-slate-500 truncate">
-                        {cat === "clients" && [it.city, it.postal_code, it.phone].filter(Boolean).join(" · ")}
-                        {cat === "sales" && [it.service, it.commercial, formatDateFR(it.sale_date), it.amount ? `${it.amount} €` : ""].filter(Boolean).join(" · ")}
-                        {cat === "projects" && [it.city, it.status, formatDateFR(it.scheduled_date)].filter(Boolean).join(" · ")}
-                        {cat === "reinterventions" && [it.reason, it.assigned_to, formatDateFR(it.scheduled_date)].filter(Boolean).join(" · ")}
-                        {cat === "users" && [it.email, it.role].filter(Boolean).join(" · ")}
+                        {cat === "clients" && (
+                          <Highlight query={q} text={[
+                            containsQuery(it.address, q) ? it.address : null,
+                            containsQuery(it.email, q) ? it.email : null,
+                            it.city, it.postal_code, it.phone,
+                          ].filter(Boolean).join(" · ")} />
+                        )}
+                        {cat === "sales" && (
+                          <Highlight query={q} text={[it.service, it.commercial, formatDateFR(it.sale_date), it.amount ? `${it.amount} €` : ""].filter(Boolean).join(" · ")} />
+                        )}
+                        {cat === "projects" && (
+                          <Highlight query={q} text={[
+                            containsQuery(it.address, q) ? it.address : null,
+                            it.city, it.status, formatDateFR(it.scheduled_date),
+                          ].filter(Boolean).join(" · ")} />
+                        )}
+                        {cat === "reinterventions" && (
+                          <Highlight query={q} text={[it.reason, it.assigned_to, formatDateFR(it.scheduled_date)].filter(Boolean).join(" · ")} />
+                        )}
+                        {cat === "users" && <Highlight query={q} text={[it.email, it.role].filter(Boolean).join(" · ")} />}
                       </p>
                       {(cat === "clients" || cat === "projects") && (() => {
                         const names = cat === "clients"

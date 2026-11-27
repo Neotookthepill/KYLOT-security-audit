@@ -1781,7 +1781,7 @@ async def global_search(
         if clients_scope == "own":
             ids = await _commercial_client_ids(user)
             c_q["id"] = {"$in": ids}
-        docs = await db.clients.find(c_q, {"_id": 0, "id": 1, "name": 1, "city": 1, "phone": 1, "postal_code": 1}).limit(lim).to_list(lim)
+        docs = await db.clients.find(c_q, {"_id": 0, "id": 1, "name": 1, "city": 1, "phone": 1, "postal_code": 1, "address": 1, "email": 1}).limit(lim).to_list(lim)
         if docs and projects_scope != "none":
             cids = [c["id"] for c in docs if c.get("id")]
             p_q = cq(user, {"client_id": {"$in": cids}, "cancelled": {"$ne": True}})
@@ -1828,7 +1828,7 @@ async def global_search(
                 {"client_id": {"$in": await _commercial_client_ids(user)}},
                 {"sale_id": {"$in": await _own_sale_ids(user)}},
             ]}]
-        docs = await db.projects.find(p_q, {"_id": 0, "id": 1, "client_name": 1, "service": 1, "status": 1, "scheduled_date": 1, "assigned_to": 1, "city": 1}).sort("scheduled_date", -1).limit(lim).to_list(lim)
+        docs = await db.projects.find(p_q, {"_id": 0, "id": 1, "client_name": 1, "service": 1, "status": 1, "scheduled_date": 1, "assigned_to": 1, "city": 1, "address": 1}).sort("scheduled_date", -1).limit(lim).to_list(lim)
         out["projects"] = docs
 
     # --- REINTERVENTIONS ---
