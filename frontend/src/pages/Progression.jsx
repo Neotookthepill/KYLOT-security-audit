@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api, { formatApiError } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,24 @@ const fmtEur = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", curren
 function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
   const [active, setActive] = useState(null);
   const [pinned, setPinned] = useState(false);
+  const wrapRef = useRef(null);
+  const [chartWidth, setChartWidth] = useState(312);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    const measure = () => setChartWidth(Math.max(250, Math.round(el.clientWidth)));
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const max = Math.max(...monthly, objectifMonthly || 0, 1);
-  const barW = 22;
   const gap = 4;
+  const barW = Math.max(12, (chartWidth - gap * 11) / 12);
   const w = (barW + gap) * 12;
   const activeMonth = active === null ? null : active;
   const activeValue = activeMonth === null ? 0 : Number(monthly[activeMonth] || 0);
@@ -32,7 +47,7 @@ function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
   };
 
   return (
-    <div className="relative pb-1">
+    <div className="relative w-full pb-1" ref={wrapRef}>
       {activeMonth !== null && (
         <div
           className="qy-chart-tooltip"
@@ -45,7 +60,7 @@ function AnnualChart({ monthly, objectifMonthly, year, height = 90 }) {
           <div>Objectif mensuel : <b>{activeGoal > 0 ? fmtEur(activeGoal) : "—"}</b></div>
         </div>
       )}
-      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Graphique annuel du chiffre d’affaires">
+      <div className="w-full overflow-hidden" tabIndex={0} role="region" aria-label="Graphique annuel du chiffre d’affaires">
       <svg width={w} height={height + 22} className="block">
         {objectifMonthly > 0 && (
           <line
@@ -160,6 +175,11 @@ export default function Progression() {
                   <> · <span className={companyProgress >= 100 ? "text-emerald-700 font-semibold" : "text-slate-800 font-semibold"}>{companyProgress}%</span></>
                 )}
               </p>
+              {companyObjAnnual > 0 && (
+                <div className="mt-2 h-1.5 max-w-[320px] overflow-hidden rounded-full bg-slate-100">
+                  <div className={`h-full rounded-full ${companyProgress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-400" : "bg-gradient-to-r from-indigo-500 to-violet-500"}`} style={{ width: `${Math.min(100, companyProgress)}%` }} />
+                </div>
+              )}
             </div>
             <div className="w-full min-w-0 sm:flex-1">
               <AnnualChart monthly={companyMonthly} objectifMonthly={companyObjMonthly} year={year} height={58} />
@@ -183,11 +203,11 @@ export default function Progression() {
         {rows.map((r) => {
           const reached = r.objectif_annual > 0 && r.total >= r.objectif_annual;
           return (
-            <Card key={r.commercial} className={`p-4 border shadow-sm ${reached ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200"}`} data-testid={`progression-row-${r.commercial}`}>
+            <Card key={r.commercial} className={`group relative overflow-hidden p-4 border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${reached ? "border-emerald-300 bg-gradient-to-br from-emerald-50/80 to-white" : "border-slate-200 bg-white"}`} data-testid={`progression-row-${r.commercial}`}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-widest text-slate-500">{r.commercial}</p>
-                  <p className="font-display text-2xl font-semibold mt-1">{fmtEur(r.total)}</p>
+                  <p className="font-display text-[28px] leading-none font-semibold mt-1 tracking-tight">{fmtEur(r.total)}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Objectif annuel : <span className="font-semibold text-slate-700">{r.objectif_annual > 0 ? fmtEur(r.objectif_annual) : "—"}</span>
                     {r.objectif_annual > 0 && (
@@ -196,7 +216,7 @@ export default function Progression() {
                   </p>
                   {r.objectif_annual > 0 && (
                     <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div className={`h-full rounded-full ${reached ? "bg-emerald-500" : "bg-indigo-500"}`} style={{ width: `${Math.min(100, r.progress_pct)}%` }} />
+                      <div className={`h-full rounded-full ${reached ? "bg-gradient-to-r from-emerald-500 to-teal-400" : "bg-gradient-to-r from-indigo-500 to-violet-500"}`} style={{ width: `${Math.min(100, r.progress_pct)}%` }} />
                     </div>
                   )}
                 </div>
