@@ -498,6 +498,11 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 }
 
 @media (max-width: 767px) {
+  /* Lisibilité mobile : les micro-textes ne doivent plus descendre sous 11 px. */
+  .qy-page [class*="text-[9px]"],
+  .qy-page [class*="text-[10px]"] { font-size: 11px !important; line-height: 1.35 !important; }
+  .qy-page [class*="text-[11px]"] { font-size: 12px !important; line-height: 1.4 !important; }
+  .qy-page .overline { font-size: 10px !important; letter-spacing: .12em !important; }
   .qy-page .sales-table thead { display: none; }
   .qy-page .sales-table, .qy-page .sales-table tbody { display: block; width: 100%; }
   .qy-page .sales-table tr {

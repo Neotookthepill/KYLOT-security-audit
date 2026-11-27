@@ -307,7 +307,7 @@ export default function CalendarPage() {
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200">
           {DAYS.map((d) => (
-            <div key={d} className="px-2 py-1.5 overline border-r last:border-r-0 border-slate-200 text-center">{d}</div>
+            <div key={d} className="min-w-0 px-1 py-1.5 overline border-r last:border-r-0 border-slate-200 text-center">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7">
@@ -322,7 +322,7 @@ export default function CalendarPage() {
             return (
               <div
                 key={key}
-                className={`min-h-[92px] p-1.5 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
+                className={`min-w-0 min-h-[92px] p-1 sm:p-1.5 border-r border-b last:border-r-0 border-slate-100 relative ${cell ? (isOff ? "bg-slate-100/70" : "") : "bg-slate-50/50"}`}
                 data-testid={cell ? `cal-day-${cellIso}` : undefined}
               >
                 {cell && (
