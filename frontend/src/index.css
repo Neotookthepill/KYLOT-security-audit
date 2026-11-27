@@ -417,6 +417,31 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-dashboard-hero .qy-hero-button:hover { background: rgba(255,255,255,.16) !important; }
 .qy-dashboard-hero .qy-hero-button-primary { background: #fff !important; color: #0b1220 !important; }
 .qy-dashboard-hero .qy-hero-button-primary:hover { background: #e8edff !important; }
+/* Rapport mensuel : même palette que le dashboard. */
+.qy-page [data-testid="report-stat-active"] {
+  background: linear-gradient(135deg, #eef2ff, #c7d2fe) !important;
+  border-color: rgba(99,102,241,.25) !important;
+}
+.qy-page [data-testid="report-stat-cancelled"] {
+  background: linear-gradient(135deg, #fff1f2, #fecdd3) !important;
+  border-color: rgba(244,63,94,.25) !important;
+}
+.qy-page [data-testid="report-stat-ca"] {
+  background: linear-gradient(135deg, #f0f9ff, #bae6fd) !important;
+  border-color: rgba(14,165,233,.22) !important;
+}
+.qy-page [data-testid="report-stat-comm"] {
+  background: linear-gradient(135deg, #ecfdf5, #a7f3d0) !important;
+  border-color: rgba(16,185,129,.25) !important;
+}
+.qy-page [data-testid="report-stat-active"] > div > div:last-child,
+.qy-page [data-testid="report-stat-cancelled"] > div > div:last-child,
+.qy-page [data-testid="report-stat-ca"] > div > div:last-child,
+.qy-page [data-testid="report-stat-comm"] > div > div:last-child {
+  background: rgba(255,255,255,.55) !important;
+  color: #334155 !important;
+}
+
 /* Stock : KPI colorés cohérents avec le dashboard. */
 .qy-page [data-testid="stock-stat-to-order"] {
   background: linear-gradient(135deg, #fff1f2, #fecdd3) !important;

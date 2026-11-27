@@ -97,10 +97,10 @@ export default function MonthlyReport() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes comptées CA" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-emerald-50 text-emerald-700" />
-        <StatCard testId="report-stat-cancelled" icon={XCircle} label="Annulations" value={totals.cancelled_count} sub={totals.litige_count ? `+ ${totals.litige_count} en litige` : "sur le mois"} accent="bg-red-50 text-red-700" />
-        <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="statuts comptés dans le CA" />
-        <StatCard testId="report-stat-comm" icon={Trophy} label="Commissions dues" value={fmtEur(totals.commission_total)} sub={topCommercial ? `Top : ${topCommercial.commercial}` : ""} accent="bg-primary/10 text-primary" />
+        <StatCard testId="report-stat-active" icon={TrendingUp} label="Ventes comptées CA" value={totals.active_count} sub={`sur ${totals.sales_count} ventes du mois`} accent="bg-indigo-100 text-indigo-700" />
+        <StatCard testId="report-stat-cancelled" icon={XCircle} label="Annulations" value={totals.cancelled_count} sub={totals.litige_count ? `+ ${totals.litige_count} en litige` : "sur le mois"} accent="bg-rose-100 text-rose-700" />
+        <StatCard testId="report-stat-ca" icon={TrendingUp} label="CA du mois" value={fmtEur(totals.ca_total)} sub="statuts comptés dans le CA" accent="bg-sky-100 text-sky-700" />
+        <StatCard testId="report-stat-comm" icon={Trophy} label="Commissions dues" value={fmtEur(totals.commission_total)} sub={topCommercial ? `Top : ${topCommercial.commercial}` : ""} accent="border border-slate-200 bg-slate-50 text-slate-600" />
       </div>
 
       <Card className="border-slate-200 shadow-sm overflow-hidden">
@@ -117,12 +117,12 @@ export default function MonthlyReport() {
               <tr className="text-left border-b border-slate-200 bg-slate-50/60">
                 <th className="px-4 py-3 overline">Commercial</th>
                 <th className="px-3 py-3 overline text-right" title="Toutes les ventes du mois, y compris annulées et statuts non comptés">Ventes totales</th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 text-[10px]">R1</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10px]">Assist</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">CQ</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px]">CA</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px]">TAP</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 text-[10px]">Sous-trait.</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">R1</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">Assist</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">CQ</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">CA</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">TAP</span></th>
+                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">Sous-trait.</span></th>
                 <th className="px-3 py-3 overline text-right text-red-700">Annulé</th>
                 <th className="px-4 py-3 overline text-right">CA €</th>
                 <th className="px-4 py-3 overline text-right">Commission €</th>
