@@ -138,7 +138,7 @@ function ByProspecteur({ caRows, payRows, threshold, base, mgrIds, mgrBase, bonu
   );
 }
 
-function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrBase, monthsCount, bonuses, acquired = 0, payable = 0, deferred = 0, pending = 0, rate = 0, signatureMonths = {} }) {
+function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, scopeLabel, mgrBase, monthsCount, bonuses, acquired = 0, payable = 0, deferred = 0, pending = 0, rate = 0, signatureMonths = {} }) {
   const count = rows.length;
   const ca = rows.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0);
   const reached = singleMonth ? count >= goal : null;
@@ -151,6 +151,11 @@ function ManagerCommission({ rows, goal, rateBelow, rateAbove, singleMonth, mgrB
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="overline">Commission responsable prospection</p>
+          {singleMonth && scopeLabel && (
+            <span className="mt-1 inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600" data-testid="prospect-mgr-scope">
+              Vue mensuelle · {scopeLabel} · indépendante de la période
+            </span>
+          )}
           {singleMonth ? (
             <p className="text-sm text-slate-600 mt-2">
               <b className="font-display text-2xl text-slate-900" data-testid="prospect-mgr-progress">{count} / {goal}</b> ventes signées ·{" "}
@@ -321,10 +326,22 @@ export default function Prospecteur() {
   const mgrBase = parseFloat(settings?.prospect_mgr_base_amount ?? 2329.97) || 0;
   const prospectBonusTiers = settings?.prospect_bonuses || [];
   const managerEndMonth = bounds.to.slice(0, 7);
-  // Un seul moteur : mêmes règles pour le palier, la commission et la
-  // répartition payable / reportée / en attente que la page Commissions.
+  const managerMonthKey = bounds.to.slice(0, 7);
+  // La commission du responsable est une rémunération MENSUELLE : sa base et
+  // ses paliers ne se proratisent pas sur une semaine ou un jour. On affiche
+  // donc le mois de la période, avec un libellé explicite, tandis que les
+  // statistiques du haut suivent bien la période choisie.
+  const managerMonthRows = rows.filter((r) => saleMonth(r) === managerMonthKey && !INACTIVE.includes(r.status));
   const managerSummary = buildManagerSummary({
-    rows, visible: periodVisible, fromDate: bounds.from, toDate: bounds.to, fromMonth: bounds.from.slice(0, 7), endMonth: managerEndMonth, goal: mgrGoal, below: mgrBelow, above: mgrAbove,
+    rows,
+    visible: singleMonth ? managerMonthRows : periodVisible,
+    fromDate: singleMonth ? `${managerMonthKey}-01` : bounds.from,
+    toDate: singleMonth ? `${managerMonthKey}-31` : bounds.to,
+    fromMonth: managerMonthKey,
+    endMonth: managerEndMonth,
+    goal: mgrGoal,
+    below: mgrBelow,
+    above: mgrAbove,
   });
   const managerRates = managerSummary.rates;
   const managerSignedRows = managerSummary.signedRows;
@@ -381,7 +398,7 @@ export default function Prospecteur() {
         </Card>
       )}
 
-      {isManager && <ManagerCommission rows={managerSignedRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} acquired={managerAcquiredTotal} payable={managerPayableTotal} deferred={managerDeferredTotal} pending={managerPendingTotal} rate={managerCurrentRate} signatureMonths={managerRates} />}
+      {isManager && <ManagerCommission rows={managerSignedRows} goal={mgrGoal} rateBelow={mgrBelow} rateAbove={mgrAbove} singleMonth={singleMonth} scopeLabel={singleMonth ? monthLabel(managerMonthKey) : null} mgrBase={mgrBase} monthsCount={monthsCount} bonuses={settings?.prospect_mgr_bonuses} acquired={managerAcquiredTotal} payable={managerPayableTotal} deferred={managerDeferredTotal} pending={managerPendingTotal} rate={managerCurrentRate} signatureMonths={managerRates} />}
 
       {isManager && singleMonth && deferredRows.length > 0 && (
         <Card className="p-5 border-amber-200 bg-amber-50/30 shadow-sm" data-testid="prospect-deferred-detail">
