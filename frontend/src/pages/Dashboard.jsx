@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import NewSaleSheet from "@/components/NewSaleSheet";
 import EditSaleSheet from "@/components/EditSaleSheet";
+import { SaleDetailDialog } from "@/pages/Sales";
 import TodayTodos from "@/components/TodayTodos";
 import ChallengeWidget from "@/components/ChallengeWidget";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -287,6 +288,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState("month");
   const [openNew, setOpenNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
+  const [viewSale, setViewSale] = useState(null);
   // iter47 : Activité chantiers navigable — jour + semaine indépendants
   const [activityData, setActivityData] = useState(null);
   const [dayIso, setDayIso] = useState(() => toIsoLocal(new Date()));
@@ -806,7 +808,7 @@ export default function Dashboard() {
         <div className="divide-y divide-slate-100">
           {(!data?.recent_sales || data.recent_sales.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour l'instant.</p>}
           {data?.recent_sales?.map((s) => (
-            <button key={s.id} onClick={() => !editing && setEditingSale(s)} className="w-full p-3.5 flex items-center justify-between hover:bg-slate-50 transition text-left" data-testid={`recent-sale-${s.id}`}><div className="min-w-0"><p className="font-semibold text-slate-900 truncate">{s.client_name || "—"}</p><p className="text-xs text-slate-500 truncate">{s.service} · {s.commercial || "—"}</p></div><div className="text-right"><p className="font-semibold text-slate-900">{fmtEur(s.amount)}</p><p className="text-[11px] text-slate-500">{s.sale_date ? formatDateFR(s.sale_date) : "—"}</p></div></button>
+            <button key={s.id} onClick={() => !editing && setViewSale(s)} className="w-full p-3.5 flex items-center justify-between hover:bg-slate-50 transition text-left" data-testid={`recent-sale-${s.id}`}><div className="min-w-0"><p className="font-semibold text-slate-900 truncate">{s.client_name || "—"}</p><p className="text-xs text-slate-500 truncate">{s.service} · {s.commercial || "—"}</p></div><div className="text-right"><p className="font-semibold text-slate-900">{fmtEur(s.amount)}</p><p className="text-[11px] text-slate-500">{s.sale_date ? formatDateFR(s.sale_date) : "—"}</p></div></button>
           ))}
         </div>
       </Card>
@@ -985,6 +987,7 @@ export default function Dashboard() {
 
       <NewSaleSheet open={openNew} onOpenChange={setOpenNew} onCreated={load} />
       <EditSaleSheet sale={editingSale} open={!!editingSale} onOpenChange={(v) => !v && setEditingSale(null)} onSaved={load} />
+      <SaleDetailDialog sale={viewSale} open={!!viewSale} onOpenChange={(v) => !v && setViewSale(null)} statusMap={undefined} />
 
       {/* Détail des chantiers d'un jour / d'une semaine — cliquer sur le montant */}
       <Dialog open={!!activityDetail} onOpenChange={(v) => !v && setActivityDetail(null)}>

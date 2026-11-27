@@ -15,7 +15,7 @@ import ImportClientPdfDialog from "@/components/ImportClientPdfDialog";
 import UnmatchedCommercialsDialog from "@/components/UnmatchedCommercialsDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { SALE_STATUSES, STATUS_MAP, STATUS_COLOR_HEX, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
+import { SALE_STATUSES, STATUS_MAP, STATUS_COLOR_HEX, statusColorHex, SOURCE_MAP, SOURCES, PAYMENT_OPTIONS, formatRate, formatPayment, orderStatuses, resolveStatusesFromPayload, buildStatusMap } from "@/lib/saleConstants";
 import { useSettings } from "@/contexts/SettingsContext";
 import { statusCountsCA } from "@/lib/workflows";
 import { formatDateFR } from "@/lib/dateFormat";
@@ -230,7 +230,7 @@ export function CommercialRow({ c, isAdmin, onObjectifSaved, targetObjectif, obj
   );
 }
 
-function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
+export function SaleDetailDialog({ sale, open, onOpenChange, statusMap }) {
   if (!sale) return null;
   const st = statusMap?.[sale.status] || STATUS_MAP[sale.status];
   const src = SOURCE_MAP[sale.source];
@@ -279,7 +279,7 @@ const PROJECT_COMPLETION_SALE_STATUSES = new Set([
 function StatusSelect({ sale, statuses, statusMap, canEdit, onChange, compact = false }) {
   const st = statusMap[sale.status] || STATUS_MAP[sale.status];
   const classes = st?.cls || "bg-slate-200 text-slate-700";
-  const colorHex = STATUS_COLOR_HEX[st?.color] || STATUS_COLOR_HEX.slate;
+  const colorHex = statusColorHex(st?.color);
   if (!canEdit) {
     return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${classes}`} data-testid={`sale-status-trigger-${sale.id}`}>{st?.label || sale.status}</span>;
   }

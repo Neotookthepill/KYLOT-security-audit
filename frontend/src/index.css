@@ -592,6 +592,10 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
   margin-top: 0;
 }
 
+@media (min-width: 768px) {
+  .qy-page .overline { font-size: 11px; }
+}
+
 @media (max-width: 767px) {
   /* Lisibilité mobile : les micro-textes ne doivent plus descendre sous 11 px. */
   .qy-page [class*="text-[9px]"],

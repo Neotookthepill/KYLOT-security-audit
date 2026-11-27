@@ -309,7 +309,7 @@ export default function Settings() {
               { key: "attente_14j_jourj_notif", label: "Notification automatique au bout de 14 jours", desc: "Envoie une notification cloche bien visible au(x) commercial(aux) et aux admins dès qu'une vente en « attente 14 jours » atteint le Jour J. Ne modifie pas le statut de la vente." },
             ].map((c) => (
               <label key={c.key} className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 cursor-pointer hover:bg-slate-50/60" data-testid={`notif-toggle-${c.key}`}>
-                <Switch checked={!!(form.notifications || {})[c.key]} onCheckedChange={(v) => setNotif(c.key, v)} />
+                <Switch checked={!!(form.notifications || {})[c.key]} onCheckedChange={(v) => setNotif(c.key, v)} aria-label={c.label} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-900">{c.label}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{c.desc}</p>
@@ -423,7 +423,7 @@ export default function Settings() {
               { key: "recent_sales", label: "Ventes récentes", desc: "La liste des dernières ventes." },
             ].map((c) => (
               <label key={c.key} className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 cursor-pointer hover:bg-slate-50/60" data-testid={`widget-toggle-${c.key}`}>
-                <Switch checked={(form.dashboard_widgets || {})[c.key] !== false} onCheckedChange={(v) => setWidget(c.key, v)} />
+                <Switch checked={(form.dashboard_widgets || {})[c.key] !== false} onCheckedChange={(v) => setWidget(c.key, v)} aria-label={c.label} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-slate-900">{c.label}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{c.desc}</p>

@@ -26,6 +26,30 @@ export const STATUS_COLORS = [
   { key: "rose", label: "Rose fonce", dot: "bg-rose-500" },
 ];
 
+// Palette officielle : 5 familles + neutre. Les couleurs historiques sont
+// ramenées ici pour éviter qu'un statut recrée un arc-en-ciel.
+export const STATUS_PALETTE = [
+  { key: "slate", label: "Neutre", dot: "bg-slate-500" },
+  { key: "indigo", label: "Indigo — en cours", dot: "bg-indigo-500" },
+  { key: "sky", label: "Ciel — paiement", dot: "bg-sky-500" },
+  { key: "emerald", label: "Émeraude — encaissé", dot: "bg-emerald-500" },
+  { key: "amber", label: "Ambre — en attente", dot: "bg-amber-500" },
+  { key: "rose", label: "Rose — bloqué", dot: "bg-rose-500" },
+];
+const STATUS_FAMILY = {
+  slate: "slate", gray: "slate",
+  indigo: "indigo", blue: "indigo", violet: "indigo", purple: "indigo",
+  sky: "sky", cyan: "sky", teal: "sky",
+  emerald: "emerald", green: "emerald", lime: "emerald",
+  amber: "amber", yellow: "amber", orange: "amber",
+  rose: "rose", red: "rose", pink: "rose", fuchsia: "rose",
+};
+export const statusFamily = (color) => STATUS_FAMILY[color] || "slate";
+export const statusColorHex = (color) => ({
+  slate: "#64748b", indigo: "#4f46e5", sky: "#0284c7",
+  emerald: "#059669", amber: "#d97706", rose: "#e11d48",
+})[statusFamily(color)] || "#64748b";
+
 // Tailwind safelist — required to force JIT to include these classes at build time.
 // Any color used in dynamic clsFromColor() MUST appear as a literal string somewhere.
 // eslint-disable-next-line no-unused-vars
@@ -56,9 +80,8 @@ export const STATUS_COLOR_HEX = {
   fuchsia: "#c026d3", pink: "#db2777", rose: "#e11d48",
 };
 export const clsFromColor = (color) => {
-  const c = STATUS_COLORS.some((x) => x.key === color) ? color : "slate";
-  const text = c === "yellow" ? "text-yellow-900" : `text-${c}-800`;
-  return `bg-${c}-100 ${text}`;
+  const c = statusFamily(color);
+  return c === "slate" ? "bg-slate-100 text-slate-700" : `bg-${c}-100 text-${c}-800`;
 };
 
 // Fallback defaults (aligned with backend DEFAULT_SALE_STATUSES). Used until /api/sale-statuses resolves.

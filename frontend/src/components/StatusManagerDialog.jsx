@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch";
 import { GripVertical, Plus, Trash2, Loader2, Check, RotateCcw, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { STATUS_COLORS, clsFromColor } from "@/lib/saleConstants";
+import { STATUS_PALETTE, clsFromColor, statusFamily } from "@/lib/saleConstants";
 
 const genValue = (label) =>
   (label || "")
@@ -30,18 +30,18 @@ function ColorPicker({ value, onChange, disabled }) {
           aria-label={`Choisir la couleur du statut ${value}`}
           data-testid="status-color-btn"
         >
-          <span className={`h-3.5 w-3.5 rounded-full ${STATUS_COLORS.find((c) => c.key === value)?.dot || "bg-slate-500"}`} />
-          <span className="text-[11px] text-slate-600 capitalize">{value}</span>
+          <span className={`h-3.5 w-3.5 rounded-full ${STATUS_PALETTE.find((c) => c.key === statusFamily(value))?.dot || "bg-slate-500"}`} />
+          <span className="text-[11px] text-slate-600 capitalize">{statusFamily(value)}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" side="bottom" align="start">
         <div className="grid grid-cols-6 gap-1.5">
-          {STATUS_COLORS.map((c) => (
+          {STATUS_PALETTE.map((c) => (
             <button
               key={c.key}
               type="button"
               onClick={() => onChange(c.key)}
-              className={`h-7 w-7 rounded-full border-2 transition ${value === c.key ? "border-slate-900" : "border-transparent hover:border-slate-300"} ${c.dot}`}
+              className={`h-7 w-7 rounded-full border-2 transition ${statusFamily(value) === c.key ? "border-slate-900" : "border-transparent hover:border-slate-300"} ${c.dot}`}
               title={c.label}
               aria-label={c.label}
               data-testid={`status-color-${c.key}`}
