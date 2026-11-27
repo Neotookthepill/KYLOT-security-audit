@@ -1099,3 +1099,35 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark [class*="bg-slate-50/"],
 .dark [class*="bg-slate-100/"] { background-color: hsl(var(--muted)) !important; }
 .dark [class*="bg-amber-50/"] { background-color: hsl(var(--warning-soft)) !important; }
+
+/* Mode sombre : les cartes colorées deviennent des surfaces sombres lisibles. */
+.dark .qy-page .qy-kpi,
+.dark .qy-page [data-testid^="stat-commissions-"],
+.dark .qy-page [data-testid^="prospect-stat-"],
+.dark .qy-page [data-testid^="prospect-mgr-"],
+.dark .qy-page [data-testid^="stock-stat-"],
+.dark .qy-page [data-testid^="report-stat-"] {
+  background: linear-gradient(135deg, #111827, #1e293b) !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+.dark .qy-page .qy-kpi p,
+.dark .qy-page [data-testid^="stat-commissions-"] p,
+.dark .qy-page [data-testid^="prospect-stat-"] p,
+.dark .qy-page [data-testid^="prospect-mgr-"] p,
+.dark .qy-page [data-testid^="stock-stat-"] p,
+.dark .qy-page [data-testid^="report-stat-"] p,
+.dark .qy-page .qy-kpi .mt-1,
+.dark .qy-page [data-testid^="stat-commissions-"] .mt-1,
+.dark .qy-page [data-testid^="prospect-stat-"] .mt-1,
+.dark .qy-page [data-testid^="stock-stat-"] .mt-1,
+.dark .qy-page [data-testid^="report-stat-"] .mt-1 {
+  color: #f8fafc !important;
+}
+.dark .qy-page .qy-kpi p.overline,
+.dark .qy-page [data-testid^="stat-commissions-"] p.overline,
+.dark .qy-page [data-testid^="prospect-stat-"] p.overline,
+.dark .qy-page [data-testid^="stock-stat-"] p.overline,
+.dark .qy-page [data-testid^="report-stat-"] p.overline {
+  color: #cbd5e1 !important;
+}
