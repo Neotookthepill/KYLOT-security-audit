@@ -731,7 +731,7 @@ export default function Dashboard() {
           {(!data?.ranking || data.ranking.length === 0) && <p className="p-5 text-sm text-slate-500">Aucune vente pour la période.</p>}
           {data?.ranking?.map((r, i) => (
             <div key={r.commercial} className={`p-3.5 flex items-center gap-3 transition ${r.hidden_from_ranking ? "bg-primary/10" : ""}`} title={r.hidden_from_ranking ? "Masqué aux autres commerciaux — visible uniquement pour vous (admin)" : undefined} data-testid={`ranking-row-${i}`}>
-              <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-primary/10 text-primary" : i === 1 ? "bg-slate-200 text-slate-700" : i === 2 ? "bg-slate-100 text-slate-600" : "bg-slate-50 text-slate-500"}`}>{i + 1}</span>
+              <span className={`h-7 w-7 grid place-items-center rounded-full text-xs font-bold ${i === 0 ? "bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-950 shadow-sm" : i === 1 ? "bg-slate-300 text-slate-800" : i === 2 ? "bg-orange-300 text-orange-950" : "bg-slate-100 text-slate-500"}`}>{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 truncate flex items-center gap-1.5">
                   {r.commercial}
@@ -740,7 +740,7 @@ export default function Dashboard() {
                   )}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5"><span className="text-xs text-slate-600">{r.count} vente{r.count > 1 ? "s" : ""}</span>{r.progress != null && (<span className={`text-[11px] font-medium ${r.progress >= 100 ? "text-emerald-700" : "text-slate-500"}`}>{r.progress}% obj.</span>)}</div>
-                {r.objectif > 0 && (<div className="mt-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[240px]"><div className={`h-full ${r.progress >= 100 ? "bg-emerald-500" : "bg-primary"}`} style={{ width: `${Math.min(100, r.progress || 0)}%` }} /></div>)}
+                {r.objectif > 0 && (<div className="mt-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[240px]"><div className={`h-full ${r.progress >= 100 ? "bg-gradient-to-r from-emerald-500 to-teal-400" : "bg-gradient-to-r from-indigo-500 to-violet-500"}`} style={{ width: `${Math.min(100, r.progress || 0)}%` }} /></div>)}
               </div>
               <p className="font-display text-base font-semibold whitespace-nowrap">{fmtEur(r.ca)}</p>
               {isAdmin && r.team_member_id && (
@@ -838,7 +838,7 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border bg-card p-0.5" data-testid="dashboard-period-tabs">
+          <div className="qy-hero-tabs inline-flex rounded-lg border border-border bg-card p-0.5" data-testid="dashboard-period-tabs">
             {PERIODS.map((p) => (
               <button key={p.key} onClick={() => setPeriod(p.key)} data-testid={`period-${p.key}`}
                 className={`min-h-[34px] px-2.5 py-1.5 text-[11px] font-medium rounded-md transition ${period === p.key ? "bg-primary text-white" : "text-muted-foreground hover:text-foreground"}`}>{p.label}</button>
@@ -849,31 +849,31 @@ export default function Dashboard() {
             size="sm"
             onClick={() => setEditing((v) => !v)}
             data-testid="dashboard-customize-btn"
-            className="h-9"
+            className="qy-hero-button h-9"
             title="Personnaliser le tableau de bord"
           >
             {editing ? (<><Check size={13} className="mr-1" /> Terminer</>) : (<><Settings2 size={13} className="mr-1" /> Personnaliser</>)}
           </Button>
-          {canCreateSale && <Button onClick={() => setOpenNew(true)} data-testid="dashboard-new-sale-btn" className="h-9">+ Nouvelle vente</Button>}
+          {canCreateSale && <Button onClick={() => setOpenNew(true)} data-testid="dashboard-new-sale-btn" className="qy-hero-button-primary h-9">+ Nouvelle vente</Button>}
         </div>
       </header>
 
       <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/planning")} className="qy-kpi group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+        <button type="button" onClick={() => nav("/planning")} className="qy-kpi qy-kpi-agenda group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>

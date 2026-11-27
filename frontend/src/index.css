@@ -399,12 +399,30 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 
 .qy-dashboard-hero {
   padding: 1.15rem 1.25rem;
-  border: 1px solid hsl(var(--border));
+  border: 1px solid hsl(222 40% 22%);
   border-radius: 16px;
   background:
-    radial-gradient(520px 180px at 18% 0%, hsl(var(--primary) / .075), transparent 70%),
-    hsl(var(--card));
+    radial-gradient(620px 220px at 14% -10%, hsl(229 90% 62% / .38), transparent 66%),
+    linear-gradient(135deg, #0b1220 0%, #14213a 58%, #1d3452 100%);
+  box-shadow: 0 18px 44px hsl(220 50% 5% / .22);
+  color: #fff;
 }
+.qy-dashboard-hero .qy-eyebrow { color: #a5b4fc; }
+.qy-dashboard-hero h1 { color: #fff; }
+.qy-dashboard-hero .text-muted-foreground { color: rgba(255,255,255,.72) !important; }
+.qy-dashboard-hero .qy-hero-tabs { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); }
+.qy-dashboard-hero .qy-hero-tabs button { color: rgba(255,255,255,.72); }
+.qy-dashboard-hero .qy-hero-tabs button:hover { color: #fff; }
+.qy-dashboard-hero .qy-hero-button { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.2) !important; color: #fff !important; }
+.qy-dashboard-hero .qy-hero-button:hover { background: rgba(255,255,255,.16) !important; }
+.qy-dashboard-hero .qy-hero-button-primary { background: #fff !important; color: #0b1220 !important; }
+.qy-dashboard-hero .qy-hero-button-primary:hover { background: #e8edff !important; }
+.qy-kpi-sales { border-color: transparent !important; background: linear-gradient(135deg, #4f46e5, #7c3aed) !important; color: #fff !important; }
+.qy-kpi-alerts { border-color: transparent !important; background: linear-gradient(135deg, #f59e0b, #ea580c) !important; color: #fff !important; }
+.qy-kpi-agenda { border-color: transparent !important; background: linear-gradient(135deg, #059669, #0d9488) !important; color: #fff !important; }
+.qy-kpi-sales .text-muted-foreground, .qy-kpi-alerts .text-muted-foreground, .qy-kpi-agenda .text-muted-foreground { color: rgba(255,255,255,.76) !important; }
+.qy-kpi-sales .mt-1, .qy-kpi-alerts .mt-1, .qy-kpi-agenda .mt-1 { color: #fff !important; }
+.qy-kpi-sales span, .qy-kpi-alerts span, .qy-kpi-agenda span { border-color: rgba(255,255,255,.2); }
 @media (max-width: 640px) {
   .qy-dashboard-hero { padding: 1rem; border-radius: 12px; }
 }
