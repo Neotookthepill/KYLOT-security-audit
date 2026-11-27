@@ -259,7 +259,7 @@ export default function CalendarPage() {
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <User size={14} className="text-slate-500" />
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-9 flex-1 sm:w-64 sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 flex-1 sm:w-[310px] sm:flex-none" aria-label="Filtrer le planning par technicien" data-testid="calendar-filter"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__all">Tous les techniciens & sous-traitants</SelectItem>
                   <SelectItem value="__none">Non assignés</SelectItem>
@@ -297,6 +297,14 @@ export default function CalendarPage() {
       </div>
 
       {loadError && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600" aria-label="Légende du planning">
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" /> À planifier</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> En cours</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> À encaisser</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Terminé</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> Absence</span>
+        </div>
+
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status" data-testid="calendar-load-error">
           <AlertTriangle size={15} />
           <span className="flex-1">Impossible de rafraîchir le planning. Les données affichées peuvent être anciennes.</span>
