@@ -43,23 +43,23 @@
   }
 
   .dark {
-    --background: 220 33% 7%;
+    --background: 220 35% 5%;
     --foreground: 210 40% 98%;
-    --card: 220 33% 11%;
+    --card: 220 30% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 220 33% 11%;
+    --popover: 220 30% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 229 100% 72%;
+    --primary: 229 100% 74%;
     --primary-foreground: 220 43% 11%;
-    --secondary: 220 25% 16%;
+    --secondary: 220 24% 16%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 220 25% 14%;
-    --muted-foreground: 218 14% 68%;
-    --accent: 229 100% 72%;
+    --muted: 220 24% 14%;
+    --muted-foreground: 218 18% 73%;
+    --accent: 229 100% 74%;
     --accent-foreground: 220 43% 11%;
-    --destructive: 4 74% 56%;
+    --destructive: 4 74% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 22% 20%;
+    --border: 220 20% 25%;
     --input: 220 22% 22%;
     --ring: 229 100% 72%;
     --success: 158 60% 55%;
@@ -305,7 +305,22 @@
 tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 
 /* Dark compatibility for existing utility-heavy pages */
-.dark body { background: hsl(var(--background)); color: hsl(var(--foreground)); }
+.dark body {
+  background:
+    radial-gradient(1200px 600px at 45% -15%, hsl(222 32% 13% / .85), transparent 62%),
+    hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+/* Hiérarchie des surfaces : la page est plus profonde que les cartes. */
+.dark .qy-page [class*="shadow-sm"] {
+  box-shadow: 0 1px 0 hsl(210 40% 98% / .035), 0 12px 32px hsl(220 50% 2% / .28) !important;
+}
+.dark .overline { color: #b9c6d8; }
+.dark .qy-page .border-slate-200,
+.dark .qy-page .border-slate-200\/70,
+.dark .qy-page .border-slate-200\/80 {
+  border-color: hsl(var(--border));
+}
 .dark .bg-white, .dark .bg-white\/95, .dark [class*="bg-white/"] { background-color: hsl(var(--card)) !important; }
 .dark .bg-slate-50, .dark .bg-slate-50\/50, .dark .bg-slate-50\/80 { background-color: hsl(var(--muted)) !important; }
 .dark .bg-slate-100, .dark .bg-slate-100\/80 { background-color: hsl(var(--secondary)) !important; }
