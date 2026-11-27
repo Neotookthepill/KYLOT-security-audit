@@ -890,13 +890,20 @@ export default function Sales() {
             </p>
           </div>
           <div className="p-4 sm:p-5">
-            <p className="overline">% atteint</p>
+            <p className="overline">{objectifReached ? "Objectif dépassé" : "Objectif réalisé"}</p>
             <p
               className={`font-display text-2xl md:text-3xl font-semibold mt-1.5 tabular-nums ${objectifReached ? "text-emerald-700" : "text-slate-900"}`}
               data-testid="sales-top-summary-pct"
             >
-              {effectiveObjectif > 0 ? `${objectifPct.toFixed(0)}%` : "—"}
+              {effectiveObjectif > 0 ? (objectifReached ? `+${(objectifPct - 100).toFixed(0)} %` : `${objectifPct.toFixed(0)} %`) : "—"}
             </p>
+            {effectiveObjectif > 0 && (
+              <p className="text-[11px] text-slate-500 mt-1">
+                {objectifReached
+                  ? `${objectifPct.toFixed(0)} % de l’objectif réalisé`
+                  : `reste ${(100 - objectifPct).toFixed(0)} % pour l’atteindre`}
+              </p>
+            )}
             {effectiveObjectif > 0 && (
               <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden" aria-hidden="true">
                 <div
