@@ -179,7 +179,6 @@ export default function Layout() {
             >
               <Search size={14} className="shrink-0" />
               <span className="flex-1 truncate">Rechercher…</span>
-              <kbd className="rounded border border-white/15 px-1 py-0.5 text-[9px] text-white/65">⌘K</kbd>
             </button>
           </div>
       )}
@@ -314,7 +313,6 @@ export default function Layout() {
             <button type="button" onClick={() => setSearchOpen(true)} data-testid="global-search-btn" className="flex h-9 w-[240px] items-center gap-2 rounded-lg border border-border bg-card px-3 text-left text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground xl:w-[300px]">
               <Search size={14} />
               <span className="flex-1">Rechercher un client, une vente…</span>
-              <kbd className="rounded border border-border px-1 py-0.5 text-[9px]">⌘K</kbd>
             </button>
           )}
           <ThemeToggle />
