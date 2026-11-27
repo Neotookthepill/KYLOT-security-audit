@@ -479,8 +479,6 @@ export default function Dashboard() {
       const remaining = Math.max(0, (ca.objectif || 0) - (ca.total || 0));
       return (
       <Card className="relative overflow-hidden border-indigo-100 bg-gradient-to-br from-indigo-50/90 via-white to-emerald-50/50 p-5 shadow-sm md:p-6 dark:border-indigo-900/40 dark:from-indigo-950/20 dark:via-card dark:to-emerald-950/10" data-testid="dashboard-ca-hero">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-indigo-400/10 blur-2xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-emerald-400/10 blur-2xl" />
         {/* Section 1 : Performance personnelle (ou société pour non-commercial) */}
         <div className="relative flex flex-wrap items-center justify-between gap-5">
           <div className="min-w-0">
