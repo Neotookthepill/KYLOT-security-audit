@@ -1131,3 +1131,16 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark .qy-page [data-testid^="report-stat-"] p.overline {
   color: #cbd5e1 !important;
 }
+
+/* Intro mobile : branding complet plus vite, sans flou prolongé. */
+@media (max-width: 640px) {
+  .qy-intro-inner { width: min(88vw, 360px); }
+  .qy-intro-mark-shell { width: 148px; height: 148px; margin-top: 12px; }
+  .qy-intro-logo { width: 98px; animation-duration: .55s; }
+  .qy-intro-word { font-size: 1.8rem; }
+  .qy-intro-word span { animation-duration: .35s !important; animation-delay: 0s !important; }
+  .qy-intro-kicker, .qy-intro-caption, .qy-intro-meta { animation-duration: .4s; animation-delay: 0s !important; }
+  .qy-intro-line span { animation-duration: .7s; animation-delay: 0s !important; }
+  .qy-intro-line span::after { animation-delay: .25s !important; }
+  .qy-intro-orbit, .qy-intro-halo { animation-duration: .7s; }
+}

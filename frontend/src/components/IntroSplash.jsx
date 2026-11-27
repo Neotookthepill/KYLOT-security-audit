@@ -13,11 +13,14 @@ export default function IntroSplash() {
     try { seen = sessionStorage.getItem(KEY) === "1"; } catch (_) {}
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     if (seen || reduced) { setVisible(false); return; }
-    const fade = window.setTimeout(() => setLeaving(true), 1900);
+    const compact = window.matchMedia?.("(max-width: 640px)")?.matches;
+    const fadeMs = compact ? 1050 : 1900;
+    const doneMs = compact ? 1450 : 2360;
+    const fade = window.setTimeout(() => setLeaving(true), fadeMs);
     const done = window.setTimeout(() => {
       setVisible(false);
       try { sessionStorage.setItem(KEY, "1"); } catch (_) {}
-    }, 2360);
+    }, doneMs);
     return () => { clearTimeout(fade); clearTimeout(done); };
   }, []);
 
