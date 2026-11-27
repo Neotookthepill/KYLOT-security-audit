@@ -259,8 +259,9 @@ function writeDashCache(userId, period, data) {
 }
 
 function ObjectiveRing({ progress = 0, size = 116 }) {
-  const pct = Math.max(0, Math.min(100, Number(progress) || 0));
-  const reached = pct >= 100;
+  const actual = Math.max(0, Number(progress) || 0);
+  const pct = Math.min(100, actual);
+  const reached = actual >= 100;
   const radius = (size - 14) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (pct / 100) * circumference;
@@ -271,7 +272,7 @@ function ObjectiveRing({ progress = 0, size = 116 }) {
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={reached ? "#10b981" : "#6366f1"} strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset} className="transition-[stroke-dashoffset] duration-700" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-display text-xl font-semibold leading-none ${reached ? "text-emerald-700" : "text-indigo-700"}`}>{pct.toFixed(0)}<span className="text-xs">%</span></span>
+        <span className={`font-display text-xl font-semibold leading-none ${reached ? "text-emerald-700" : "text-indigo-700"}`}>{actual.toFixed(0)}<span className="text-xs">%</span></span>
         <span className="mt-1 text-[9px] uppercase tracking-[.12em] text-slate-500">réalisé</span>
       </div>
     </div>

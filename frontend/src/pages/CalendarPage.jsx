@@ -299,8 +299,8 @@ export default function CalendarPage() {
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600" aria-label="Légende du planning">
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-300" /> À planifier</span>
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> En cours</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> À encaisser</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Terminé</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Terminé</span>
+          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Encaissé</span>
           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-400" /> Absence</span>
       </div>
 
