@@ -923,11 +923,11 @@ export default function Dashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" data-testid="dashboard-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" style={{ gridAutoFlow: "row dense" }} data-testid="dashboard-grid">
         {visibleOrder.map((k) => {
           const visibleIndex = visibleOrder.indexOf(k);
           return (
-          <div key={k} data-widget-key={k} className={`col-span-1 h-full ${SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12]}`}>
+          <div key={k} data-widget-key={k} className={`col-span-1 h-full ${k === "challenge" ? "lg:col-span-12" : (SPAN_CLASS[sizeOf(k)] || SPAN_CLASS[12])}`}>
             <WidgetShell id={k} editing={editing} dragging={dragging} size={sizeOf(k)} isMobile={isMobile}
               onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} onHide={hideWidget} onResize={resizeWidget}
               onMoveUp={() => moveWidget(k, -1)}
