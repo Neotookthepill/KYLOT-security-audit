@@ -13,23 +13,23 @@ const fmt = (n) => new Intl.NumberFormat("fr-FR", { style: "currency", currency:
 const pct = (n) => (Number.isFinite(n) ? n : 0).toFixed(1).replace(".", ",");
 const PALETTE = {
   gold: {
-    card: "border-amber-300/80 bg-amber-50/80 dark:border-amber-800/60 dark:bg-amber-950/20",
-    title: "text-amber-950 dark:text-amber-100", muted: "text-amber-800/80 dark:text-amber-200/75",
-    chip: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100", bar: "bg-amber-500",
+    card: "border-amber-300 border-l-amber-500 bg-amber-50/90 dark:border-amber-800/70 dark:border-l-amber-500 dark:bg-amber-950/20",
+    title: "text-amber-950 dark:text-amber-100", muted: "text-amber-800/85 dark:text-amber-200/75",
+    chip: "bg-amber-500 text-white dark:bg-amber-500 dark:text-amber-950", bar: "bg-amber-500",
   },
   green: {
-    card: "border-emerald-200/80 bg-emerald-50/70 dark:border-emerald-800/60 dark:bg-emerald-950/20",
-    title: "text-emerald-950 dark:text-emerald-100", muted: "text-emerald-800/80 dark:text-emerald-200/75",
-    chip: "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100", bar: "bg-emerald-500",
+    card: "border-emerald-300 border-l-emerald-600 bg-emerald-50/90 dark:border-emerald-800/70 dark:border-l-emerald-500 dark:bg-emerald-950/20",
+    title: "text-emerald-950 dark:text-emerald-100", muted: "text-emerald-800/85 dark:text-emerald-200/75",
+    chip: "bg-emerald-700 text-white dark:bg-emerald-500 dark:text-emerald-950", bar: "bg-emerald-600",
   },
   red: {
-    card: "border-red-200/80 bg-red-50/70 dark:border-red-800/60 dark:bg-red-950/20",
-    title: "text-red-950 dark:text-red-100", muted: "text-red-800/80 dark:text-red-200/75",
-    chip: "bg-red-100 text-red-900 dark:bg-red-900/40 dark:text-red-100", bar: "bg-red-500",
+    card: "border-red-300 border-l-red-600 bg-red-50/90 dark:border-red-800/70 dark:border-l-red-500 dark:bg-red-950/20",
+    title: "text-red-950 dark:text-red-100", muted: "text-red-800/85 dark:text-red-200/75",
+    chip: "bg-red-600 text-white dark:bg-red-500 dark:text-red-950", bar: "bg-red-600",
   },
   gray: {
-    card: "border-border bg-card", title: "text-foreground", muted: "text-muted-foreground",
-    chip: "bg-muted text-muted-foreground", bar: "bg-slate-400 dark:bg-slate-500",
+    card: "border-border border-l-slate-400 bg-card dark:border-l-slate-500", title: "text-foreground", muted: "text-muted-foreground",
+    chip: "bg-slate-600 text-white dark:bg-slate-500 dark:text-slate-950", bar: "bg-slate-400 dark:bg-slate-500",
   },
 };
 const STAGE = { forecast: "Prévisionnelle", provisional: "Provisoire", final: "Définitive" };
@@ -112,7 +112,7 @@ export default function SaleProfitability({ saleId }) {
   ];
 
   return (
-    <Card className={`mt-5 overflow-hidden border ${p.card}`} data-testid="sale-profitability">
+    <Card className={`mt-5 overflow-hidden border border-l-4 ${p.card}`} data-testid="sale-profitability">
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
