@@ -475,7 +475,7 @@ export default function Dashboard() {
                 <p className="text-sm text-slate-500 mt-1">
                   {isCommercial ? "Mon objectif personnel" : "Objectif"} : {ca.objectif > 0 ? (
                     <>
-                      <span className="font-semibold text-slate-800" data-testid="dashboard-ca-objectif">{fmtEur(ca.objectif)}</span> · <span className="font-semibold text-slate-800" data-testid="dashboard-ca-progress">{ca.progress}% atteint</span>
+                      <span className="font-semibold text-slate-800" data-testid="dashboard-ca-objectif">{fmtEur(ca.objectif)}</span> · <span className="font-semibold text-slate-800" data-testid="dashboard-ca-progress">{ca.progress > 100 ? `+${(ca.progress - 100).toFixed(1).replace(".", ",")} % au-dessus` : ca.progress === 100 ? "objectif atteint" : `${Number(ca.progress).toFixed(1).replace(".", ",")} % réalisé`}</span>
                     </>
                   ) : (
                     <span className="italic text-slate-400" data-testid="dashboard-ca-objectif-undefined">Non défini {isCommercial && "(demandez à un administrateur)"}</span>
@@ -496,7 +496,7 @@ export default function Dashboard() {
                 )}
                 {isCommercial && ca.objectif > 0 && ca.progress > 100 && (
                   <p className="text-xs mt-1 font-semibold bg-gradient-to-r from-[#5271FF] to-[#3B56D9] bg-clip-text text-transparent" data-testid="dashboard-ca-overperf">
-                    ✨ Objectif dépassé de {(ca.progress - 100).toFixed(1)}% — top perf !
+                    ✨ Objectif dépassé de {(ca.progress - 100).toFixed(1).replace(".", ",")} % — top perf !
                   </p>
                 )}
               </>
