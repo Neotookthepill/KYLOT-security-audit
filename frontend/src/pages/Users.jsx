@@ -27,9 +27,9 @@ const roleMeta = {
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0, monthly_salary_gross: 0, monthly_state_aid: 0, monthly_loaded_cost: 0, monthly_hours: 151.67 });
   const [collabEditing, setCollabEditing] = useState(null);
-  const [collabForm, setCollabForm] = useState({ collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
+  const [collabForm, setCollabForm] = useState({ collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0, monthly_salary_gross: 0, monthly_state_aid: 0, monthly_loaded_cost: 0, monthly_hours: 151.67 });
   const [pwEditing, setPwEditing] = useState(null);
   const [newPw, setNewPw] = useState("");
   const [permsEditing, setPermsEditing] = useState(null);
@@ -61,7 +61,7 @@ export default function Users() {
       if (!form.name || !form.email || !form.password) return toast.error("Tous les champs sont requis");
       await api.post("/users", form);
       toast.success("Utilisateur créé");
-      setForm({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0 });
+      setForm({ name: "", email: "", password: "", role: "technicien", collaborator_status: "salarie", cost_coefficient: 1.875, hourly_cost: 0, monthly_salary_gross: 0, monthly_state_aid: 0, monthly_loaded_cost: 0, monthly_hours: 151.67 });
       setOpen(false);
       load();
       notifyTeamSync();
@@ -111,6 +111,10 @@ export default function Users() {
       collaborator_status: u.collaborator_status || "salarie",
       cost_coefficient: u.cost_coefficient ?? 1.875,
       hourly_cost: u.hourly_cost ?? 0,
+      monthly_salary_gross: u.monthly_salary_gross ?? 0,
+      monthly_state_aid: u.monthly_state_aid ?? 0,
+      monthly_loaded_cost: u.monthly_loaded_cost ?? 0,
+      monthly_hours: u.monthly_hours ?? 151.67,
     });
   };
   const saveCollab = async () => {
@@ -120,6 +124,10 @@ export default function Users() {
         collaborator_status: collabForm.collaborator_status,
         cost_coefficient: Number(collabForm.cost_coefficient) || 1,
         hourly_cost: Number(collabForm.hourly_cost) || 0,
+        monthly_salary_gross: Number(collabForm.monthly_salary_gross) || 0,
+        monthly_state_aid: Number(collabForm.monthly_state_aid) || 0,
+        monthly_loaded_cost: Number(collabForm.monthly_loaded_cost) || 0,
+        monthly_hours: Number(collabForm.monthly_hours) || 151.67,
       });
       toast.success("Statut et coûts mis à jour");
       setCollabEditing(null);
@@ -226,7 +234,14 @@ export default function Users() {
                 </div>
                 <div><Label>Coefficient charges</Label><Input type="number" min="1" step="0.01" value={form.cost_coefficient ?? 1.875} onChange={(e) => setForm({ ...form, cost_coefficient: e.target.value })} data-testid="user-cost-coefficient" /></div>
               </div>
-              <div><Label>Coût horaire chargé (€)</Label><Input type="number" min="0" step="0.01" value={form.hourly_cost ?? 0} onChange={(e) => setForm({ ...form, hourly_cost: e.target.value })} data-testid="user-hourly-cost" /></div>
+              <p className="overline pt-1">Rémunération mensuelle</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Salaire brut</Label><Input type="number" min="0" step="0.01" value={form.monthly_salary_gross ?? 0} onChange={(e) => setForm({ ...form, monthly_salary_gross: e.target.value })} data-testid="user-monthly-gross" /></div>
+                <div><Label>Aide État</Label><Input type="number" min="0" step="0.01" value={form.monthly_state_aid ?? 0} onChange={(e) => setForm({ ...form, monthly_state_aid: e.target.value })} data-testid="user-monthly-aid" /></div>
+                <div><Label>Coût chargé / mois</Label><Input type="number" min="0" step="0.01" value={form.monthly_loaded_cost ?? 0} onChange={(e) => setForm({ ...form, monthly_loaded_cost: e.target.value })} data-testid="user-monthly-loaded" /></div>
+                <div><Label>Heures / mois</Label><Input type="number" min="1" step="0.01" value={form.monthly_hours ?? 151.67} onChange={(e) => setForm({ ...form, monthly_hours: e.target.value })} data-testid="user-monthly-hours" /></div>
+              </div>
+              <div><Label>Coût horaire manuel (€)</Label><Input type="number" min="0" step="0.01" placeholder="Auto : coût chargé / heures" value={form.hourly_cost ?? 0} onChange={(e) => setForm({ ...form, hourly_cost: e.target.value })} data-testid="user-hourly-cost" /></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
@@ -319,8 +334,17 @@ export default function Users() {
                 <SelectContent><SelectItem value="salarie">Salarié</SelectItem><SelectItem value="independant">Indépendant</SelectItem><SelectItem value="sous_traitant">Sous-traitant</SelectItem></SelectContent>
               </Select>
             </div>
+            <p className="overline pt-1">Rémunération mensuelle</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Salaire brut</Label><Input type="number" min="0" step="0.01" value={collabForm.monthly_salary_gross} onChange={(e) => setCollabForm({ ...collabForm, monthly_salary_gross: e.target.value })} data-testid="user-collab-edit-gross" /></div>
+              <div><Label>Aide État</Label><Input type="number" min="0" step="0.01" value={collabForm.monthly_state_aid} onChange={(e) => setCollabForm({ ...collabForm, monthly_state_aid: e.target.value })} data-testid="user-collab-edit-aid" /></div>
+              <div><Label>Coût chargé / mois</Label><Input type="number" min="0" step="0.01" value={collabForm.monthly_loaded_cost} onChange={(e) => setCollabForm({ ...collabForm, monthly_loaded_cost: e.target.value })} data-testid="user-collab-edit-loaded" /></div>
+              <div><Label>Heures / mois</Label><Input type="number" min="1" step="0.01" value={collabForm.monthly_hours} onChange={(e) => setCollabForm({ ...collabForm, monthly_hours: e.target.value })} data-testid="user-collab-edit-hours" /></div>
+            </div>
             <div><Label>Coefficient de charges</Label><Input type="number" min="1" step="0.01" value={collabForm.cost_coefficient} onChange={(e) => setCollabForm({ ...collabForm, cost_coefficient: e.target.value })} data-testid="user-collab-edit-coefficient" /></div>
-            <div><Label>Coût horaire chargé (€)</Label><Input type="number" min="0" step="0.01" value={collabForm.hourly_cost} onChange={(e) => setCollabForm({ ...collabForm, hourly_cost: e.target.value })} data-testid="user-collab-edit-hourly" /></div>
+            <div><Label>Coût horaire manuel (€)</Label><Input type="number" min="0" step="0.01" placeholder="Auto : coût chargé / heures" value={collabForm.hourly_cost} onChange={(e) => setCollabForm({ ...collabForm, hourly_cost: e.target.value })} data-testid="user-collab-edit-hourly" />
+              <p className="mt-1 text-[10px] text-slate-500">Laisser 0 pour calculer automatiquement.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCollabEditing(null)}>Annuler</Button>

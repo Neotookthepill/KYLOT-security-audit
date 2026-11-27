@@ -579,6 +579,10 @@ def public_user(u: dict) -> dict:
         "collaborator_status": u.get("collaborator_status") or "salarie",
         "cost_coefficient": float(u.get("cost_coefficient") or 1.875),
         "hourly_cost": float(u.get("hourly_cost") or 0),
+        "monthly_salary_gross": float(u.get("monthly_salary_gross") or 0),
+        "monthly_state_aid": float(u.get("monthly_state_aid") or 0),
+        "monthly_loaded_cost": float(u.get("monthly_loaded_cost") or 0),
+        "monthly_hours": float(u.get("monthly_hours") or 151.67),
         "is_active": u.get("is_active", True),
         "company_id": u.get("company_id") or DEFAULT_COMPANY_ID,
         "permissions": merged,
@@ -8356,13 +8360,13 @@ def _profitability_multiplier(u: Optional[dict]) -> float:
 
 async def _profitability_user(user: dict, uid: Optional[str], name: Optional[str]) -> Optional[dict]:
     if uid:
-        u = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1})
+        u = await db.users.find_one(cq(user, {"id": uid}), {"_id": 0, "name": 1, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1, "monthly_salary_gross": 1, "monthly_state_aid": 1, "monthly_loaded_cost": 1, "monthly_hours": 1})
         if u:
             return u
     if name:
         key = _norm_name(name)
         # Les affectations historiques utilisent souvent le prénom seul.
-        rows = await db.users.find(cq(user), {"_id": 0, "name": 1, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1}).to_list(2000)
+        rows = await db.users.find(cq(user), {"_id": 0, "name": 1, "collaborator_status": 1, "cost_coefficient": 1, "hourly_cost": 1, "monthly_salary_gross": 1, "monthly_state_aid": 1, "monthly_loaded_cost": 1, "monthly_hours": 1}).to_list(2000)
         exact = next((u for u in rows if _norm_name(u.get("name")) == key), None)
         if exact:
             return exact
@@ -8373,6 +8377,24 @@ async def _profitability_user(user: dict, uid: Optional[str], name: Optional[str
         if pref:
             return pref
     return None
+
+
+def _profitability_hourly_rate(u: Optional[dict]) -> float:
+    """Taux horaire chargé : manuel prioritaire, sinon coût mensuel / heures."""
+    if not u:
+        return 0.0
+    manual = float(u.get("hourly_cost") or 0)
+    if manual > 0:
+        return manual
+    monthly = float(u.get("monthly_loaded_cost") or 0)
+    hours = float(u.get("monthly_hours") or 151.67)
+    if monthly > 0 and hours > 0:
+        return monthly / hours
+    # Repli : brut × coefficient / heures, pour les fiches plus anciennes.
+    gross = float(u.get("monthly_salary_gross") or 0)
+    aid = float(u.get("monthly_state_aid") or 0)
+    coef = float(u.get("cost_coefficient") or 1.875) if (u.get("collaborator_status") or "salarie") == "salarie" else 1.0
+    return (max(0.0, gross - aid) * coef / hours) if gross > 0 and hours > 0 else 0.0
 
 
 async def _sale_profitability(user: dict, sale: dict) -> dict:
@@ -8453,7 +8475,7 @@ async def _sale_profitability(user: dict, sale: dict) -> dict:
     hourly_rate = 0.0
     for name in assigned:
         u = await _profitability_user(user, None, name)
-        hourly_rate += float((u or {}).get("hourly_cost") or 0)
+        hourly_rate += _profitability_hourly_rate(u)
     duration = max(1, int((project or {}).get("duration_days") or 1))
     forecast_hours = float(p.get("internal_labor_hours") if p.get("internal_labor_hours") is not None else duration * 8 * max(1, len(assigned)))
     actual_hours = float(p.get("internal_labor_hours") if p.get("internal_labor_hours") is not None else forecast_hours)
@@ -8585,6 +8607,10 @@ class UserCreateIn(BaseModel):
     collaborator_status: Literal["salarie", "independant", "sous_traitant"] = "salarie"
     cost_coefficient: float = Field(default=1.875, ge=1, le=10)
     hourly_cost: float = Field(default=0, ge=0, le=100000)
+    monthly_salary_gross: float = Field(default=0, ge=0, le=100000)
+    monthly_state_aid: float = Field(default=0, ge=0, le=100000)
+    monthly_loaded_cost: float = Field(default=0, ge=0, le=100000)
+    monthly_hours: float = Field(default=151.67, gt=0, le=744)
 
 class UserInviteIn(BaseModel):
     email: EmailStr
@@ -8593,6 +8619,10 @@ class UserInviteIn(BaseModel):
     collaborator_status: Literal["salarie", "independant", "sous_traitant"] = "salarie"
     cost_coefficient: float = Field(default=1.875, ge=1, le=10)
     hourly_cost: float = Field(default=0, ge=0, le=100000)
+    monthly_salary_gross: float = Field(default=0, ge=0, le=100000)
+    monthly_state_aid: float = Field(default=0, ge=0, le=100000)
+    monthly_loaded_cost: float = Field(default=0, ge=0, le=100000)
+    monthly_hours: float = Field(default=151.67, gt=0, le=744)
 
 
 class InviteAcceptIn(BaseModel):
@@ -8608,6 +8638,10 @@ class UserUpdateIn(BaseModel):
     collaborator_status: Optional[Literal["salarie", "independant", "sous_traitant"]] = None
     cost_coefficient: Optional[float] = Field(default=None, ge=1, le=10)
     hourly_cost: Optional[float] = Field(default=None, ge=0, le=100000)
+    monthly_salary_gross: Optional[float] = Field(default=None, ge=0, le=100000)
+    monthly_state_aid: Optional[float] = Field(default=None, ge=0, le=100000)
+    monthly_loaded_cost: Optional[float] = Field(default=None, ge=0, le=100000)
+    monthly_hours: Optional[float] = Field(default=None, gt=0, le=744)
 
 @api_router.get("/users")
 async def list_users(user: dict = Depends(require_admin)):
@@ -8619,6 +8653,10 @@ async def list_users(user: dict = Depends(require_admin)):
         u["collaborator_status"] = u.get("collaborator_status") or "salarie"
         u["cost_coefficient"] = float(u.get("cost_coefficient") or 1.875)
         u["hourly_cost"] = float(u.get("hourly_cost") or 0)
+        u["monthly_salary_gross"] = float(u.get("monthly_salary_gross") or 0)
+        u["monthly_state_aid"] = float(u.get("monthly_state_aid") or 0)
+        u["monthly_loaded_cost"] = float(u.get("monthly_loaded_cost") or 0)
+        u["monthly_hours"] = float(u.get("monthly_hours") or 151.67)
     return users
 
 async def _ensure_unique_user_name(user: dict, name: str, exclude_id: Optional[str] = None) -> None:
@@ -8677,6 +8715,8 @@ async def invite_user(data: UserInviteIn, user: dict = Depends(require_admin)):
         "password_hash": hash_password(secrets.token_urlsafe(32)),
         "role": data.role, "collaborator_status": data.collaborator_status,
         "cost_coefficient": data.cost_coefficient, "hourly_cost": data.hourly_cost,
+        "monthly_salary_gross": data.monthly_salary_gross, "monthly_state_aid": data.monthly_state_aid,
+        "monthly_loaded_cost": data.monthly_loaded_cost, "monthly_hours": data.monthly_hours,
         "is_active": False, "invite_pending": True,
         "invite_token_hash": token_hash, "invite_created_at": now,
         "invite_expires_at": now + timedelta(days=7),
@@ -8778,6 +8818,10 @@ async def create_user(data: UserCreateIn, user: dict = Depends(require_admin)):
         "collaborator_status": data.collaborator_status,
         "cost_coefficient": data.cost_coefficient,
         "hourly_cost": data.hourly_cost,
+        "monthly_salary_gross": data.monthly_salary_gross,
+        "monthly_state_aid": data.monthly_state_aid,
+        "monthly_loaded_cost": data.monthly_loaded_cost,
+        "monthly_hours": data.monthly_hours,
         "is_active": True,
         "permissions": get_default_permissions(data.role),
         "subscription_plan": admin.get("subscription_plan"),
@@ -8822,6 +8866,14 @@ async def update_user(uid: str, data: UserUpdateIn, user: dict = Depends(require
         updates["cost_coefficient"] = data.cost_coefficient
     if data.hourly_cost is not None:
         updates["hourly_cost"] = data.hourly_cost
+    if data.monthly_salary_gross is not None:
+        updates["monthly_salary_gross"] = data.monthly_salary_gross
+    if data.monthly_state_aid is not None:
+        updates["monthly_state_aid"] = data.monthly_state_aid
+    if data.monthly_loaded_cost is not None:
+        updates["monthly_loaded_cost"] = data.monthly_loaded_cost
+    if data.monthly_hours is not None:
+        updates["monthly_hours"] = data.monthly_hours
     if data.password:
         updates["password_hash"] = hash_password(data.password)
         updates["token_epoch_ms"] = int(datetime.now(timezone.utc).timestamp() * 1000) + 1
