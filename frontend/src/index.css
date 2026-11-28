@@ -529,7 +529,7 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 }
 .qy-kpi-basket .text-muted-foreground { color: rgba(12, 74, 110, .70) !important; }
 .qy-kpi-basket .mt-1 { color: #0c4a6e !important; }
-.qy-kpi-basket span { background-color: rgba(255,255,255,.55) !important; color: #0369a1 !important; border-color: rgba(14,165,233,.25); }
+.qy-kpi-basket > span { background-color: rgba(255,255,255,.55) !important; color: #0369a1 !important; border-color: rgba(14,165,233,.25); }
 .qy-kpi-agenda {
   border-color: rgba(16, 185, 129, .30) !important;
   background: linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 58%, #ccfbf1 100%) !important;
@@ -541,9 +541,9 @@ tr.data-row:hover { background-color: hsl(var(--muted) / .55); }
 .qy-kpi-sales .mt-1 { color: #1e1b4b !important; }
 .qy-kpi-alerts .mt-1 { color: #7c2d12 !important; }
 .qy-kpi-agenda .mt-1 { color: #064e3b !important; }
-.qy-kpi-sales span { background-color: rgba(255,255,255,.50) !important; color: #312e81 !important; border-color: rgba(99,102,241,.22); }
-.qy-kpi-alerts span { background-color: rgba(255,255,255,.55) !important; color: #9a3412 !important; border-color: rgba(245,158,11,.25); }
-.qy-kpi-agenda span { background-color: rgba(255,255,255,.55) !important; color: #047857 !important; border-color: rgba(16,185,129,.25); }
+.qy-kpi-sales > span { background-color: rgba(255,255,255,.50) !important; color: #312e81 !important; border-color: rgba(99,102,241,.22); }
+.qy-kpi-alerts > span { background-color: rgba(255,255,255,.55) !important; color: #9a3412 !important; border-color: rgba(245,158,11,.25); }
+.qy-kpi-agenda > span { background-color: rgba(255,255,255,.55) !important; color: #047857 !important; border-color: rgba(16,185,129,.25); }
 @media (max-width: 640px) {
   .qy-dashboard-hero { padding: 1rem; border-radius: 12px; }
 }
@@ -1143,4 +1143,27 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   .qy-intro-line span { animation-duration: .7s; animation-delay: 0s !important; }
   .qy-intro-line span::after { animation-delay: .25s !important; }
   .qy-intro-orbit, .qy-intro-halo { animation-duration: .7s; }
+}
+
+
+/* Icônes et libellés sémantiques des KPI en mode sombre. */
+.dark .qy-kpi-sales > span { background: rgba(99,102,241,.22) !important; color: #a5b4fc !important; border-color: rgba(99,102,241,.35) !important; }
+.dark .qy-kpi-alerts > span { background: rgba(245,158,11,.20) !important; color: #fbbf24 !important; border-color: rgba(245,158,11,.35) !important; }
+.dark .qy-kpi-agenda > span { background: rgba(16,185,129,.20) !important; color: #6ee7b7 !important; border-color: rgba(16,185,129,.35) !important; }
+.dark .qy-kpi-basket > span { background: rgba(14,165,233,.20) !important; color: #7dd3fc !important; border-color: rgba(14,165,233,.35) !important; }
+.dark .qy-kpi-sales p.overline { color: #a5b4fc !important; }
+.dark .qy-kpi-alerts p.overline { color: #fbbf24 !important; }
+.dark .qy-kpi-agenda p.overline { color: #6ee7b7 !important; }
+.dark .qy-kpi-basket p.overline { color: #7dd3fc !important; }
+
+/* Les textes internes des KPI ne doivent jamais ressembler à des pastilles. */
+.qy-kpi-sales p span,
+.qy-kpi-alerts p span,
+.qy-kpi-agenda p span,
+.qy-kpi-basket p span {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  color: inherit !important;
 }
