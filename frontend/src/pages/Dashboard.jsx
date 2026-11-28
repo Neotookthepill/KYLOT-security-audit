@@ -293,6 +293,7 @@ export default function Dashboard() {
   // iter47 : Activité chantiers navigable — jour + semaine indépendants
   const [activityData, setActivityData] = useState(null);
   const [dayIso, setDayIso] = useState(() => toIsoLocal(new Date()));
+  const initialDayRef = useRef(toIsoLocal(new Date()));
   const [weekIso, setWeekIso] = useState(() => toIsoLocal(startOfWeek(new Date())));
   const [activityDetail, setActivityDetail] = useState(null); // {label, projects}
   // iter53 : société en secondaire pour commerciaux
@@ -440,6 +441,15 @@ export default function Dashboard() {
     if (authLoading || !user?.id) return;
     loadActivity(dayIso, weekIso);
   }, [authLoading, user?.id, dayIso, weekIso, loadActivity]);
+
+  // Le serveur calcule « aujourd’hui » en Europe/Paris. Si le navigateur est
+  // dans un autre fuseau, on aligne le premier jour affiché sur la date serveur.
+  useEffect(() => {
+    if (!activityData?.today) return;
+    if (dayIso === initialDayRef.current && dayIso !== activityData.today) {
+      setDayIso(activityData.today);
+    }
+  }, [activityData?.today, dayIso]);
   // Ne déclenche PAS de fetch tant que l'authentification n'est pas résolue,
   // sinon le token n'est pas encore posé sur axios et l'appel /dashboard part sans header → 401 silencieux → data reste null → 0 affichés.
   useEffect(() => { if (!authLoading && user?.id) load(); }, [authLoading, user?.id, load]);
@@ -852,7 +862,12 @@ export default function Dashboard() {
       ? "La vue d’ensemble de votre équipe et de vos opérations."
       : "Les indicateurs du jour.";
   const alertCount = Array.isArray(data?.alerts) ? data.alerts.length : 0;
-  const alertSummary = Array.isArray(data?.alerts) ? data.alerts.map((a) => a.label).join(" · ") : "";
+  const alertSummary = Array.isArray(data?.alerts) ? data.alerts.map((a) => {
+    if (a.key === "to_schedule") return `${a.count} chantier${a.count > 1 ? "s" : ""}`;
+    if (a.key === "overtime") return `${a.count} h sup`;
+    if (a.key === "commissions") return `${a.count} commission${a.count > 1 ? "s" : ""}`;
+    return a.label;
+  }).join(" · ") : "";
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
 
   return (
