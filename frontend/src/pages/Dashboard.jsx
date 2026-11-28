@@ -1033,17 +1033,14 @@ export default function Dashboard() {
             const next = !mobileAll;
             setMobileAll(next);
             if (next) {
-              // Après rendu, on amène l'utilisateur au premier bloc ajouté.
-              window.setTimeout(() => {
-                const firstExtra = [...document.querySelectorAll("[data-widget-key]")]
-                  .find((el) => !MOBILE_PRIMARY.has(el.getAttribute("data-widget-key")));
-                firstExtra?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 80);
+              toast.success(`${mobileSecondaryOrder.length} bloc${mobileSecondaryOrder.length > 1 ? "s" : ""} ajouté${mobileSecondaryOrder.length > 1 ? "s" : ""} en dessous`);
+            } else {
+              toast.info("Blocs secondaires masqués");
             }
           }}
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground shadow-sm"
         >
-          {mobileAll ? "Réduire le tableau de bord" : "Afficher tous les blocs"}
+          {mobileAll ? "Réduire le tableau de bord" : `Afficher tous les blocs${mobileSecondaryOrder.length ? ` (${mobileSecondaryOrder.length})` : ""}`}
         </button>
       )}
 
