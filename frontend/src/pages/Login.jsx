@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Compass, Eye, EyeOff, ShieldCheck, Wallet, HardHat, TrendingUp, ArrowRight, LockKeyhole } from "lucide-react";
+import { ArrowUpRight, Check, Compass, Eye, EyeOff, ShieldCheck, LockKeyhole } from "lucide-react";
 import IntroSplash from "@/components/IntroSplash";
 
 const PROOF = [
@@ -106,36 +106,28 @@ export default function Login() {
               ))}
             </ul>
 
-            <div className="mt-10 rounded-2xl border border-white/10 bg-white/[.045] p-4 backdrop-blur-sm" data-testid="login-flow-preview">
+            <div className="qy-login-timeline mt-9 rounded-2xl border border-white/10 bg-white/[.045] p-4 backdrop-blur-sm" data-testid="login-flow-preview">
               <div className="flex items-center justify-between">
-                <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/40">Le flux Qylot</p>
-                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] text-white/40">Aperçu</span>
+                <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/40">Parcours type</p>
+                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] text-white/40">Exemple de flux</span>
               </div>
-              <div className="mt-4 flex items-center gap-2">
+              <ol className="relative mt-4 space-y-3">
+                <span className="pointer-events-none absolute bottom-2 left-[9px] top-2 w-px bg-white/10" aria-hidden="true" />
                 {[
-                  { icon: Wallet, label: "Vente", tone: "bg-[#5271FF]/20 text-[#8EA2FF]" },
-                  { icon: HardHat, label: "Chantier", tone: "bg-amber-400/15 text-amber-300" },
-                  { icon: TrendingUp, label: "Marge", tone: "bg-emerald-400/15 text-emerald-300" },
-                ].map((step, i) => (
-                  <div key={step.label} className="flex min-w-0 flex-1 items-center gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${step.tone}`}><step.icon size={14} /></span>
-                      <span className="truncate text-[11px] font-medium text-white/80">{step.label}</span>
+                  ["01", "Vente signée", "Le commercial enregistre l’affaire."],
+                  ["02", "Chantier planifié", "L’intervention entre au calendrier."],
+                  ["03", "Équipe affectée", "Techniciens et sous-traitants sont assignés."],
+                  ["04", "Marge suivie", "Les coûts sont complétés, la marge validée."],
+                ].map(([num, title, desc], i) => (
+                  <li key={num} className="relative flex items-start gap-3" data-testid={`login-flow-step-${i + 1}`}>
+                    <span className={`relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[9px] font-semibold ${i === 3 ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300" : "border-white/20 bg-[#111827] text-white/60"}`}>{num}</span>
+                    <div className="min-w-0">
+                      <p className={`text-[11px] font-medium ${i === 3 ? "text-emerald-200" : "text-white/80"}`}>{title}</p>
+                      <p className="mt-0.5 text-[10px] leading-snug text-white/35">{desc}</p>
                     </div>
-                    {i < 2 && <ArrowRight size={12} className="shrink-0 text-white/25" />}
-                  </div>
+                  </li>
                 ))}
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {["Devis", "Planning", "Rentabilité"].map((label, i) => (
-                  <div key={label}>
-                    <p className="text-[9px] text-white/35">{label}</p>
-                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
-                      <div className={`h-full rounded-full ${["w-11/12 bg-[#5271FF]", "w-2/3 bg-amber-400", "w-4/5 bg-emerald-400"][i]}`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              </ol>
             </div>
           </div>
 

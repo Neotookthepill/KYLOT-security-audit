@@ -1174,3 +1174,10 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
 .dark .qy-kpi-basket p span {
   color: #f8fafc !important;
 }
+
+/* Connexion : compacter la timeline sur les écrans peu hauts. */
+@media (min-width: 1024px) and (max-height: 860px) {
+  .qy-login-timeline { margin-top: 1.25rem; padding: .75rem; }
+  .qy-login-timeline ol { margin-top: .6rem; gap: .35rem; }
+  .qy-login-timeline li p:last-child { display: none; }
+}
