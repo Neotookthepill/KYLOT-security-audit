@@ -1051,7 +1051,7 @@ export default function Dashboard() {
           {salesDetailLoading ? <p className="py-6 text-center text-sm text-slate-500">Chargement du détail…</p> : (
             <>
               <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-[11px] text-slate-500">Lignes</p><b>{salesDetail?.count ?? "—"}</b></div>
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-[11px] text-slate-500">Ventes au total</p><b>{salesDetail?.count ?? "—"}</b></div>
                 <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-[11px] text-rose-700">Exclues</p><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
                 <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-[11px] text-indigo-700">Comptées</p><b>{data?.sales?.count ?? "—"}</b></div>
               </div>

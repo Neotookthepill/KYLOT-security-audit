@@ -962,7 +962,7 @@ export default function Sales() {
             <DialogDescription>Ce qui entre dans le chiffre d’affaires de la période.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-slate-500">Lignes</p><b className="mt-0.5 block text-base text-slate-900">{summaryReady ? summary.count : "…"}</b></div>
+            <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-slate-500">Ventes au total</p><b className="mt-0.5 block text-base text-slate-900">{summaryReady ? summary.count : "…"}</b></div>
             <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-indigo-700/80">Comptées</p><b className="mt-0.5 block text-base">{summaryReady ? (summary.ca_count ?? summary.count) : "…"}</b></div>
             <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-rose-700/80">Exclues</p><b className="mt-0.5 block text-base">{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
             <div className="rounded-lg bg-emerald-50 px-2.5 py-2 text-emerald-900"><p className="text-emerald-700/80">CA retenu</p><b className="mt-0.5 block text-base">{summaryReady ? fmtEur(stats.total) : "…"}</b></div>
