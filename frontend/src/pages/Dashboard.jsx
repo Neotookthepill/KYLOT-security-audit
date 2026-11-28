@@ -631,13 +631,13 @@ export default function Dashboard() {
               >
                 <div className="flex items-start justify-between">
                   <div className="min-w-0">
-                    <p className="font-display text-3xl font-semibold tracking-tight tabular-nums" data-testid="activity-day-count">{dayD.count}<span className="text-base text-slate-500 font-normal ml-1">prévu{(dayD.count || 0) > 1 ? "s" : ""}</span><span className="mx-1.5 text-slate-300">·</span><span className="text-emerald-700" data-testid="activity-day-done-count">{dayD.done_count || 0}</span><span className="text-base text-emerald-700 font-normal ml-1">fini{(dayD.done_count || 0) > 1 ? "s" : ""}</span></p>
+                    <p className="font-display text-3xl font-semibold tracking-tight tabular-nums" data-testid="activity-day-count">{dayD.count}<span className="text-base text-slate-500 font-normal ml-1">restant{(dayD.count || 0) > 1 ? "s" : ""} à faire</span><span className="mx-1.5 text-slate-300">·</span><span className="text-emerald-700" data-testid="activity-day-done-count">{dayD.done_count || 0}</span><span className="text-base text-emerald-700 font-normal ml-1">terminé{(dayD.done_count || 0) > 1 ? "s" : ""}</span></p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                       <span className="inline-flex items-center gap-1" data-testid="activity-day-hours"><Clock size={11} className="text-slate-400" />{dayD.hours || 0} h prévues</span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-slate-900 group-hover:underline underline-offset-2" data-testid="activity-day-ca"><Euro size={11} className="text-slate-400" />{fmtEur(dayD.ca)}</span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-day-done-ca" title="CA des chantiers finis">✓ {fmtEur(dayD.done_ca || 0)}</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-900 group-hover:underline underline-offset-2" data-testid="activity-day-ca"><Euro size={11} className="text-slate-400" />{fmtEur(dayD.ca)} <span className="font-normal text-slate-400">prévu</span></span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-day-done-ca" title="CA des chantiers terminés">✓ {fmtEur(dayD.done_ca || 0)} <span className="font-normal text-emerald-600">réalisé</span></span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">{dayD.date}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{formatDateFR(dayD.date)}</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-primary/10 text-primary"><HardHat size={18} /></div>
                 </div>
@@ -679,13 +679,13 @@ export default function Dashboard() {
               >
                 <div className="flex items-start justify-between">
                   <div className="min-w-0">
-                    <p className="font-display text-3xl font-semibold tracking-tight tabular-nums" data-testid="activity-week-count">{weekD.count}<span className="text-base text-slate-500 font-normal ml-1">prévu{(weekD.count || 0) > 1 ? "s" : ""}</span><span className="mx-1.5 text-slate-300">·</span><span className="text-emerald-700" data-testid="activity-week-done-count">{weekD.done_count || 0}</span><span className="text-base text-emerald-700 font-normal ml-1">fini{(weekD.done_count || 0) > 1 ? "s" : ""}</span></p>
+                    <p className="font-display text-3xl font-semibold tracking-tight tabular-nums" data-testid="activity-week-count">{weekD.count}<span className="text-base text-slate-500 font-normal ml-1">restant{(weekD.count || 0) > 1 ? "s" : ""} à faire</span><span className="mx-1.5 text-slate-300">·</span><span className="text-emerald-700" data-testid="activity-week-done-count">{weekD.done_count || 0}</span><span className="text-base text-emerald-700 font-normal ml-1">terminé{(weekD.done_count || 0) > 1 ? "s" : ""}</span></p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
                       <span className="inline-flex items-center gap-1" data-testid="activity-week-hours"><Clock size={11} className="text-slate-400" />{weekD.hours || 0} h prévues</span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-slate-900 group-hover:underline underline-offset-2" data-testid="activity-week-ca"><Euro size={11} className="text-slate-400" />{fmtEur(weekD.ca)}</span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-week-done-ca" title="CA des chantiers finis">✓ {fmtEur(weekD.done_ca || 0)}</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-900 group-hover:underline underline-offset-2" data-testid="activity-week-ca"><Euro size={11} className="text-slate-400" />{fmtEur(weekD.ca)} <span className="font-normal text-slate-400">prévu</span></span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-week-done-ca" title="CA des chantiers terminés">✓ {fmtEur(weekD.done_ca || 0)} <span className="font-normal text-emerald-600">réalisé</span></span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><CalendarClock size={10} />du {weekD.start} au {weekD.end}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><CalendarClock size={10} />du {formatDateFR(weekD.start)} au {formatDateFR(weekD.end)}</p>
                   </div>
                   <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-emerald-50 text-emerald-700"><HardHat size={18} /></div>
                 </div>
@@ -727,7 +727,7 @@ export default function Dashboard() {
             <p className="font-display text-3xl font-semibold tracking-tight mt-2">{fmtEur(data?.commissions?.total)}</p>
             <p className="text-xs text-slate-500 mt-1"><span className={data?.commissions?.to_validate_count > 0 ? "text-slate-700 font-semibold" : ""}>{data?.commissions?.to_validate_count || 0} à valider</span>{data?.commissions?.to_validate_count > 0 && <> · {fmtEur(data?.commissions?.to_validate_amount)}</>}</p>
           </div>
-          <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center"><Percent size={16} /></div>
+          <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center"><Percent size={16} /></div>
         </div>
       </Card>
     ),
@@ -852,6 +852,7 @@ export default function Dashboard() {
       ? "La vue d’ensemble de votre équipe et de vos opérations."
       : "Les indicateurs du jour.";
   const alertCount = Array.isArray(data?.alerts) ? data.alerts.length : 0;
+  const alertSummary = Array.isArray(data?.alerts) ? data.alerts.map((a) => a.label).join(" · ") : "";
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
 
   return (
@@ -898,11 +899,12 @@ export default function Dashboard() {
         <button type="button" onClick={() => setAlertsOpen(true)} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
-            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}</p>
+            <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-[10px]">catégories</span></p>
+            <p className="mt-0.5 max-w-[180px] truncate text-[9px] text-muted-foreground" title={alertSummary || "Rien à traiter"}>{alertSummary || "Rien à traiter"}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/planning")} className="qy-kpi qy-kpi-agenda group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+        <button type="button" onClick={() => nav("/planning")} className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
@@ -911,7 +913,7 @@ export default function Dashboard() {
         </button>
         <button type="button" onClick={() => nav("/tableau-ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">par vente</span></p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">ventes comptées CA</span></p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
               {data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}
             </p>

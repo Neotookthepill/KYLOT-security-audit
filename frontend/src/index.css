@@ -1180,3 +1180,15 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   .qy-login-timeline { margin-top: 1.25rem; padding: .75rem; }
   .qy-login-timeline ol { margin-top: .6rem; gap: .35rem; }
 }
+
+/* Un agenda vide ne doit pas être vert : le vert signifie “acquis / couvert”. */
+.qy-kpi-agenda-empty {
+  border-color: rgba(148,163,184,.28) !important;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0) !important;
+  color: #334155 !important;
+}
+.qy-kpi-agenda-empty .text-muted-foreground { color: rgba(51,65,85,.68) !important; }
+.qy-kpi-agenda-empty .mt-1 { color: #334155 !important; }
+.qy-kpi-agenda-empty > span { background: rgba(255,255,255,.6) !important; color: #64748b !important; border-color: #cbd5e1 !important; }
+.dark .qy-kpi-agenda-empty { background: linear-gradient(135deg,#111827,#1e293b) !important; border-color:#334155 !important; color:#f8fafc !important; }
+.dark .qy-kpi-agenda-empty p, .dark .qy-kpi-agenda-empty .mt-1 { color:#f8fafc !important; }
