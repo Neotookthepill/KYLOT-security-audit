@@ -644,6 +644,7 @@ export default function Dashboard() {
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-day-done-ca" title="CA des chantiers terminés">✓ {fmtEur(dayD.done_ca || 0)} <span className="font-normal text-emerald-600">réalisé</span></span>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">{formatDateFR(dayD.date)}</p>
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary">Voir le détail <ArrowRight size={11} /></span>
                   </div>
                   <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-primary/10 text-primary"><HardHat size={18} /></div>
                 </div>
@@ -692,6 +693,7 @@ export default function Dashboard() {
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-700" data-testid="activity-week-done-ca" title="CA des chantiers terminés">✓ {fmtEur(weekD.done_ca || 0)} <span className="font-normal text-emerald-600">réalisé</span></span>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><CalendarClock size={10} />du {formatDateFR(weekD.start)} au {formatDateFR(weekD.end)}</p>
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary">Voir le détail <ArrowRight size={11} /></span>
                   </div>
                   <div className="h-10 w-10 rounded-lg grid place-items-center shrink-0 bg-emerald-50 text-emerald-700"><HardHat size={18} /></div>
                 </div>
@@ -726,7 +728,7 @@ export default function Dashboard() {
       </Card>
     ),
     commissions: () => (
-      <Card className="p-4 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/commissions")} data-testid="dashboard-commissions">
+      <Card className="p-4 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/commissions")} onKeyDown={(e) => { if (!editing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); nav("/commissions"); } }} role="button" tabIndex={0} aria-label="Ouvrir les commissions" data-testid="dashboard-commissions">
         <div className="flex items-start justify-between">
           <div>
             <p className="overline">Commissions du mois</p>
@@ -735,10 +737,11 @@ export default function Dashboard() {
           </div>
           <div className="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center"><Percent size={16} /></div>
         </div>
+        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary">Voir le détail <ArrowRight size={12} /></p>
       </Card>
     ),
     overtime: () => (
-      <Card className="p-5 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/heures-sup")} data-testid="dashboard-overtime">
+      <Card className="p-5 border-slate-200 shadow-sm cursor-pointer hover:border-slate-400 transition" onClick={() => !editing && nav("/heures-sup")} onKeyDown={(e) => { if (!editing && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); nav("/heures-sup"); } }} role="button" tabIndex={0} aria-label="Ouvrir les heures sup" data-testid="dashboard-overtime">
         <div className="flex items-start justify-between">
           <div>
             <p className="overline">Heures sup à valider</p>
@@ -747,6 +750,7 @@ export default function Dashboard() {
           </div>
           <div className="h-10 w-10 rounded-lg bg-amber-50 text-amber-700 grid place-items-center"><Clock size={18} /></div>
         </div>
+        <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary">Voir le détail <ArrowRight size={12} /></p>
       </Card>
     ),
     ranking: () => {
@@ -924,6 +928,7 @@ export default function Dashboard() {
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
+          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
         </button>
         <button type="button" onClick={() => setAlertsOpen(true)} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
@@ -932,13 +937,15 @@ export default function Dashboard() {
             <p className="mt-0.5 max-w-[180px] truncate text-[9px] text-muted-foreground" title={alertSummary || "Rien à traiter"}>{alertSummary || "Rien à traiter"}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
+          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
         </button>
-        <button type="button" onClick={() => setAgendaDetailOpen(true)} className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
+        <button type="button" onClick={() => setAgendaDetailOpen(true)} aria-haspopup="dialog" className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group relative flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
+          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
         </button>
         <button type="button" onClick={() => setAvgDetailOpen(true)} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
@@ -948,6 +955,7 @@ export default function Dashboard() {
             </p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--info-soft))] text-[hsl(var(--info))] sm:grid"><Receipt size={16} /></span>
+          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
         </button>
       </div>
 
