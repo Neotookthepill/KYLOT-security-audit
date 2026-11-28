@@ -3209,15 +3209,34 @@ async def sales_summary(
         if to_date:
             query["sale_date"]["$lte"] = to_date
     projection = {
-        "_id": 0, "amount": 1, "status": 1, "commercial": 1,
+        "_id": 0, "id": 1, "amount": 1, "status": 1, "commercial": 1,
         "commercial_2": 1, "is_de": 1, "source": 1, "payment_method": 1,
+        "client_name": 1, "sale_date": 1, "bdc": 1,
     }
     rows = await db.sales.find(query, projection).to_list(20000)
     status_caps = await _sale_status_capabilities(user)
+    settings_doc = await db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}) or {}
+    configured_statuses = _resolve_statuses(settings_doc)
+    status_labels = {st.get("value"): (st.get("label") or st.get("value")) for st in configured_statuses}
     active = [
         r for r in rows
         if status_caps.get(r.get("status"), {}).get("countsCA", False)
     ]
+    excluded = [r for r in rows if not status_caps.get(r.get("status"), {}).get("countsCA", False)]
+
+    def _metric_sale(r):
+        return {
+            "id": r.get("id"),
+            "client_name": r.get("client_name") or "Client sans nom",
+            "sale_date": r.get("sale_date") or "",
+            "bdc": r.get("bdc") or "",
+            "amount": float(r.get("amount") or 0),
+            "status": r.get("status") or "",
+            "status_label": status_labels.get(r.get("status"), r.get("status") or "Statut inconnu"),
+            "commercial": r.get("commercial") or "",
+        }
+    included_list = [_metric_sale(r) for r in sorted(active, key=lambda x: x.get("sale_date") or "", reverse=True)]
+    excluded_list = [_metric_sale(r) for r in sorted(excluded, key=lambda x: x.get("sale_date") or "", reverse=True)]
     total = sum(float(r.get("amount") or 0) for r in active)
     grouped = {}
     for row in active:
@@ -3246,7 +3265,14 @@ async def sales_summary(
             elif payment:
                 bucket["comptant"] += 1
     by_commercial = sorted(grouped.values(), key=lambda x: x["ca"], reverse=True)
-    return {"count": len(rows), "ca_count": len(active), "total": round(total, 2), "by_commercial": by_commercial}
+    return {
+        "count": len(rows),
+        "ca_count": len(active),
+        "total": round(total, 2),
+        "by_commercial": by_commercial,
+        "included": included_list,
+        "excluded": excluded_list,
+    }
 
 
 @api_router.get("/sales")

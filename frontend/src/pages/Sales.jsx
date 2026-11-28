@@ -334,9 +334,10 @@ export default function Sales() {
   }, []);
   const [sales, setSales] = useState([]);
   const [loadError, setLoadError] = useState(false);
-  const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [] });
+  const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [], included: [], excluded: [] });
   const [summaryKey, setSummaryKey] = useState("");
   const [explainCa, setExplainCa] = useState(false);
+  const [explainTab, setExplainTab] = useState("included");
   const [pageTotal, setPageTotal] = useState(0);
   const [pageOffset, setPageOffset] = useState(0);
   const [salesLoading, setSalesLoading] = useState(false);
@@ -956,14 +957,37 @@ export default function Sales() {
             <DialogTitle className="font-display text-xl">Comprendre le CA</DialogTitle>
             <DialogDescription>Ce qui entre dans le chiffre d’affaires de la période.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Lignes sur la période</span><b>{summaryReady ? summary.count : "…"}</b></div>
-            <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900"><span>Comptées dans le CA</span><b>{summaryReady ? (summary.ca_count ?? summary.count) : "…"}</b></div>
-            <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>Exclues du CA</span><b>{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
-            <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900"><span>CA retenu</span><b>{summaryReady ? fmtEur(stats.total) : "…"}</b></div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-slate-500">Lignes</p><b className="mt-0.5 block text-base text-slate-900">{summaryReady ? summary.count : "…"}</b></div>
+            <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-indigo-700/80">Comptées</p><b className="mt-0.5 block text-base">{summaryReady ? (summary.ca_count ?? summary.count) : "…"}</b></div>
+            <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-rose-700/80">Exclues</p><b className="mt-0.5 block text-base">{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
+            <div className="rounded-lg bg-emerald-50 px-2.5 py-2 text-emerald-900"><p className="text-emerald-700/80">CA retenu</p><b className="mt-0.5 block text-base">{summaryReady ? fmtEur(stats.total) : "…"}</b></div>
+          </div>
+
+          <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs" role="tablist" aria-label="Détail du CA">
+            <button type="button" onClick={() => setExplainTab("included")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${explainTab === "included" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={explainTab === "included"} data-testid="sales-ca-tab-included">Comptées dans le CA</button>
+            <button type="button" onClick={() => setExplainTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${explainTab === "excluded" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={explainTab === "excluded"} data-testid="sales-ca-tab-excluded">Hors CA</button>
+          </div>
+
+          <div className="max-h-[42vh] overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100" data-testid={`sales-ca-list-${explainTab}`}>
+            {(() => {
+              const list = explainTab === "included" ? (summary.included || []) : (summary.excluded || []);
+              if (!summaryReady) return <p className="p-4 text-sm text-slate-500">Chargement…</p>;
+              if (!list.length) return <p className="p-4 text-sm text-slate-500">Aucune vente dans cette catégorie.</p>;
+              return list.map((sale) => (
+                <div key={sale.id || `${sale.client_name}-${sale.sale_date}`} className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm" data-testid={`sales-ca-${explainTab}-${sale.id || "sale"}`}>
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-800">{sale.client_name}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{sale.sale_date ? formatDateFR(sale.sale_date) : "Date inconnue"}{sale.bdc ? ` · ${sale.bdc}` : ""}</p>
+                    {explainTab === "excluded" && <p className="mt-0.5 text-[11px] font-medium text-rose-700">{sale.status_label} — exclue du CA</p>}
+                  </div>
+                  <b className="shrink-0 tabular-nums text-slate-900">{fmtEur(sale.amount)}</b>
+                </div>
+              ));
+            })()}
           </div>
           <p className="text-xs leading-relaxed text-slate-500">
-            Le CA ne retient que les statuts autorisés. Une vente DE peut compter pour deux lignes commerciales dans le rapport, mais reste une seule affaire ici.
+            Seuls les statuts autorisés entrent dans le CA. Une vente DE reste une affaire, même si elle apparaît sur deux lignes commerciales dans le rapport.
           </p>
           <div className="flex justify-end"><Button type="button" variant="outline" onClick={closeExplainCa}>Fermer</Button></div>
         </DialogContent>
