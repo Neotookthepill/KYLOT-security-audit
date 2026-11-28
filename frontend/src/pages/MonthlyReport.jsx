@@ -107,7 +107,8 @@ export default function MonthlyReport() {
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <div>
             <p className="font-display text-lg font-semibold">Détail par commercial</p>
-            <p className="text-xs text-slate-500 mt-0.5">Ventes : toutes les lignes. Sources : ventes comptées dans le CA. Exemple : <span className="font-mono">Theo — 8 R1 · 1 Assist · 3 Annulations</span></p>
+            <p className="text-xs text-slate-500 mt-0.5">Ventes : toutes les lignes. Sources : ventes comptées dans le CA.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Sources d’origine configurées : R1, Assist, CQ, CA, TAP. « CA » dans une colonne source est un code, pas le montant.</p>
           </div>
           {loading && <span className="text-xs text-slate-400">Chargement…</span>}
         </div>
@@ -120,18 +121,17 @@ export default function MonthlyReport() {
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">R1</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">Assist</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">CQ</span></th>
-                <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">CA</span></th>
+                <th className="px-3 py-3 overline text-right" title="Code source CA — à ne pas confondre avec le montant CA HT"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">CA src.</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">TAP</span></th>
                 <th className="px-3 py-3 overline text-right"><span className="inline-block px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 text-[10px]">Sous-trait.</span></th>
                 <th className="px-3 py-3 overline text-right text-red-700">Annulé</th>
-                <th className="px-4 py-3 overline text-right">CA €</th>
+                <th className="px-4 py-3 overline text-right">CA HT €</th>
                 <th className="px-4 py-3 overline text-right">Commission €</th>
-                <th className="px-4 py-3 overline">Résumé</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={12} className="p-8 text-center text-slate-500">Aucune vente enregistrée pour {monthLabel(month)}.</td></tr>
+                <tr><td colSpan={11} className="p-8 text-center text-slate-500">Aucune vente enregistrée pour {monthLabel(month)}.</td></tr>
               )}
               {rows.map((r, idx) => {
                 const isTop = idx === 0 && r.sales_count > 0;
@@ -145,7 +145,7 @@ export default function MonthlyReport() {
                   r.cancelled_count > 0 && `${r.cancelled_count} annulation${r.cancelled_count > 1 ? "s" : ""}`,
                 ].filter(Boolean).join(" · ") || "—";
                 return (
-                  <tr key={r.commercial} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40" data-testid={`report-row-${r.commercial}`}>
+                  <tr key={r.commercial} title={summary} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/40" data-testid={`report-row-${r.commercial}`}>
                     <td className="px-4 py-3 font-semibold whitespace-nowrap flex items-center gap-2">
                       {isTop && <Trophy size={14} className="text-primary" />}
                       {r.commercial}
@@ -160,7 +160,6 @@ export default function MonthlyReport() {
                     <td className={`px-3 py-3 text-right ${r.cancelled_count > 0 ? "text-red-600 font-medium" : "text-slate-400"}`}>{r.cancelled_count || "—"}</td>
                     <td className="px-4 py-3 text-right font-display font-semibold">{fmtEur(r.ca_total)}</td>
                     <td className="px-4 py-3 text-right font-display font-semibold text-emerald-700">{fmtEur(r.commission_total)}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{summary}</td>
                   </tr>
                 );
               })}
@@ -179,7 +178,6 @@ export default function MonthlyReport() {
                   <td className="px-3 py-3 text-right text-red-600">{totals.cancelled_count}</td>
                   <td className="px-4 py-3 text-right font-display">{fmtEur(totals.ca_total)}</td>
                   <td className="px-4 py-3 text-right font-display text-emerald-700">{fmtEur(totals.commission_total)}</td>
-                  <td className="px-4 py-3"></td>
                 </tr>
               </tfoot>
             )}
