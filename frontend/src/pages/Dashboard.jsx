@@ -834,9 +834,17 @@ export default function Dashboard() {
   // iter182 : `events` ne s'affiche que s'il y a au moins un évènement — sinon il
   // laisserait un trou dans la grille 12-col.
   const MOBILE_PRIMARY = new Set(["ca_hero", "challenge", "today_todos", "alerts", "recent_sales"]);
-  const visibleOrder = order
-    .filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)))
-    .filter((k) => !isMobile || mobileAll || MOBILE_PRIMARY.has(k));
+  const orderedVisible = order
+    .filter((k) => renderers[k] && isVisible(k) && !(k === "events" && (!events || events.length === 0)));
+  const mobilePrimaryOrder = orderedVisible.filter((k) => MOBILE_PRIMARY.has(k));
+  const mobileSecondaryOrder = orderedVisible.filter((k) => !MOBILE_PRIMARY.has(k));
+  // En mobile, les blocs principaux restent en place. Les blocs supplémentaires
+  // s'ajoutent strictement en dessous : aucun bloc existant ne saute au-dessus.
+  const visibleOrder = !isMobile
+    ? orderedVisible
+    : mobileAll
+      ? [...mobilePrimaryOrder, ...mobileSecondaryOrder]
+      : mobilePrimaryOrder;
   const hiddenAvailable = order.filter((k) => renderers[k] && showByAdmin(k) && hidden.includes(k) && k !== "stats");
   // Réorganisation tactile fiable : on échange deux blocs visibles, sans dépendre
   // du drag HTML5 qui n'existe pas sur téléphone.
@@ -1024,7 +1032,14 @@ export default function Dashboard() {
           onClick={() => {
             const next = !mobileAll;
             setMobileAll(next);
-            if (next) requestAnimationFrame(() => document.querySelector('[data-testid="dashboard-grid"]')?.scrollIntoView({ behavior: "smooth", block: "start" }));
+            if (next) {
+              // Après rendu, on amène l'utilisateur au premier bloc ajouté.
+              window.setTimeout(() => {
+                const firstExtra = [...document.querySelectorAll("[data-widget-key]")]
+                  .find((el) => !MOBILE_PRIMARY.has(el.getAttribute("data-widget-key")));
+                firstExtra?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 80);
+            }
           }}
           className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground shadow-sm"
         >
