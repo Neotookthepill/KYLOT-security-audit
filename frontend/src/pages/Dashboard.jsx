@@ -290,6 +290,11 @@ export default function Dashboard() {
   const [editingSale, setEditingSale] = useState(null);
   const [viewSale, setViewSale] = useState(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [salesDetailOpen, setSalesDetailOpen] = useState(false);
+  const [salesDetail, setSalesDetail] = useState(null);
+  const [salesDetailLoading, setSalesDetailLoading] = useState(false);
+  const [avgDetailOpen, setAvgDetailOpen] = useState(false);
+  const [agendaDetailOpen, setAgendaDetailOpen] = useState(false);
   // iter47 : Activité chantiers navigable — jour + semaine indépendants
   const [activityData, setActivityData] = useState(null);
   const [dayIso, setDayIso] = useState(() => toIsoLocal(new Date()));
@@ -860,6 +865,24 @@ export default function Dashboard() {
     return a.label;
   }).join(" · ") : "";
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
+  const todayEventsList = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())) : [];
+
+  const openSalesDetail = async () => {
+    setSalesDetailOpen(true);
+    if (salesDetail || salesDetailLoading) return;
+    setSalesDetailLoading(true);
+    try {
+      const from = data?.range?.start;
+      const to = data?.range?.end;
+      const url = from && to ? `/sales/summary?from_date=${from}&to_date=${to}` : "/sales/summary";
+      const { data: detail } = await api.get(url);
+      setSalesDetail(detail);
+    } catch (_) {
+      setSalesDetail(null);
+    } finally {
+      setSalesDetailLoading(false);
+    }
+  };
 
   return (
     <div className="qy-dashboard mx-auto max-w-[1440px] p-4 md:p-8">
@@ -895,7 +918,7 @@ export default function Dashboard() {
       </header>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={openSalesDetail} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes" : "Ventes comptées"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
@@ -910,14 +933,14 @@ export default function Dashboard() {
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/planning")} className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
+        <button type="button" onClick={() => setAgendaDetailOpen(true)} className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/tableau-ventes")} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => setAvgDetailOpen(true)} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">ventes comptées CA</span></p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
@@ -993,6 +1016,57 @@ export default function Dashboard() {
         </button>
       )}
 
+
+      <Dialog open={salesDetailOpen} onOpenChange={setSalesDetailOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dashboard-sales-detail-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Ventes comptées</DialogTitle>
+            <DialogDescription>Ce que représentent les {data?.sales?.count ?? 0} ventes retenues dans le CA.</DialogDescription>
+          </DialogHeader>
+          {salesDetailLoading ? <p className="py-6 text-center text-sm text-slate-500">Chargement du détail…</p> : (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900"><span>Ventes comptées</span><b>{data?.sales?.count ?? "—"}</b></div>
+              <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Lignes sur la période</span><b>{salesDetail?.count ?? "—"}</b></div>
+              <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>Exclues du CA</span><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
+              <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900"><span>CA retenu</span><b>{fmtEur(data?.ca?.total || 0)}</b></div>
+            </div>
+          )}
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => { setSalesDetailOpen(false); nav("/ventes?explain=ca"); }}>Comprendre le CA</Button>
+            <Button type="button" onClick={() => { setSalesDetailOpen(false); nav("/ventes"); }}>Ouvrir le module Ventes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={avgDetailOpen} onOpenChange={setAvgDetailOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dashboard-average-detail-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Montant moyen par vente</DialogTitle>
+            <DialogDescription>Calculé uniquement sur les ventes comptées dans le CA.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>CA retenu</span><b>{fmtEur(data?.ca?.total || 0)}</b></div>
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Ventes comptées</span><b>{data?.sales?.count ?? "—"}</b></div>
+            <div className="flex items-center justify-between rounded-lg bg-sky-50 px-3 py-2 text-sky-900"><span>Montant moyen</span><b>{data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}</b></div>
+          </div>
+          <div className="flex justify-end"><Button type="button" onClick={() => { setAvgDetailOpen(false); nav("/tableau-ventes"); }}>Ouvrir le Tableau de vente</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={agendaDetailOpen} onOpenChange={setAgendaDetailOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="dashboard-agenda-detail-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Agenda du jour</DialogTitle>
+            <DialogDescription>{todayEvents === 0 ? "Aucun événement prévu aujourd’hui." : `${todayEvents} événement${todayEvents > 1 ? "s" : ""} prévu${todayEvents > 1 ? "s" : ""}.`}</DialogDescription>
+          </DialogHeader>
+          {todayEventsList.length > 0 && (
+            <div className="space-y-2">{todayEventsList.map((ev) => (
+              <div key={ev.id || ev.title} className="rounded-lg border border-slate-200 px-3 py-2 text-sm"><b>{ev.title}</b>{ev.start_time ? <span className="ml-2 text-slate-500">{ev.start_time}</span> : null}</div>
+            ))}</div>
+          )}
+          <div className="flex justify-end"><Button type="button" onClick={() => { setAgendaDetailOpen(false); nav("/planning"); }}>Ouvrir le Planning</Button></div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={alertsOpen} onOpenChange={setAlertsOpen}>
         <DialogContent className="sm:max-w-lg" data-testid="dashboard-alerts-dialog">
