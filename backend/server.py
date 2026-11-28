@@ -3211,13 +3211,16 @@ async def sales_summary(
     projection = {
         "_id": 0, "id": 1, "amount": 1, "status": 1, "commercial": 1,
         "commercial_2": 1, "is_de": 1, "source": 1, "payment_method": 1,
-        "client_name": 1, "sale_date": 1, "bdc": 1,
+        "client_id": 1, "client_name": 1, "sale_date": 1, "bdc": 1,
     }
     rows = await db.sales.find(query, projection).to_list(20000)
     status_caps = await _sale_status_capabilities(user)
     settings_doc = await db.settings.find_one({"company_id": company_id_of(user), "kind": "global"}, {"_id": 0}) or {}
     configured_statuses = _resolve_statuses(settings_doc)
     status_labels = {st.get("value"): (st.get("label") or st.get("value")) for st in configured_statuses}
+    client_ids = [r.get("client_id") for r in rows if r.get("client_id")]
+    clients = await db.clients.find(cq(user, {"id": {"$in": client_ids}}), {"_id": 0, "id": 1, "name": 1}).to_list(20000) if client_ids else []
+    client_names = {c.get("id"): c.get("name") for c in clients if c.get("name")}
     active = [
         r for r in rows
         if status_caps.get(r.get("status"), {}).get("countsCA", False)
@@ -3227,7 +3230,7 @@ async def sales_summary(
     def _metric_sale(r):
         return {
             "id": r.get("id"),
-            "client_name": r.get("client_name") or "Client sans nom",
+            "client_name": client_names.get(r.get("client_id")) or r.get("client_name") or "Client sans nom",
             "sale_date": r.get("sale_date") or "",
             "bdc": r.get("bdc") or "",
             "amount": float(r.get("amount") or 0),
