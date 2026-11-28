@@ -1020,20 +1020,21 @@ export default function Dashboard() {
       <Dialog open={salesDetailOpen} onOpenChange={setSalesDetailOpen}>
         <DialogContent className="sm:max-w-md" data-testid="dashboard-sales-detail-dialog">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Ventes comptées</DialogTitle>
-            <DialogDescription>Ce que représentent les {data?.sales?.count ?? 0} ventes retenues dans le CA.</DialogDescription>
+            <DialogTitle className="font-display text-xl">Périmètre du CA</DialogTitle>
+            <DialogDescription>{PERIODS.find((p) => p.key === period)?.label || "Période sélectionnée"} · ce qui entre dans le chiffre d’affaires.</DialogDescription>
           </DialogHeader>
           {salesDetailLoading ? <p className="py-6 text-center text-sm text-slate-500">Chargement du détail…</p> : (
             <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900"><span>Ventes comptées</span><b>{data?.sales?.count ?? "—"}</b></div>
               <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Lignes sur la période</span><b>{salesDetail?.count ?? "—"}</b></div>
-              <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>Exclues du CA</span><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
+              <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>− Exclues du CA</span><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
+              <div className="flex items-center justify-between rounded-lg border-t border-border bg-indigo-50 px-3 py-2 text-indigo-900"><span>= Ventes comptées</span><b>{data?.sales?.count ?? "—"}</b></div>
               <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900"><span>CA retenu</span><b>{fmtEur(data?.ca?.total || 0)}</b></div>
+              <p className="pt-1 text-[11px] leading-relaxed text-slate-500">Une vente DE reste une affaire, même si elle apparaît sur deux lignes commerciales dans le rapport.</p>
             </div>
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => { setSalesDetailOpen(false); nav("/ventes?explain=ca"); }}>Comprendre le CA</Button>
-            <Button type="button" onClick={() => { setSalesDetailOpen(false); nav("/ventes"); }}>Ouvrir le module Ventes</Button>
+            <Button type="button" variant="outline" onClick={() => { setSalesDetailOpen(false); nav("/ventes?explain=ca&tab=excluded"); }}>Voir les exclues</Button>
+            <Button type="button" onClick={() => { setSalesDetailOpen(false); nav("/ventes"); }}>Voir toutes les ventes</Button>
           </div>
         </DialogContent>
       </Dialog>

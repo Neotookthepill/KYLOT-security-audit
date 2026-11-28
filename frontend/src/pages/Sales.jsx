@@ -412,7 +412,9 @@ export default function Sales() {
 
   useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).get("explain") === "ca") setExplainCa(true);
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("explain") === "ca") setExplainCa(true);
+      if (params.get("tab") === "excluded") setExplainTab("excluded");
     } catch (_) {}
   }, []);
 
@@ -421,6 +423,7 @@ export default function Sales() {
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("explain");
+      url.searchParams.delete("tab");
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
     } catch (_) {}
   };
