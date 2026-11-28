@@ -293,6 +293,7 @@ export default function Dashboard() {
   const [salesDetailOpen, setSalesDetailOpen] = useState(false);
   const [salesDetail, setSalesDetail] = useState(null);
   const [salesDetailLoading, setSalesDetailLoading] = useState(false);
+  const [salesDetailTab, setSalesDetailTab] = useState("included");
   const [avgDetailOpen, setAvgDetailOpen] = useState(false);
   const [agendaDetailOpen, setAgendaDetailOpen] = useState(false);
   // iter47 : Activité chantiers navigable — jour + semaine indépendants
@@ -873,6 +874,7 @@ export default function Dashboard() {
 
   const openSalesDetail = async () => {
     setSalesDetailOpen(true);
+    setSalesDetailTab("included");
     if (salesDetail || salesDetailLoading) return;
     setSalesDetailLoading(true);
     try {
@@ -885,6 +887,17 @@ export default function Dashboard() {
       setSalesDetail(null);
     } finally {
       setSalesDetailLoading(false);
+    }
+  };
+
+  const openMetricSale = async (saleId) => {
+    if (!saleId) return;
+    setSalesDetailOpen(false);
+    try {
+      const { data: sale } = await api.get(`/sales/${saleId}`);
+      setViewSale(sale);
+    } catch (_) {
+      nav("/ventes");
     }
   };
 
@@ -1030,24 +1043,41 @@ export default function Dashboard() {
 
 
       <Dialog open={salesDetailOpen} onOpenChange={setSalesDetailOpen}>
-        <DialogContent className="sm:max-w-md" data-testid="dashboard-sales-detail-dialog">
+        <DialogContent className="sm:max-w-lg" data-testid="dashboard-sales-detail-dialog">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Périmètre du CA</DialogTitle>
             <DialogDescription>{PERIODS.find((p) => p.key === period)?.label || "Période sélectionnée"} · ce qui entre dans le chiffre d’affaires.</DialogDescription>
           </DialogHeader>
           {salesDetailLoading ? <p className="py-6 text-center text-sm text-slate-500">Chargement du détail…</p> : (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Lignes sur la période</span><b>{salesDetail?.count ?? "—"}</b></div>
-              <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>− Exclues du CA</span><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
-              <div className="flex items-center justify-between rounded-lg border-t border-border bg-indigo-50 px-3 py-2 text-indigo-900"><span>= Ventes comptées</span><b>{data?.sales?.count ?? "—"}</b></div>
-              <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900"><span>CA retenu</span><b>{fmtEur(data?.ca?.total || 0)}</b></div>
-              <p className="pt-1 text-[11px] leading-relaxed text-slate-500">Une vente DE reste une affaire, même si elle apparaît sur deux lignes commerciales dans le rapport.</p>
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-[11px] text-slate-500">Lignes</p><b>{salesDetail?.count ?? "—"}</b></div>
+                <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-[11px] text-rose-700">Exclues</p><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
+                <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-[11px] text-indigo-700">Comptées</p><b>{data?.sales?.count ?? "—"}</b></div>
+              </div>
+              <p className="text-sm text-slate-600">CA retenu : <b className="text-emerald-700">{fmtEur(data?.ca?.total || 0)}</b></p>
+              <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs" role="tablist" aria-label="Ventes du CA">
+                <button type="button" onClick={() => setSalesDetailTab("included")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${salesDetailTab === "included" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={salesDetailTab === "included"} data-testid="dashboard-sales-tab-included">Comptées ({data?.sales?.count ?? 0})</button>
+                <button type="button" onClick={() => setSalesDetailTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${salesDetailTab === "excluded" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={salesDetailTab === "excluded"} data-testid="dashboard-sales-tab-excluded">Hors CA ({salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : 0})</button>
+              </div>
+              <div className="max-h-[36vh] overflow-y-auto rounded-lg border border-border divide-y divide-border" data-testid={`dashboard-sales-list-${salesDetailTab}`}>
+                {(() => {
+                  const list = salesDetailTab === "included" ? (salesDetail?.included || []) : (salesDetail?.excluded || []);
+                  if (!list.length) return <p className="p-4 text-sm text-slate-500">Aucune vente dans cette catégorie.</p>;
+                  return list.map((sale) => (
+                    <button key={sale.id || `${sale.client_name}-${sale.sale_date}`} type="button" onClick={() => openMetricSale(sale.id)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-muted/50" data-testid={`dashboard-metric-sale-${sale.id || "sale"}`}>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-foreground">{sale.client_name}</span>
+                        <span className="mt-0.5 block text-[11px] text-muted-foreground">{sale.sale_date ? formatDateFR(sale.sale_date) : "—"}{salesDetailTab === "excluded" && sale.status_label ? ` · ${sale.status_label}` : ""}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums text-foreground">{fmtEur(sale.amount)}<ChevronRight size={13} className="text-muted-foreground" /></span>
+                    </button>
+                  ));
+                })()}
+              </div>
+            </>
           )}
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => { setSalesDetailOpen(false); nav("/ventes?explain=ca&tab=excluded"); }}>Voir les exclues</Button>
-            <Button type="button" onClick={() => { setSalesDetailOpen(false); nav("/ventes"); }}>Voir toutes les ventes</Button>
-          </div>
+          <div className="flex justify-end"><Button type="button" onClick={() => { setSalesDetailOpen(false); nav("/ventes"); }}>Ouvrir toutes les ventes</Button></div>
         </DialogContent>
       </Dialog>
 
