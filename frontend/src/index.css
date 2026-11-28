@@ -1167,3 +1167,10 @@ html:not(.dark) .qy-page .text-slate-400 { color: #475569 !important; }
   border-radius: 0 !important;
   color: inherit !important;
 }
+
+.dark .qy-kpi-sales p span,
+.dark .qy-kpi-alerts p span,
+.dark .qy-kpi-agenda p span,
+.dark .qy-kpi-basket p span {
+  color: #f8fafc !important;
+}
