@@ -926,26 +926,29 @@ export default function Dashboard() {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes" : "Ventes comptées"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir le périmètre <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
-          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
+
         </button>
         <button type="button" onClick={() => setAlertsOpen(true)} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-[10px]">catégories</span></p>
             <p className="mt-0.5 max-w-[180px] truncate text-[9px] text-muted-foreground" title={alertSummary || "Rien à traiter"}>{alertSummary || "Rien à traiter"}</p>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Ouvrir les actions <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))] sm:grid"><Bell size={16} /></span>
-          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
+
         </button>
         <button type="button" onClick={() => setAgendaDetailOpen(true)} aria-haspopup="dialog" className={`qy-kpi ${todayEvents === 0 ? "qy-kpi-agenda-empty" : "qy-kpi-agenda"} group relative flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md`}>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir l’agenda <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
-          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
+
         </button>
         <button type="button" onClick={() => setAvgDetailOpen(true)} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
@@ -953,9 +956,10 @@ export default function Dashboard() {
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
               {data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}
             </p>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir le calcul <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--info-soft))] text-[hsl(var(--info))] sm:grid"><Receipt size={16} /></span>
-          <ChevronRight size={13} className="absolute bottom-2 right-3 text-muted-foreground/50" aria-hidden="true" />
+
         </button>
       </div>
 
