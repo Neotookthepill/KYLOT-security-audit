@@ -1017,6 +1017,21 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {isMobile && (
+        <button
+          type="button"
+          aria-expanded={mobileAll}
+          onClick={() => {
+            const next = !mobileAll;
+            setMobileAll(next);
+            if (next) requestAnimationFrame(() => document.querySelector('[data-testid="dashboard-grid"]')?.scrollIntoView({ behavior: "smooth", block: "start" }));
+          }}
+          className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground shadow-sm"
+        >
+          {mobileAll ? "Réduire le tableau de bord" : "Afficher tous les blocs"}
+        </button>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6" style={{ gridAutoFlow: "row dense" }} data-testid="dashboard-grid">
         {visibleOrder.map((k) => {
           const visibleIndex = visibleOrder.indexOf(k);
@@ -1035,11 +1050,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {isMobile && (
-        <button type="button" onClick={() => setMobileAll((v) => !v)} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-medium text-muted-foreground shadow-sm">
-          {mobileAll ? "Réduire le tableau de bord" : "Afficher tous les blocs"}
-        </button>
-      )}
 
 
       <Dialog open={salesDetailOpen} onOpenChange={setSalesDetailOpen}>
