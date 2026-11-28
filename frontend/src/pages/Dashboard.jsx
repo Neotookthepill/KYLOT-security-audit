@@ -924,9 +924,9 @@ export default function Dashboard() {
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <button type="button" onClick={openSalesDetail} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes" : "Ventes comptées"}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes comptées" : "Ventes comptées dans le CA"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
-            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir le périmètre <ChevronRight size={11} /></span>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir le détail du CA <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
 
@@ -945,14 +945,14 @@ export default function Dashboard() {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Agenda du jour</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{todayEvents}<span className="ml-1 text-[9px] font-normal text-muted-foreground sm:text-xs">événement{todayEvents > 1 ? "s" : ""}</span></p>
-            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Voir l’agenda <ChevronRight size={11} /></span>
+            <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-primary">Ouvrir le planning <ChevronRight size={11} /></span>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-[hsl(var(--success-soft))] text-[hsl(var(--success))] sm:grid"><CalendarClock size={16} /></span>
 
         </button>
         <button type="button" onClick={() => setAvgDetailOpen(true)} className="qy-kpi qy-kpi-basket group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">ventes comptées CA</span></p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">Montant moyen par vente<span className="block text-[9px] font-medium normal-case tracking-normal opacity-80">ventes comptées dans le CA</span></p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl" title="Chiffre d’affaires de la période ÷ nombre de ventes">
               {data?.sales?.count > 0 ? fmtEur((data?.ca?.total || 0) / data.sales.count) : "—"}
             </p>
