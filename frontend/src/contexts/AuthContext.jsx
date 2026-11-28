@@ -106,9 +106,15 @@ export function AuthProvider({ children }) {
   }, [user?.id, refreshUser]);
 
   const establishSession = async (data) => {
-    await prepareOfflineSession(data.user?.id);
+    // La session serveur est valide : une panne du cache IndexedDB ne doit
+    // jamais transformer une connexion réussie en erreur visible.
+    try {
+      await prepareOfflineSession(data.user?.id);
+    } catch (err) {
+      console.warn("Cache hors ligne indisponible", err);
+    }
     setUser(data.user);
-    syncOffline();
+    try { syncOffline(); } catch (_) {}
     return data.user;
   };
 

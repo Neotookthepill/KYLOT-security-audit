@@ -1,4 +1,4 @@
-import { createStore, get, set, del, keys } from "idb-keyval";
+import { createStore, get, set, del, keys, clear } from "idb-keyval";
 
 // Mode hors ligne : cache des GET + file d'attente des modifications rejouée au retour du réseau
 const cacheStore = createStore("qylot-offline", "cache");
@@ -41,12 +41,15 @@ export const cacheKey = (config) => {
   return `${identity || "unauthenticated"} GET ${pathOf(config.url)}${query ? `?${query}` : ""}`;
 };
 
+// IndexedDB peut fermer sa connexion pendant une navigation ou un login
+// (Safari mobile notamment). Le cache hors ligne est un confort : il ne doit
+// jamais empêcher l'utilisateur de se connecter.
 const clearCacheOnly = async () => {
-  for (const key of await keys(cacheStore)) await del(key, cacheStore);
+  try { await clear(cacheStore); } catch (_) { /* cache indisponible */ }
 };
 
 const clearQueueOnly = async () => {
-  for (const key of await keys(queueStore)) await del(key, queueStore);
+  try { await clear(queueStore); } catch (_) { /* file indisponible */ }
   emit({ pending: 0, conflict: null, lastError: null });
 };
 
@@ -87,24 +90,28 @@ export const prepareOfflineSession = async (userId) => {
   const next = userId ? String(userId) : null;
   await clearCacheOnly();
   clearSensitiveSessionStorage();
-  const q = await getQueue();
-  const owner = await get(OWNER_KEY, queueStore);
+  let q = [];
+  try { q = await getQueue(); } catch (_) { q = []; }
+  let owner = null;
+  try { owner = await get(OWNER_KEY, queueStore); } catch (_) { owner = null; }
   if (q.length && owner && next && String(owner) !== next) {
     // Compte différent : ne jamais rejouer les opérations de l'ancien compte.
     await clearQueueOnly();
   } else if (next) {
     // File vide, même compte, ou file legacy sans propriétaire : on rattache
     // la file au compte qui vient de s'authentifier.
-    await set(OWNER_KEY, next, queueStore);
+    try { await set(OWNER_KEY, next, queueStore); } catch (_) {}
   }
   if (!q.length) emit({ pending: 0, conflict: null, lastError: null });
   setOfflineIdentity(next);
-  await refreshPending();
+  try { await refreshPending(); } catch (_) {}
 };
 
 // L'adaptateur reçoit le corps brut (chaîne JSON) avant transformResponse : on stocke toujours l'objet parsé
 const asJson = (d) => { if (typeof d !== "string") return d; try { return JSON.parse(d); } catch { return d; } };
-export const readCache = async (k) => asJson(await get(k, cacheStore));
+export const readCache = async (k) => {
+  try { return asJson(await get(k, cacheStore)); } catch (_) { return null; }
+};
 export const writeCache = (k, data) => set(k, asJson(data), cacheStore).catch(() => {});
 
 const getQueue = async () => (await get(QUEUE_KEY, queueStore)) || [];
