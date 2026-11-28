@@ -17,7 +17,7 @@ import EditSaleSheet from "@/components/EditSaleSheet";
 import { SaleDetailDialog } from "@/pages/Sales";
 import TodayTodos from "@/components/TodayTodos";
 import ChallengeWidget from "@/components/ChallengeWidget";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
