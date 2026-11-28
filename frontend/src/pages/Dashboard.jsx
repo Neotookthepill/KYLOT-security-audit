@@ -289,6 +289,7 @@ export default function Dashboard() {
   const [openNew, setOpenNew] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [viewSale, setViewSale] = useState(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   // iter47 : Activité chantiers navigable — jour + semaine indépendants
   const [activityData, setActivityData] = useState(null);
   const [dayIso, setDayIso] = useState(() => toIsoLocal(new Date()));
@@ -887,14 +888,14 @@ export default function Dashboard() {
       </header>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => nav("/ventes?explain=ca")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">{isCommercial ? "Mes ventes" : "Ventes"}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes" : "Ventes comptées"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
           </div>
           <span className="hidden h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary sm:grid"><TrendingUp size={16} /></span>
         </button>
-        <button type="button" onClick={() => nav("/chantiers")} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
+        <button type="button" onClick={() => setAlertsOpen(true)} className="qy-kpi qy-kpi-alerts group flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground">À traiter</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{alertCount}</p>
@@ -984,6 +985,29 @@ export default function Dashboard() {
         </button>
       )}
 
+
+      <Dialog open={alertsOpen} onOpenChange={setAlertsOpen}>
+        <DialogContent className="sm:max-w-lg" data-testid="dashboard-alerts-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">À traiter</DialogTitle>
+            <DialogDescription>Les points qui attendent une décision maintenant.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {Array.isArray(data?.alerts) && data.alerts.length > 0 ? data.alerts.map((a) => (
+              <button key={a.key} type="button" onClick={() => { setAlertsOpen(false); nav(a.href || "/chantiers"); }} className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40" data-testid={`dashboard-alert-${a.key}`}>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700"><Bell size={15} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-foreground">{a.label}</span>
+                  <span className="mt-0.5 block text-[11px] text-muted-foreground">Ouvrir et traiter</span>
+                </span>
+                <ArrowRight size={14} className="shrink-0 text-muted-foreground" />
+              </button>
+            )) : (
+              <p className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">Rien à traiter pour cette période.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <NewSaleSheet open={openNew} onOpenChange={setOpenNew} onCreated={load} />
       <EditSaleSheet sale={editingSale} open={!!editingSale} onOpenChange={(v) => !v && setEditingSale(null)} onSaved={load} />

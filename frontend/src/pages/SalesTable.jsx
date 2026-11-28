@@ -179,7 +179,7 @@ export default function SalesTable() {
           })}
         </div>
       </Card>
-      <p className="mt-3 text-xs text-slate-500">Total affiché : {fmtEur(rows.reduce((a, c) => a + (c.ca || 0), 0))} · {rows.reduce((a, c) => a + (c.count || 0), 0)} vente(s)</p>
+      <p className="mt-3 text-xs text-slate-500">Total affiché : {fmtEur(rows.reduce((a, c) => a + (c.ca || 0), 0))} · {rows.reduce((a, c) => a + (c.count || 0), 0)} ligne(s) commerciale(s) <span className="text-slate-400">(une vente DE = 2 lignes)</span></p>
     </div>
   );
 }

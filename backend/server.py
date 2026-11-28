@@ -6921,9 +6921,16 @@ async def _compute_monthly_report(prefix: str, user: dict) -> dict:
                     b["sources"][src] += 1
 
     rows = sorted(per_commercial.values(), key=lambda r: r["ca_total"], reverse=True)
+    raw_sales_count = len(sales)
+    raw_counted_count = sum(1 for s in sales if status_caps.get(s.get("status"), {}).get("countsCA", False))
     totals = {
         "sales_count": sum(r["sales_count"] for r in rows),
         "active_count": sum(r["active_count"] for r in rows),
+        # Une vente DE est une affaire, mais deux lignes commerciales.
+        # On expose les deux périmètres pour ne plus afficher des compteurs différents
+        # sans explication.
+        "deals_total": raw_sales_count,
+        "deals_counted": raw_counted_count,
         "cancelled_count": sum(r["cancelled_count"] for r in rows),
         "litige_count": sum(r["litige_count"] for r in rows),
         "ca_total": sum(r["ca_total"] for r in rows),

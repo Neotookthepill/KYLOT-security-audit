@@ -336,6 +336,7 @@ export default function Sales() {
   const [loadError, setLoadError] = useState(false);
   const [summary, setSummary] = useState({ count: 0, total: 0, by_commercial: [] });
   const [summaryKey, setSummaryKey] = useState("");
+  const [explainCa, setExplainCa] = useState(false);
   const [pageTotal, setPageTotal] = useState(0);
   const [pageOffset, setPageOffset] = useState(0);
   const [salesLoading, setSalesLoading] = useState(false);
@@ -406,6 +407,21 @@ export default function Sales() {
 
   const periodKey = `${bounds.from}|${bounds.to}`;
   const summaryReady = summaryKey === periodKey;
+
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("explain") === "ca") setExplainCa(true);
+    } catch (_) {}
+  }, []);
+
+  const closeExplainCa = () => {
+    setExplainCa(false);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("explain");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+    } catch (_) {}
+  };
   const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
 
   const load = async (nextOffset = 0, { append = false } = {}) => {
@@ -874,6 +890,9 @@ export default function Sales() {
               {summaryReady ? fmtEur(stats.total) : "…"}
             </p>
             <p className="text-[11px] text-slate-500 mt-1">{bounds.label} · {summaryReady ? "statuts comptés dans le CA" : "chargement…"}</p>
+            <button type="button" onClick={() => setExplainCa(true)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#5271FF] hover:underline" data-testid="sales-ca-explain">
+              Comprendre ce chiffre →
+            </button>
           </div>
           <div className="qy-sales-summary-objective border-r border-slate-200 p-4 sm:p-5">
             <div className="flex items-center gap-2">
@@ -930,6 +949,25 @@ export default function Sales() {
           </div>
         </div>
       </Card>
+
+      <Dialog open={explainCa} onOpenChange={(v) => { if (!v) closeExplainCa(); }}>
+        <DialogContent className="sm:max-w-md" data-testid="sales-ca-explain-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Comprendre le CA</DialogTitle>
+            <DialogDescription>Ce qui entre dans le chiffre d’affaires de la période.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"><span>Lignes sur la période</span><b>{summaryReady ? summary.count : "…"}</b></div>
+            <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2 text-indigo-900"><span>Comptées dans le CA</span><b>{summaryReady ? (summary.ca_count ?? summary.count) : "…"}</b></div>
+            <div className="flex items-center justify-between rounded-lg bg-rose-50 px-3 py-2 text-rose-900"><span>Exclues du CA</span><b>{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
+            <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-3 py-2 text-emerald-900"><span>CA retenu</span><b>{summaryReady ? fmtEur(stats.total) : "…"}</b></div>
+          </div>
+          <p className="text-xs leading-relaxed text-slate-500">
+            Le CA ne retient que les statuts autorisés. Une vente DE peut compter pour deux lignes commerciales dans le rapport, mais reste une seule affaire ici.
+          </p>
+          <div className="flex justify-end"><Button type="button" variant="outline" onClick={closeExplainCa}>Fermer</Button></div>
+        </DialogContent>
+      </Dialog>
 
       {/* iter63 : la barre de période a été remontée tout en haut de la page (au-dessus des KPIs).
           Cet emplacement d'origine est laissé vide pour ne pas dupliquer la barre. */}
