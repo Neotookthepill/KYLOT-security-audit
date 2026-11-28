@@ -1052,13 +1052,13 @@ export default function Dashboard() {
             <>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-[11px] text-slate-500">Ventes au total</p><b>{salesDetail?.count ?? "—"}</b></div>
-                <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-[11px] text-rose-700">Exclues</p><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
+                <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-[11px] text-rose-700">Hors CA</p><b>{salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : "—"}</b></div>
                 <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-[11px] text-indigo-700">Comptées</p><b>{data?.sales?.count ?? "—"}</b></div>
               </div>
               <p className="text-sm text-slate-600">CA retenu : <b className="text-emerald-700">{fmtEur(data?.ca?.total || 0)}</b></p>
               <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs" role="tablist" aria-label="Ventes du CA">
                 <button type="button" onClick={() => setSalesDetailTab("included")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${salesDetailTab === "included" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={salesDetailTab === "included"} data-testid="dashboard-sales-tab-included">Comptées ({data?.sales?.count ?? 0})</button>
-                <button type="button" onClick={() => setSalesDetailTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${salesDetailTab === "excluded" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={salesDetailTab === "excluded"} data-testid="dashboard-sales-tab-excluded">Hors CA ({salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : 0})</button>
+                <button type="button" onClick={() => setSalesDetailTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${salesDetailTab === "excluded" ? "bg-rose-50 text-rose-800 shadow-sm ring-1 ring-rose-200" : "text-slate-600"}`} role="tab" aria-selected={salesDetailTab === "excluded"} data-testid="dashboard-sales-tab-excluded">Hors CA ({salesDetail ? Math.max(0, (salesDetail.count || 0) - (salesDetail.ca_count || 0)) : 0})</button>
               </div>
               <div className="max-h-[36vh] overflow-y-auto rounded-lg border border-border divide-y divide-border" data-testid={`dashboard-sales-list-${salesDetailTab}`}>
                 {(() => {

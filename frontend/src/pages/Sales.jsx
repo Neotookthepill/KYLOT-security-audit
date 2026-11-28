@@ -964,13 +964,13 @@ export default function Sales() {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg bg-slate-50 px-2.5 py-2"><p className="text-slate-500">Ventes au total</p><b className="mt-0.5 block text-base text-slate-900">{summaryReady ? summary.count : "…"}</b></div>
             <div className="rounded-lg bg-indigo-50 px-2.5 py-2 text-indigo-900"><p className="text-indigo-700/80">Comptées</p><b className="mt-0.5 block text-base">{summaryReady ? (summary.ca_count ?? summary.count) : "…"}</b></div>
-            <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-rose-700/80">Exclues</p><b className="mt-0.5 block text-base">{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
+            <div className="rounded-lg bg-rose-50 px-2.5 py-2 text-rose-900"><p className="text-rose-700/80">Hors CA</p><b className="mt-0.5 block text-base">{summaryReady ? Math.max(0, summary.count - (summary.ca_count ?? summary.count)) : "…"}</b></div>
             <div className="rounded-lg bg-emerald-50 px-2.5 py-2 text-emerald-900"><p className="text-emerald-700/80">CA retenu</p><b className="mt-0.5 block text-base">{summaryReady ? fmtEur(stats.total) : "…"}</b></div>
           </div>
 
           <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-xs" role="tablist" aria-label="Détail du CA">
             <button type="button" onClick={() => setExplainTab("included")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${explainTab === "included" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={explainTab === "included"} data-testid="sales-ca-tab-included">Comptées dans le CA</button>
-            <button type="button" onClick={() => setExplainTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${explainTab === "excluded" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`} role="tab" aria-selected={explainTab === "excluded"} data-testid="sales-ca-tab-excluded">Hors CA</button>
+            <button type="button" onClick={() => setExplainTab("excluded")} className={`flex-1 rounded-md px-2 py-1.5 font-medium ${explainTab === "excluded" ? "bg-rose-50 text-rose-800 shadow-sm ring-1 ring-rose-200" : "text-slate-600"}`} role="tab" aria-selected={explainTab === "excluded"} data-testid="sales-ca-tab-excluded">Hors CA</button>
           </div>
 
           <div className="max-h-[42vh] overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100" data-testid={`sales-ca-list-${explainTab}`}>
