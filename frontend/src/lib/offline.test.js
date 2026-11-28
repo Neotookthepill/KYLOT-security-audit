@@ -9,6 +9,7 @@ jest.mock("idb-keyval", () => ({
   },
   del: async (key, store) => mockStores.get(store)?.delete(key),
   keys: async (store) => [...(mockStores.get(store)?.keys() || [])],
+  clear: async (store) => mockStores.delete(store),
 }));
 
 import {

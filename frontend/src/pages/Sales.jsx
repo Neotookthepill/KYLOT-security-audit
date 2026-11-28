@@ -339,6 +339,8 @@ export default function Sales() {
   const [summaryKey, setSummaryKey] = useState("");
   const [explainCa, setExplainCa] = useState(false);
   const [explainTab, setExplainTab] = useState("included");
+  const [explainDetail, setExplainDetail] = useState(null);
+  const [explainLoading, setExplainLoading] = useState(false);
   const [pageTotal, setPageTotal] = useState(0);
   const [pageOffset, setPageOffset] = useState(0);
   const [salesLoading, setSalesLoading] = useState(false);
@@ -427,6 +429,17 @@ export default function Sales() {
       window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
     } catch (_) {}
   };
+
+  useEffect(() => {
+    if (!explainCa) return;
+    let cancelled = false;
+    setExplainLoading(true);
+    api.get(`/sales/summary?from_date=${encodeURIComponent(bounds.from)}&to_date=${encodeURIComponent(bounds.to)}&include_details=true`)
+      .then(({ data }) => { if (!cancelled) setExplainDetail(data); })
+      .catch(() => { if (!cancelled) setExplainDetail(null); })
+      .finally(() => { if (!cancelled) setExplainLoading(false); });
+    return () => { cancelled = true; };
+  }, [explainCa, bounds.from, bounds.to]);
   const pageSize = () => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? 25 : 100);
 
   const load = async (nextOffset = 0, { append = false } = {}) => {
@@ -975,8 +988,8 @@ export default function Sales() {
 
           <div className="max-h-[42vh] overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100" data-testid={`sales-ca-list-${explainTab}`}>
             {(() => {
-              const list = explainTab === "included" ? (summary.included || []) : (summary.excluded || []);
-              if (!summaryReady) return <p className="p-4 text-sm text-slate-500">Chargement…</p>;
+              const list = explainTab === "included" ? (explainDetail?.included || []) : (explainDetail?.excluded || []);
+              if (explainLoading) return <p className="p-4 text-sm text-slate-500">Chargement des ventes…</p>;
               if (!list.length) return <p className="p-4 text-sm text-slate-500">Aucune vente dans cette catégorie.</p>;
               return list.map((sale) => (
                 <div key={sale.id || `${sale.client_name}-${sale.sale_date}`} className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm" data-testid={`sales-ca-${explainTab}-${sale.id || "sale"}`}>

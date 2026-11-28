@@ -880,17 +880,22 @@ export default function Dashboard() {
   const todayEvents = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())).length : 0;
   const todayEventsList = Array.isArray(events) ? events.filter((e) => String(e.date || e.start || "").slice(0, 10) === toIsoLocal(new Date())) : [];
 
+  useEffect(() => {
+    setSalesDetail(null);
+    setSalesDetailOpen(false);
+  }, [period]);
+
   const openSalesDetail = async () => {
     setSalesDetailOpen(true);
     setSalesDetailTab("included");
-    if (salesDetail || salesDetailLoading) return;
+    if (salesDetail?.period === period || salesDetailLoading) return;
     setSalesDetailLoading(true);
     try {
       const from = data?.range?.start;
       const to = data?.range?.end;
-      const url = from && to ? `/sales/summary?from_date=${from}&to_date=${to}` : "/sales/summary";
+      const url = from && to ? `/sales/summary?from_date=${from}&to_date=${to}&include_details=true` : "/sales/summary?include_details=true";
       const { data: detail } = await api.get(url);
-      setSalesDetail(detail);
+      setSalesDetail({ ...detail, period });
     } catch (_) {
       setSalesDetail(null);
     } finally {

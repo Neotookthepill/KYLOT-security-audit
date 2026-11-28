@@ -3193,6 +3193,7 @@ async def _resolve_commercial_user_id(user: dict, commercial_name: str) -> Optio
 async def sales_summary(
     from_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     to_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    include_details: bool = Query(False),
     user: dict = Depends(get_current_user),
 ):
     """Agrégats de la période pour la page Ventes (CA, commerciaux, sources)."""
@@ -3239,8 +3240,8 @@ async def sales_summary(
             "status_label": status_labels.get(r.get("status"), r.get("status") or "Statut inconnu"),
             "commercial": r.get("commercial") or "",
         }
-    included_list = [_metric_sale(r) for r in sorted(active, key=lambda x: x.get("sale_date") or "", reverse=True)]
-    excluded_list = [_metric_sale(r) for r in sorted(excluded, key=lambda x: x.get("sale_date") or "", reverse=True)]
+    included_list = [_metric_sale(r) for r in sorted(active, key=lambda x: x.get("sale_date") or "", reverse=True)] if include_details else []
+    excluded_list = [_metric_sale(r) for r in sorted(excluded, key=lambda x: x.get("sale_date") or "", reverse=True)] if include_details else []
     total = sum(float(r.get("amount") or 0) for r in active)
     grouped = {}
     for row in active:
