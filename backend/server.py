@@ -3230,6 +3230,7 @@ async def sales_summary(
     def _metric_sale(r):
         return {
             "id": r.get("id"),
+            "client_id": r.get("client_id"),
             "client_name": client_names.get(r.get("client_id")) or r.get("client_name") or "Client sans nom",
             "sale_date": r.get("sale_date") or "",
             "bdc": r.get("bdc") or "",

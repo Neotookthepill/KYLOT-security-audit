@@ -1065,13 +1065,17 @@ export default function Dashboard() {
                   const list = salesDetailTab === "included" ? (salesDetail?.included || []) : (salesDetail?.excluded || []);
                   if (!list.length) return <p className="p-4 text-sm text-slate-500">Aucune vente dans cette catégorie.</p>;
                   return list.map((sale) => (
-                    <button key={sale.id || `${sale.client_name}-${sale.sale_date}`} type="button" onClick={() => openMetricSale(sale.id)} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition hover:bg-muted/50" data-testid={`dashboard-metric-sale-${sale.id || "sale"}`}>
-                      <span className="min-w-0">
+                    <div key={sale.id || `${sale.client_name}-${sale.sale_date}`} className="flex w-full items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-muted/50" data-testid={`dashboard-metric-sale-${sale.id || "sale"}`}>
+                      <button type="button" onClick={() => { if (sale.client_id) { setSalesDetailOpen(false); nav(`/clients?open=${sale.client_id}`); } else { openMetricSale(sale.id); } }} className="min-w-0 flex-1 text-left" title="Ouvrir la fiche client">
                         <span className="block truncate text-sm font-medium text-foreground">{sale.client_name}</span>
                         <span className="mt-0.5 block text-[11px] text-muted-foreground">{sale.sale_date ? formatDateFR(sale.sale_date) : "—"}{salesDetailTab === "excluded" && sale.status_label ? ` · ${sale.status_label}` : ""}</span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums text-foreground">{fmtEur(sale.amount)}<ChevronRight size={13} className="text-muted-foreground" /></span>
-                    </button>
+                        <span className="mt-0.5 block text-[10px] font-medium text-primary">Fiche client</span>
+                      </button>
+                      <button type="button" onClick={() => openMetricSale(sale.id)} className="flex shrink-0 flex-col items-end gap-0.5 text-sm font-semibold tabular-nums text-foreground" title="Ouvrir la vente">
+                        {fmtEur(sale.amount)}
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-primary">Vente <ChevronRight size={11} /></span>
+                      </button>
+                    </div>
                   ));
                 })()}
               </div>
