@@ -895,7 +895,7 @@ export default function Dashboard() {
       </header>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        <button type="button" onClick={() => nav("/ventes?explain=ca")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
+        <button type="button" onClick={() => nav("/ventes")} className="qy-kpi qy-kpi-sales group flex items-center justify-between rounded-2xl border border-border bg-card px-2.5 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md sm:px-4 sm:py-3.5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-muted-foreground" title="Ventes comptées dans le CA — une vente DE reste une affaire">{isCommercial ? "Mes ventes" : "Ventes comptées"}</p>
             <p className="mt-1 font-display text-lg font-semibold tabular-nums sm:text-xl">{data?.sales?.count ?? 0}</p>
