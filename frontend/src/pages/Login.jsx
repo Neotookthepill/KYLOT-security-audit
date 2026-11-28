@@ -7,14 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Compass, Eye, EyeOff, ShieldCheck, LockKeyhole } from "lucide-react";
+import { ArrowUpRight, Compass, Eye, EyeOff, ShieldCheck, LockKeyhole } from "lucide-react";
 import IntroSplash from "@/components/IntroSplash";
-
-const PROOF = [
-  "Ventes et commissions centralisées",
-  "Planning et chantiers synchronisés",
-  "Les mêmes données au bureau et sur le terrain",
-];
 
 export default function Login() {
   const { login, verifyMfa } = useAuth();
@@ -90,41 +84,25 @@ export default function Login() {
           </div>
 
           <div className="relative my-auto max-w-[570px] py-12">
-            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#5271FF]">Le logiciel des entreprises qui construisent</p>
-            <h1 className="mt-5 font-display text-[46px] font-semibold leading-[.98] tracking-[-.055em] xl:text-[58px]">
+            <h1 className="font-display text-[46px] font-semibold leading-[.98] tracking-[-.055em] xl:text-[58px]">
               Vos ventes.<br />Vos chantiers.<br /><span className="text-[#5271FF]">Votre équipe.</span>
             </h1>
-            <p className="mt-7 max-w-[430px] text-[15px] leading-relaxed text-white/60">
-              Ventes, chantiers et planning dans un seul outil.
+            <p className="mt-6 max-w-[430px] text-[15px] leading-relaxed text-white/55">
+              Du premier contact à la marge validée.
             </p>
-            <ul className="mt-9 space-y-3.5">
-              {PROOF.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[13px] text-white/75">
-                  <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#5271FF]/15 text-[#5271FF]"><Check size={12} strokeWidth={2.5} /></span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-
             <div className="qy-login-timeline mt-9 rounded-2xl border border-white/10 bg-white/[.045] p-4 backdrop-blur-sm" data-testid="login-flow-preview">
-              <div className="flex items-center justify-between">
-                <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/40">Parcours type</p>
-                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[9px] text-white/40">Exemple de flux</span>
-              </div>
-              <ol className="relative mt-4 space-y-3">
+              <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/40">Le parcours Qylot</p>
+              <ol className="relative mt-3 space-y-3">
                 <span className="pointer-events-none absolute bottom-2 left-[9px] top-2 w-px bg-white/10" aria-hidden="true" />
                 {[
-                  ["01", "Vente signée", "Le commercial enregistre l’affaire."],
-                  ["02", "Chantier planifié", "L’intervention entre au calendrier."],
-                  ["03", "Équipe affectée", "Techniciens et sous-traitants sont assignés."],
-                  ["04", "Marge suivie", "Les coûts sont complétés, la marge validée."],
-                ].map(([num, title, desc], i) => (
+                  ["01", "Vente signée"],
+                  ["02", "Chantier planifié"],
+                  ["03", "Équipe affectée"],
+                  ["04", "Marge suivie"],
+                ].map(([num, title], i) => (
                   <li key={num} className="relative flex items-start gap-3" data-testid={`login-flow-step-${i + 1}`}>
                     <span className={`relative z-10 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[9px] font-semibold ${i === 3 ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300" : "border-white/20 bg-[#111827] text-white/60"}`}>{num}</span>
-                    <div className="min-w-0">
-                      <p className={`text-[11px] font-medium ${i === 3 ? "text-emerald-200" : "text-white/80"}`}>{title}</p>
-                      <p className="mt-0.5 text-[10px] leading-snug text-white/35">{desc}</p>
-                    </div>
+                    <p className={`text-[11px] font-medium ${i === 3 ? "text-emerald-200" : "text-white/80"}`}>{title}</p>
                   </li>
                 ))}
               </ol>
